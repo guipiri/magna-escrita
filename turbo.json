@@ -7,6 +7,23 @@
       "outputs": ["dist/**"]
     },
     "lint": {},
+    "test": {
+      "outputs": []
+    },
+    "test:cov": {
+      "outputs": ["coverage/**"]
+    },
+    "test:e2e": {
+      "outputs": []
+    },
+    "test:watch": {
+      "cache": false,
+      "persistent": true
+    },
+    "test:debug": {
+      "cache": false,
+      "persistent": true
+    },
     "dev": {
       "cache": false,
       "persistent": true

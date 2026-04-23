@@ -5,6 +5,8 @@
     "declaration": true,
     "declarationMap": true,
     "esModuleInterop": true,
+    "removeComments": true,
+    "strictNullChecks": true,
     "forceConsistentCasingInFileNames": true,
     "inlineSources": false,
     "isolatedModules": true,
