@@ -1,10 +1,26 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import {
+  // GoogleVisionExtractTextFromImageService,
+  FastApiTrocrExtractTextFromImageService,
+} from './extract-text-from-image.service';
 
 @Module({
-  imports: [],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['apps/api/.env', '.env'],
+    }),
+  ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: 'ExtractTextFromImageService',
+      useClass: FastApiTrocrExtractTextFromImageService,
+    },
+  ],
 })
 export class AppModule {}
