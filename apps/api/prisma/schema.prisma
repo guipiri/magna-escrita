@@ -1,0 +1,118 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROCESS
+  APPROVED
+  REJECTED
+  CANCELLED
+  REFUNDED
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  mpId            String      @unique
+  status          OrderStatus @default(PENDING)
+  paymentMethodId String
+  totalAmount     Decimal     @db.Decimal(10, 2)
+  email           String?
+  token           String?
+  installments    Int?
+  items           OrderItem[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model Price {
+  id     String  @id @default(cuid())
+  amount Decimal @db.Decimal(10, 2)
+  books  Book[]
+}
+
+model Book {
+  id          String       @id @default(cuid())
+  title       String
+  author      String
+  description String?
+  pages       Page[]
+  priceId     String
+  price       Price        @relation(fields: [priceId], references: [id])
+  enrollments Enrollment[]
+  orderItems  OrderItem[]
+}
+
+model OrderItem {
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id])
+  quantity  Int
+  amount    Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+
+  @@unique([orderId, bookId])
+}
+
+model Page {
+  number       Int     @id
+  content      String?
+  drawImageUrl String?
+  book         Book?   @relation(fields: [bookId], references: [id])
+  bookId       String?
+}
+
+model Student {
+  id          String       @id @default(cuid())
+  name        String
+  enrollments Enrollment[]
+}
+
+model Enrollment {
+  id         String     @id @default(cuid())
+  studentId  String
+  student    Student    @relation(fields: [studentId], references: [id])
+  bookId     String
+  book       Book       @relation(fields: [bookId], references: [id])
+  schoolYear SchoolYear
+  gardeId    String
+  grade      Grade      @relation(fields: [gardeId], references: [id])
+}
+
+enum SchoolYear {
+  YEAR_2026 @map("2026")
+  YEAR_2027 @map("2027")
+}
+
+model Grade {
+  id          String       @id @default(cuid())
+  name        String
+  units       Unit         @relation(fields: [unitId], references: [id])
+  unitId      String
+  enrollments Enrollment[]
+}
+
+model Unit {
+  id       String  @id @default(cuid())
+  name     String
+  schoolId String
+  school   School  @relation(fields: [schoolId], references: [id])
+  grades   Grade[]
+}
+
+model School {
+  id    String @id @default(cuid())
+  name  String
+  units Unit[]
+}

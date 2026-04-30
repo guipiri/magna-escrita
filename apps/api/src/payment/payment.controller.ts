@@ -1,7 +1,7 @@
 import { Controller, Post, Body, Query, UseGuards } from '@nestjs/common';
-import { PaymentService } from './payment.service';
-import { CreateOrderDto } from './dto/create-preference.dto';
-import { WebhookSignatureGuard } from './guards/webhook-signature.guard';
+import { PaymentService } from './payment.service.js';
+import { CreateOrderDto } from './dto/create-preference.dto.js';
+import { WebhookSignatureGuard } from './guards/webhook-signature.guard.js';
 
 @Controller('order')
 export class PaymentController {

@@ -1,14 +1,14 @@
 import { Module, Global } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { PaymentService } from './payment.service';
-import { PaymentController } from './payment.controller';
-import { MercadoPagoProvider } from './providers/mercado-pago.provider';
+import { PaymentService } from './payment.service.js';
+import { MercadoPagoProvider } from './providers/mercado-pago.provider.js';
+import { PaymentController } from './payment.controller.js';
+import { DbModule } from '../db/db.module.js';
 
 @Global()
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, DbModule],
   providers: [MercadoPagoProvider, PaymentService],
   controllers: [PaymentController],
-  exports: [MercadoPagoProvider],
 })
 export class PaymentModule {}

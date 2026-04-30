@@ -1,4 +1,4 @@
-import * as Joi from 'joi';
+import Joi from 'joi';
 
 export const validationSchema = Joi.object({
   NODE_ENV: Joi.string()
@@ -9,4 +9,5 @@ export const validationSchema = Joi.object({
   MERCADOPAGO_WEBHOOK_SECRET: Joi.string().required(),
   APP_URL: Joi.string().uri().required(),
   API_URL: Joi.string().uri().required(),
+  DATABASE_URL: Joi.string().uri().required(),
 });

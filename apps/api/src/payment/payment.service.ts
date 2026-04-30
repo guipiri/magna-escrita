@@ -1,10 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { MercadoPagoProvider } from './providers/mercado-pago.provider';
-import { CreateOrderDto } from './dto/create-preference.dto';
+import { randomUUID } from 'node:crypto';
+import { MercadoPagoProvider } from './providers/mercado-pago.provider.js';
+import { CreateOrderDto } from './dto/create-preference.dto.js';
+import { PrismaService } from '../db/db.service.js';
 
 @Injectable()
 export class PaymentService {
-  constructor(private readonly mercadoPagoProvider: MercadoPagoProvider) {}
+  constructor(
+    private readonly mercadoPagoProvider: MercadoPagoProvider,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async createOrder(data: CreateOrderDto) {
     if (data.payment_method_id === 'pix') {
@@ -17,12 +22,12 @@ export class PaymentService {
   private async createPixOrder(data: CreateOrderDto) {
     try {
       const totalAmount = (data.price * data.quantity).toFixed(2);
-      const externalRef = `order-${Date.now()}`;
+      const orderId = randomUUID();
 
-      const order = await this.mercadoPagoProvider.order.create({
+      const mpOrder = await this.mercadoPagoProvider.order.create({
         body: {
           type: 'online',
-          external_reference: externalRef,
+          external_reference: orderId,
           total_amount: totalAmount,
           processing_mode: 'automatic',
           payer: {
@@ -42,7 +47,18 @@ export class PaymentService {
         },
       });
 
-      return { order };
+      const order = await this.prisma.order.create({
+        data: {
+          id: orderId,
+          mpId: mpOrder.id || orderId,
+          paymentMethodId: 'pix',
+          totalAmount: parseFloat(totalAmount),
+          email: data.email,
+          status: 'PENDING',
+        },
+      });
+
+      return { order, mpOrder };
     } catch (error: any) {
       console.error('Erro ao criar Order PIX:', error);
       throw new Error(`Erro ao criar Order PIX: ${error}`);
@@ -60,12 +76,12 @@ export class PaymentService {
     } = data;
     try {
       const totalAmount = (price * quantity).toFixed(2);
-      const externalRef = `order-${Date.now()}`;
+      const orderId = randomUUID();
 
-      const order = await this.mercadoPagoProvider.order.create({
+      const mpOrder = await this.mercadoPagoProvider.order.create({
         body: {
           type: 'online',
-          external_reference: externalRef,
+          external_reference: orderId,
           total_amount: totalAmount,
           processing_mode: 'automatic',
           payer: { email },
@@ -85,7 +101,19 @@ export class PaymentService {
         },
       });
 
-      return { order };
+      const order = await this.prisma.order.create({
+        data: {
+          id: orderId,
+          mpId: mpOrder.id || orderId,
+          paymentMethodId: id,
+          totalAmount: parseFloat(totalAmount),
+          email,
+          installments: installments || 1,
+          status: 'PENDING',
+        },
+      });
+
+      return { order, mpOrder };
     } catch (error: any) {
       console.error('Erro ao criar Order de Cartão:', error);
       throw new Error(`Erro ao criar Order de Cartão: ${error}`);

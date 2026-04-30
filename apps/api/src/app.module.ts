@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { PaymentModule } from './payment/payment.module';
-import { validationSchema } from './config/validation';
+import { AppController } from './app.controller.js';
+import { AppService } from './app.service.js';
+import { PaymentModule } from './payment/payment.module.js';
+import { DbModule } from './db/db.module.js';
+import { validationSchema } from './config/validation.js';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { validationSchema } from './config/validation';
         abortEarly: true,
       },
     }),
+    DbModule,
     PaymentModule,
   ],
   controllers: [AppController],
