@@ -1,211 +1,315 @@
 import { useState } from 'react';
 import {
-  createPaymentPreference,
-  PaymentData,
-} from '../services/paymentService';
+  Container,
+  Card,
+  CardContent,
+  TextField,
+  Button,
+  Alert,
+  Box,
+  Typography,
+  Stack,
+  Divider,
+} from '@mui/material';
+import { initMercadoPago, CardPayment, Payment } from '@mercadopago/sdk-react';
+import { createOrder } from '../services/paymentService';
+import type { OrderResponse } from '@repo/shared';
+import {
+  ICardPaymentBrickPayer,
+  ICardPaymentFormData,
+} from '@mercadopago/sdk-react/esm/bricks/cardPayment/type';
+import { IBrickError } from '@mercadopago/sdk-react/esm/bricks/util/types/common';
+
+const publicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY || '';
+if (publicKey) {
+  initMercadoPago(publicKey);
+}
 
 export interface CheckoutProps {
-  onSuccess?: (preferenceId: string) => void;
+  onSuccess?: (orderId: string | undefined, paymentData: OrderResponse) => void;
   onError?: (error: Error) => void;
 }
 
 export function MercadoPagoCheckout({ onSuccess, onError }: CheckoutProps) {
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<PaymentData>({
-    title: 'Produto Exemplo',
-    quantity: 1,
-    price: 99.99,
-    description: 'Descrição do produto',
-    email: '',
-  });
+  const [paymentResult, setPaymentResult] = useState<OrderResponse>();
+  const [showBricks, setShowBricks] = useState(false);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        name === 'quantity' || name === 'price'
-          ? parseFloat(value) || 0
-          : value,
-    }));
+  const [email, setEmail] = useState('');
+  const [amount, setAmount] = useState(99.99);
+
+  const handleContinueToPayment = () => {
+    setError(null);
+    setShowBricks(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
+  const handleCardPaymentSubmit = async (
+    cardFormData: ICardPaymentFormData<ICardPaymentBrickPayer>,
+  ) => {
     try {
-      const preference = await createPaymentPreference(formData);
+      setError(null);
 
-      if (preference.init_point) {
-        // Redirecionar para o Mercado Pago
-        window.location.href = preference.init_point;
+      const orderResp = await createOrder({
+        price: amount,
+        quantity: 1,
+        email,
+        token: cardFormData.token,
+        installments: cardFormData.installments,
+        payment_method_id: cardFormData.payment_method_id,
+        issuer_id: Number(cardFormData.issuer_id),
+      });
 
-        onSuccess?.(preference.id);
-      } else if (preference.sandbox_init_point) {
-        // Modo sandbox
-        window.location.href = preference.sandbox_init_point;
+      console.log('Order criada:', orderResp);
 
-        onSuccess?.(preference.id);
-      }
+      setPaymentResult(orderResp);
+      onSuccess?.(orderResp.id, orderResp);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Erro ao processar pagamento';
       setError(errorMessage);
       onError?.(new Error(errorMessage));
-    } finally {
-      setLoading(false);
     }
   };
 
+  const handleCardPaymentError = (error: IBrickError) => {
+    setError(error?.message);
+    onError?.(new Error(error?.message));
+  };
+
+  const handlePixPaymentSubmit = async () => {
+    try {
+      setError(null);
+
+      const orderResp = await createOrder({
+        price: amount,
+        quantity: 1,
+        email,
+        payment_method_id: 'pix',
+        description: 'Pagamento PIX',
+      });
+
+      console.log('Order PIX criada:', orderResp);
+
+      setPaymentResult(orderResp);
+      onSuccess?.(orderResp.id, orderResp);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Erro ao criar PIX';
+      setError(errorMessage);
+      onError?.(new Error(errorMessage));
+    }
+  };
+
+  const handlePixPaymentError = (error: IBrickError) => {
+    const errorMessage = error?.message || 'Erro ao processar pagamento PIX';
+    setError(errorMessage);
+    onError?.(new Error(errorMessage));
+  };
+
+  const handleReset = () => {
+    setShowBricks(false);
+    setPaymentResult(undefined);
+    setError(null);
+  };
+
+  const paymentMethod =
+    paymentResult?.transactions?.payments?.[0].payment_method;
+  const qrBase64 = paymentMethod?.qr_code_base64;
+  const qrString = paymentMethod?.qr_code;
+  const qrImgSrc = qrBase64 ? `data:image/png;base64,${qrBase64}` : undefined;
+
   return (
-    <div className='payment-checkout'>
-      <h2>Checkout - Mercado Pago</h2>
+    <Container maxWidth='sm' sx={{ py: 4 }}>
+      <Card>
+        <CardContent>
+          <Typography variant='h5' component='h2' gutterBottom>
+            Checkout Transparente
+          </Typography>
 
-      <form onSubmit={handleSubmit} className='checkout-form'>
-        <div className='form-group'>
-          <label htmlFor='email'>Email:</label>
-          <input
-            id='email'
-            type='email'
-            name='email'
-            value={formData.email}
-            onChange={handleInputChange}
-            placeholder='seu@email.com'
-            required
-          />
-        </div>
+          {!showBricks && !paymentResult && (
+            <Box sx={{ mb: 3 }}>
+              <Stack spacing={2}>
+                <TextField
+                  label='Email'
+                  type='email'
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder='seu@email.com'
+                  required
+                  fullWidth
+                  variant='outlined'
+                />
 
-        <div className='form-group'>
-          <label htmlFor='title'>Título do Produto:</label>
-          <input
-            id='title'
-            type='text'
-            name='title'
-            value={formData.title}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
+                <TextField
+                  label='Valor (R$)'
+                  type='number'
+                  value={amount}
+                  onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+                  slotProps={{
+                    input: {
+                      inputProps: {
+                        step: '0.01',
+                        min: '0',
+                      },
+                    },
+                  }}
+                  required
+                  fullWidth
+                  variant='outlined'
+                />
 
-        <div className='form-group'>
-          <label htmlFor='description'>Descrição:</label>
-          <textarea
-            id='description'
-            name='description'
-            value={formData.description}
-            onChange={handleInputChange}
-          />
-        </div>
+                {error && <Alert severity='error'>{error}</Alert>}
 
-        <div className='form-row'>
-          <div className='form-group'>
-            <label htmlFor='price'>Preço (R$):</label>
-            <input
-              id='price'
-              type='number'
-              name='price'
-              value={formData.price}
-              onChange={handleInputChange}
-              step='0.01'
-              min='0'
-              required
-            />
-          </div>
+                {!publicKey && (
+                  <Alert severity='error'>
+                    VITE_MERCADOPAGO_PUBLIC_KEY não configurada. Configure no
+                    arquivo .env para usar checkout transparente.
+                  </Alert>
+                )}
 
-          <div className='form-group'>
-            <label htmlFor='quantity'>Quantidade:</label>
-            <input
-              id='quantity'
-              type='number'
-              name='quantity'
-              value={formData.quantity}
-              onChange={handleInputChange}
-              min='1'
-              required
-            />
-          </div>
-        </div>
+                <Button
+                  onClick={handleContinueToPayment}
+                  disabled={!publicKey}
+                  fullWidth
+                  variant='contained'
+                  size='large'
+                >
+                  Continuar para Pagamento
+                </Button>
+              </Stack>
+            </Box>
+          )}
 
-        {error && <div className='error-message'>{error}</div>}
+          {showBricks && publicKey && !paymentResult && (
+            <Box sx={{ mt: 3 }}>
+              <Alert severity='info' sx={{ mb: 2 }}>
+                Total: R$ {amount.toFixed(2)}
+              </Alert>
 
-        <button type='submit' disabled={loading} className='submit-button'>
-          {loading ? 'Processando...' : 'Ir para Mercado Pago'}
-        </button>
-      </form>
+              <Divider sx={{ my: 2 }} />
 
-      <style>{`
-        .payment-checkout {
-          max-width: 500px;
-          margin: 20px auto;
-          padding: 20px;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-        }
+              <Typography variant='h6' gutterBottom>
+                Pagar com Cartão
+              </Typography>
 
-        .checkout-form {
-          display: flex;
-          flex-direction: column;
-          gap: 15px;
-        }
+              <Box
+                sx={{
+                  p: 2,
+                  border: '1px solid #e0e0e0',
+                  borderRadius: 1,
+                  mb: 3,
+                }}
+              >
+                <CardPayment
+                  initialization={{
+                    amount,
+                    payer: {
+                      email,
+                    },
+                  }}
+                  locale='pt-BR'
+                  onSubmit={handleCardPaymentSubmit}
+                  onError={handleCardPaymentError}
+                  customization={{
+                    paymentMethods: {
+                      types: {
+                        included: ['credit_card', 'debit_card'],
+                      },
+                    },
+                  }}
+                />
+              </Box>
 
-        .form-group {
-          display: flex;
-          flex-direction: column;
-        }
+              <Typography variant='h6' gutterBottom>
+                Ou pague com PIX
+              </Typography>
 
-        .form-group label {
-          margin-bottom: 5px;
-          font-weight: 500;
-        }
+              <Box
+                sx={{
+                  p: 2,
+                  border: '1px solid #e0e0e0',
+                  borderRadius: 1,
+                }}
+              >
+                <Payment
+                  initialization={{
+                    amount,
+                    payer: {
+                      email,
+                    },
+                  }}
+                  locale='pt-BR'
+                  onSubmit={handlePixPaymentSubmit}
+                  onError={handlePixPaymentError}
+                  customization={{
+                    paymentMethods: {
+                      bankTransfer: 'all',
+                    },
+                  }}
+                />
+              </Box>
 
-        .form-group input,
-        .form-group textarea {
-          padding: 8px 12px;
-          border: 1px solid #ccc;
-          border-radius: 4px;
-          font-size: 14px;
-        }
+              <Button
+                onClick={handleReset}
+                fullWidth
+                variant='outlined'
+                size='large'
+                sx={{ mt: 2 }}
+              >
+                Voltar
+              </Button>
+            </Box>
+          )}
 
-        .form-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 15px;
-        }
+          {paymentResult && (
+            <Box sx={{ mt: 3 }}>
+              <Alert
+                severity={
+                  paymentResult.status === 'approved' ||
+                  paymentResult.status === 'paid'
+                    ? 'success'
+                    : 'warning'
+                }
+                sx={{ mb: 2 }}
+              >
+                Pagamento {paymentResult.status} - ID: {paymentResult.id}
+              </Alert>
 
-        .error-message {
-          padding: 10px;
-          background-color: #fee;
-          border: 1px solid #fcc;
-          border-radius: 4px;
-          color: #c33;
-        }
+              {qrImgSrc && (
+                <Box sx={{ mt: 2, textAlign: 'center' }}>
+                  <Typography variant='subtitle1' gutterBottom>
+                    QR Code PIX
+                  </Typography>
+                  <Box
+                    component='img'
+                    src={qrImgSrc}
+                    alt='QR Code PIX'
+                    sx={{ maxWidth: 200, mb: 2 }}
+                  />
+                  {qrString && (
+                    <TextField
+                      fullWidth
+                      label='PIX Copia e Cola'
+                      value={qrString}
+                      slotProps={{ input: { readOnly: true } }}
+                      sx={{ mb: 2 }}
+                    />
+                  )}
+                </Box>
+              )}
 
-        .submit-button {
-          padding: 12px;
-          background-color: #0066cc;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          font-size: 16px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: background-color 0.2s;
-        }
-
-        .submit-button:hover:not(:disabled) {
-          background-color: #0052a3;
-        }
-
-        .submit-button:disabled {
-          background-color: #ccc;
-          cursor: not-allowed;
-        }
-      `}</style>
-    </div>
+              <Button
+                onClick={handleReset}
+                fullWidth
+                variant='contained'
+                size='large'
+              >
+                Novo Pagamento
+              </Button>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+    </Container>
   );
 }

@@ -1,42 +1,27 @@
 import axios from 'axios';
+import type { OrderResponse } from '@repo/shared';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-export interface PaymentData {
-  title: string;
-  quantity: number;
+export interface OrderCreatePayload {
   price: number;
-  description?: string;
+  quantity: number;
   email?: string;
+  token?: string;
+  installments?: number;
+  payment_method_id: string;
+  issuer_id?: number;
+  description?: string;
 }
 
-export interface PaymentPreference {
-  id: string;
-  init_point: string;
-  sandbox_init_point: string;
-}
-
-export const createPaymentPreference = async (
-  data: PaymentData,
-): Promise<PaymentPreference> => {
+export const createOrder = async (
+  data: OrderCreatePayload,
+): Promise<OrderResponse> => {
   try {
-    const response = await axios.post<PaymentPreference>(
-      `${API_URL}/payment/create-preference`,
-      data,
-    );
-    return response.data;
+    const response = await axios.post(`${API_URL}/payment/create-order`, data);
+    return response.data?.order;
   } catch (error) {
-    console.error('Erro ao criar preferência de pagamento:', error);
-    throw error;
-  }
-};
-
-export const getPaymentStatus = async (paymentId: string) => {
-  try {
-    const response = await axios.get(`${API_URL}/payment/status/${paymentId}`);
-    return response.data;
-  } catch (error) {
-    console.error('Erro ao obter status do pagamento:', error);
+    console.error('Erro ao criar Order de pagamento:', error);
     throw error;
   }
 };

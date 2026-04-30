@@ -15,10 +15,16 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mercadopago/sdk-react": "^1.0.7",
+    "@mui/material": "^9.0.0",
+    "@repo/shared": "*",
     "@repo/ui": "*",
     "axios": "^1.15.2",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.14.2"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",

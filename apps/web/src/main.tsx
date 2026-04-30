@@ -1,25 +1,16 @@
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { createRoot } from 'react-dom/client';
 import './style.css';
-import typescriptLogo from '/typescript.svg';
-import { Header, Counter } from '@repo/ui';
+import { PaymentExample } from './pages/PaymentExample';
 
 const App = () => (
-  <div>
-    <a href='https://vitejs.dev' target='_blank'>
-      <img src='/vite.svg' className='logo' alt='Vite logo' />
-    </a>
-    <a href='https://www.typescriptlang.org/' target='_blank'>
-      <img
-        src={typescriptLogo}
-        className='logo vanilla'
-        alt='TypeScript logo'
-      />
-    </a>
-    <Header title='Web' />
-    <div className='card'>
-      <Counter />
-    </div>
-  </div>
+  <BrowserRouter>
+    <Routes>
+      <Route path='/' element={<Navigate to='/checkout' replace />} />
+      <Route path='/checkout' element={<PaymentExample />} />
+      <Route path='*' element={<Navigate to='/checkout' replace />} />
+    </Routes>
+  </BrowserRouter>
 );
 
 createRoot(document.getElementById('app')!).render(<App />);
