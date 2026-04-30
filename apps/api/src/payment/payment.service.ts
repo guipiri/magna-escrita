@@ -1,96 +1,107 @@
 import { Injectable } from '@nestjs/common';
-import MercadoPago, { Payment, Preference } from 'mercadopago';
+import { MercadoPagoProvider } from './providers/mercado-pago.provider';
+import { CreateOrderDto } from './dto/create-preference.dto';
 
 @Injectable()
 export class PaymentService {
-  private client: MercadoPago;
-  private preferenceClient: Preference;
-  private paymentClient: Payment;
+  constructor(private readonly mercadoPagoProvider: MercadoPagoProvider) {}
 
-  constructor() {
-    this.client = new MercadoPago({
-      accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || '',
-    });
-
-    this.preferenceClient = new Preference(this.client);
-    this.paymentClient = new Payment(this.client);
+  async createOrder(data: CreateOrderDto) {
+    if (data.payment_method_id === 'pix') {
+      return this.createPixOrder(data);
+    } else {
+      return this.createCardOrder(data);
+    }
   }
 
-  async createPreference(data: {
-    title: string;
-    quantity: number;
-    price: number;
-    description?: string;
-    email?: string;
-  }) {
+  private async createPixOrder(data: CreateOrderDto) {
     try {
-      const preference = await this.preferenceClient.create({
+      const totalAmount = (data.price * data.quantity).toFixed(2);
+      const externalRef = `order-${Date.now()}`;
+
+      const order = await this.mercadoPagoProvider.order.create({
         body: {
-          items: [
-            {
-              id: '1',
-              title: data.title,
-              quantity: data.quantity,
-              unit_price: data.price,
-              description: data.description,
-            },
-          ],
-          back_urls: {
-            success: `${process.env.APP_URL || 'http://localhost:5173'}/payment/success`,
-            failure: `${process.env.APP_URL || 'http://localhost:5173'}/payment/failure`,
-            pending: `${process.env.APP_URL || 'http://localhost:5173'}/payment/pending`,
-          },
-          auto_return: 'approved',
-          notification_url: `${process.env.API_URL || 'http://localhost:3000'}/payment/webhook`,
+          type: 'online',
+          external_reference: externalRef,
+          total_amount: totalAmount,
+          processing_mode: 'automatic',
           payer: {
             email: data.email,
+          },
+          transactions: {
+            payments: [
+              {
+                amount: totalAmount,
+                payment_method: {
+                  id: 'pix',
+                  type: 'bank_transfer',
+                },
+              },
+            ],
           },
         },
       });
 
-      return {
-        id: preference.id,
-        init_point: preference.init_point,
-        sandbox_init_point: preference.sandbox_init_point,
-      };
+      return { order };
     } catch (error: any) {
-      throw new Error(`Erro ao criar preferência: ${error}`);
+      console.error('Erro ao criar Order PIX:', error);
+      throw new Error(`Erro ao criar Order PIX: ${error}`);
     }
   }
 
-  async getPaymentStatus(paymentId: string) {
+  private async createCardOrder(data: CreateOrderDto) {
+    const {
+      payment_method_id: id,
+      price,
+      quantity,
+      email,
+      installments,
+      token,
+    } = data;
     try {
-      const payment = await this.paymentClient.get({ id: paymentId });
+      const totalAmount = (price * quantity).toFixed(2);
+      const externalRef = `order-${Date.now()}`;
 
-      return {
-        id: payment.id,
-        status: payment.status,
-        status_detail: payment.status_detail,
-        transaction_amount: payment.transaction_amount,
-        description: payment.description,
-      };
+      const order = await this.mercadoPagoProvider.order.create({
+        body: {
+          type: 'online',
+          external_reference: externalRef,
+          total_amount: totalAmount,
+          processing_mode: 'automatic',
+          payer: { email },
+          transactions: {
+            payments: [
+              {
+                amount: totalAmount,
+                payment_method: {
+                  id,
+                  type: 'credit_card',
+                  token,
+                  installments,
+                },
+              },
+            ],
+          },
+        },
+      });
+
+      return { order };
     } catch (error: any) {
-      throw new Error(`Erro ao obter status do pagamento: ${error}`);
+      console.error('Erro ao criar Order de Cartão:', error);
+      throw new Error(`Erro ao criar Order de Cartão: ${error}`);
     }
   }
 
-  async handleWebhook(data: any) {
+  handleWebhook(data: any) {
     const { type, data: webhookData } = data as {
       type: string;
       data: { id: string };
     };
 
-    if (type === 'payment') {
-      const paymentId = webhookData.id;
-      const payment = await this.getPaymentStatus(paymentId);
-
-      // Aqui você pode adicionar lógica para processar o pagamento
-      // Por exemplo: atualizar banco de dados, enviar email, etc.
-
+    if (type === 'payment' || type === 'order') {
       return {
         received: true,
-        paymentId,
-        status: payment.status,
+        resourceId: webhookData.id,
       };
     }
 
