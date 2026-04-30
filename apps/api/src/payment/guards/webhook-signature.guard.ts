@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 
 @Injectable()
 export class WebhookSignatureGuard implements CanActivate {
@@ -48,7 +48,6 @@ export class WebhookSignatureGuard implements CanActivate {
     }
 
     const query = request.query || {};
-    console.log('Query params:', query);
     let dataIdRaw: string | undefined;
     if (typeof query['data.id'] === 'string') dataIdRaw = query['data.id'];
 
@@ -58,7 +57,6 @@ export class WebhookSignatureGuard implements CanActivate {
     if (dataId) segments.push(`id:${dataId}`);
     if (xRequestId) segments.push(`request-id:${xRequestId}`);
     if (ts) segments.push(`ts:${ts}`);
-    // juntar com ponto e vírgula e garantir ; no fim se houver algum segmento
     const manifest = segments.length > 0 ? `${segments.join(';')};` : '';
 
     const computed = crypto
