@@ -3,7 +3,7 @@
   "editor.formatOnSave": true,
   "prettier.singleQuote": true,
   "prettier.jsxSingleQuote": true,
-  "files.autoSave": "onFocusChange",
+  "files.autoSave": "afterDelay",
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
     // "togglequotes.chars": ["\"", "'", "`"]
@@ -19,5 +19,8 @@
   },
   "[prisma]": {
     "editor.defaultFormatter": "Prisma.prisma"
+  },
+  "editor.codeActionsOnSave": {
+    "source.removeUnusedImports": "explicit"
   }
 }

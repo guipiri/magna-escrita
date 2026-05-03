@@ -1,6 +1,6 @@
-import { Controller, Post, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { PaymentService } from './payment.service.js';
-import { CreateOrderDto } from './dto/create-preference.dto.js';
+import { CreateOrderDto } from './dto/create-order.dto.js';
 import { WebhookSignatureGuard } from './guards/webhook-signature.guard.js';
 
 @Controller('order')
@@ -14,17 +14,16 @@ export class PaymentController {
 
   @Post('webhook')
   @UseGuards(WebhookSignatureGuard)
-  handleWebhook(
-    @Query() query: { type?: string; id?: string },
-    @Body() body: { id: string },
-  ) {
-    const webhookData = {
-      type: query.type,
-      data: {
-        id: query?.id || body?.id,
-      },
-    };
+  handleWebhook(@Body() body: { data: { id: string }; type?: string }) {
+    const type = body.type;
+    const resourceId = body.data.id;
 
-    return this.paymentService.handleWebhook(webhookData);
+    if (!type || !resourceId) {
+      console.warn('Invalid webhook payload:', body);
+      // todo: register event in db for later analysis
+      return { message: 'Invalid payload' };
+    }
+
+    return this.paymentService.handleOrderWebhook(resourceId);
   }
 }

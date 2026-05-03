@@ -20,67 +20,44 @@ export class WebhookSignatureGuard implements CanActivate {
     const xRequestId = (headers['x-request-id'] ||
       headers['X-Request-Id']) as string;
 
-    if (!xRequestId || !xSignature) {
-      throw new UnauthorizedException(
-        'Missing required webhook headers (x-request-id, x-signature)',
-      );
-    }
+    // Obtain Query params related to the request URL
+    const query = request.query;
+    const dataID = query['data.id'] as string;
 
-    if (!this.webhookSecret) {
-      throw new UnauthorizedException(
-        'Webhook secret not configured (MERCADOPAGO_WEBHOOK_SECRET)',
-      );
-    }
-
+    // Separating the x-signature into parts
     const parts = xSignature.split(',');
-    let ts: string | undefined;
-    let v1: string | undefined;
-    for (const part of parts) {
-      const [k, v] = part.split('=', 2).map((s) => s && s.trim());
-      if (k === 'ts') ts = v;
-      if (k === 'v1') v1 = v;
-    }
 
-    if (!v1) {
-      throw new UnauthorizedException(
-        'Invalid x-signature header (missing v1)',
-      );
-    }
+    // Initializing variables to store ts and hash
+    let ts;
+    let hash;
 
-    const query = request.query || {};
-    let dataIdRaw: string | undefined;
-    if (typeof query['data.id'] === 'string') dataIdRaw = query['data.id'];
-
-    const dataId = dataIdRaw ? String(dataIdRaw).toLowerCase() : undefined;
-
-    const segments: string[] = [];
-    if (dataId) segments.push(`id:${dataId}`);
-    if (xRequestId) segments.push(`request-id:${xRequestId}`);
-    if (ts) segments.push(`ts:${ts}`);
-    const manifest = segments.length > 0 ? `${segments.join(';')};` : '';
-
-    const computed = crypto
-      .createHmac('sha256', this.webhookSecret)
-      .update(manifest)
-      .digest('hex');
-
-    if (computed !== v1) {
-      throw new UnauthorizedException('Invalid webhook signature');
-    }
-
-    if (ts) {
-      const tsNum = parseInt(ts, 10);
-      if (!isNaN(tsNum)) {
-        const now = Date.now();
-        const delta = Math.abs(now - tsNum);
-        const maxDelta = 5 * 60 * 1000; // 5 minutos
-        if (delta > maxDelta) {
-          throw new UnauthorizedException(
-            'Webhook timestamp outside tolerance',
-          );
+    // Iterate over the values to obtain ts and v1
+    parts.forEach((part) => {
+      // Split each part into key and value
+      const [key, value] = part.split('=');
+      if (key && value) {
+        const trimmedKey = key.trim();
+        const trimmedValue = value.trim();
+        if (trimmedKey === 'ts') {
+          ts = trimmedValue;
+        } else if (trimmedKey === 'v1') {
+          hash = trimmedValue;
         }
       }
-    }
+    });
+
+    // Generate the manifest string
+    const manifest = `id:${dataID};request-id:${xRequestId};ts:${ts};`;
+
+    // Create an HMAC signature
+    const hmac = crypto.createHmac('sha256', this.webhookSecret as string);
+    hmac.update(manifest);
+
+    // Obtain the hash result as a hexadecimal string
+    const sha = hmac.digest('hex');
+
+    if (sha !== hash)
+      throw new UnauthorizedException('Invalid webhook signature');
 
     return true;
   }

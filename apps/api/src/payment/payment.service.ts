@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { MercadoPagoProvider } from './providers/mercado-pago.provider.js';
-import { CreateOrderDto } from './dto/create-preference.dto.js';
+import { CreateOrderDto } from './dto/create-order.dto.js';
 import { PrismaService } from '../db/db.service.js';
+import { OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class PaymentService {
@@ -12,16 +13,30 @@ export class PaymentService {
   ) {}
 
   async createOrder(data: CreateOrderDto) {
-    if (data.payment_method_id === 'pix') {
+    if (data.paymentMethodDetail === 'pix') {
       return this.createPixOrder(data);
-    } else {
-      return this.createCardOrder(data);
     }
+
+    return this.createCardOrder(data);
   }
 
   private async createPixOrder(data: CreateOrderDto) {
     try {
-      const totalAmount = (data.price * data.quantity).toFixed(2);
+      const bookIds = data.items.map((it) => it.bookId);
+      const books = await this.prisma.book.findMany({
+        where: { id: { in: bookIds } },
+        include: { price: true },
+      });
+
+      let total = 0;
+      for (const it of data.items) {
+        const book = books.find((b) => b.id === it.bookId);
+        if (!book) throw new Error(`Livro não encontrado: ${it.bookId}`);
+        const unit = Number(book.price.amount);
+        total += unit * it.quantity;
+      }
+
+      const totalAmount = total.toFixed(2);
       const orderId = randomUUID();
 
       const mpOrder = await this.mercadoPagoProvider.order.create({
@@ -38,8 +53,8 @@ export class PaymentService {
               {
                 amount: totalAmount,
                 payment_method: {
-                  id: 'pix',
-                  type: 'bank_transfer',
+                  id: data.paymentMethodDetail || 'pix',
+                  type: data.paymentMethod || 'bank_transfer',
                 },
               },
             ],
@@ -47,14 +62,33 @@ export class PaymentService {
         },
       });
 
+      const status = this.mapMercadoPagoStatus(
+        mpOrder.status,
+        mpOrder.status_detail,
+      );
+
       const order = await this.prisma.order.create({
         data: {
           id: orderId,
           mpId: mpOrder.id || orderId,
-          paymentMethodId: 'pix',
+          paymentMethod:
+            mpOrder.transactions?.payments?.[0]?.payment_method?.id || 'pix',
           totalAmount: parseFloat(totalAmount),
           email: data.email,
-          status: 'PENDING',
+          installments: 1,
+          identificationType: data.identificationType,
+          identificationNumber: data.identificationNumber,
+          status,
+          items: {
+            create: data.items.map((it) => {
+              const book = books.find((b) => b.id === it.bookId)!;
+              return {
+                book: { connect: { id: it.bookId } },
+                quantity: it.quantity,
+                amount: Number(book.price.amount),
+              };
+            }),
+          },
         },
       });
 
@@ -67,30 +101,46 @@ export class PaymentService {
 
   private async createCardOrder(data: CreateOrderDto) {
     const {
-      payment_method_id: id,
-      price,
-      quantity,
+      paymentMethod,
       email,
-      installments,
+      identificationType,
+      identificationNumber,
+      installments = 1,
       token,
+      issuerId,
+      paymentMethodDetail,
     } = data;
+    const bookIds = data.items.map((it) => it.bookId);
+    const books = await this.prisma.book.findMany({
+      where: { id: { in: bookIds } },
+      include: { price: true },
+    });
+
+    let total = 0;
+    for (const it of data.items) {
+      const book = books.find((b) => b.id === it.bookId);
+      if (!book) throw new Error(`Livro não encontrado: ${it.bookId}`);
+      const unit = Number(book.price.amount);
+      total += unit * it.quantity;
+    }
+
+    const totalAmount = total;
     try {
-      const totalAmount = (price * quantity).toFixed(2);
       const orderId = randomUUID();
 
       const mpOrder = await this.mercadoPagoProvider.order.create({
         body: {
           type: 'online',
           external_reference: orderId,
-          total_amount: totalAmount,
+          total_amount: totalAmount.toString(),
           processing_mode: 'automatic',
           payer: { email },
           transactions: {
             payments: [
               {
-                amount: totalAmount,
+                amount: totalAmount.toString(),
                 payment_method: {
-                  id,
+                  id: paymentMethod,
                   type: 'credit_card',
                   token,
                   installments,
@@ -101,15 +151,35 @@ export class PaymentService {
         },
       });
 
+      const status = this.mapMercadoPagoStatus(
+        mpOrder.status,
+        mpOrder.status_detail,
+      );
+
       const order = await this.prisma.order.create({
         data: {
           id: orderId,
           mpId: mpOrder.id || orderId,
-          paymentMethodId: id,
-          totalAmount: parseFloat(totalAmount),
+          paymentMethod,
+          paymentMethodDetail,
+          totalAmount,
           email,
-          installments: installments || 1,
-          status: 'PENDING',
+          identificationType,
+          identificationNumber,
+          issuerId,
+          installments,
+          status,
+          token,
+          items: {
+            create: data.items.map((it) => {
+              const book = books.find((b) => b.id === it.bookId)!;
+              return {
+                book: { connect: { id: it.bookId } },
+                quantity: it.quantity,
+                amount: Number(book.price.amount),
+              };
+            }),
+          },
         },
       });
 
@@ -120,19 +190,111 @@ export class PaymentService {
     }
   }
 
-  handleWebhook(data: any) {
-    const { type, data: webhookData } = data as {
-      type: string;
-      data: { id: string };
-    };
+  async handleOrderWebhook(orderId: string) {
+    const order = await this.mercadoPagoProvider.order.get({
+      id: orderId,
+    });
 
-    if (type === 'payment' || type === 'order') {
+    return this.syncOrderStatus({
+      resourceId: orderId,
+      externalReference: order.external_reference,
+      status: order.status,
+      statusDetail: order.status_detail,
+    });
+  }
+
+  private async syncOrderStatus({
+    resourceId,
+    externalReference,
+    status,
+    statusDetail,
+  }: {
+    resourceId: string;
+    externalReference?: string;
+    status?: string;
+    statusDetail?: string;
+  }) {
+    const mappedStatus = this.mapMercadoPagoStatus(status, statusDetail);
+    const order = await this.prisma.order.findFirst({
+      where: {
+        OR: [
+          ...(externalReference ? [{ id: externalReference }] : []),
+          ...(resourceId ? [{ mpId: resourceId }] : []),
+        ],
+      },
+    });
+
+    if (!order || !mappedStatus) {
       return {
         received: true,
-        resourceId: webhookData.id,
+        resourceId,
+        status: mappedStatus ?? status ?? 'unknown',
       };
     }
 
-    return { received: true };
+    const updatedOrder = await this.prisma.order.update({
+      where: { id: order.id },
+      data: {
+        status: mappedStatus,
+      },
+    });
+
+    return {
+      received: true,
+      resourceId,
+      status: mappedStatus,
+      order: updatedOrder,
+    };
+  }
+
+  private mapMercadoPagoStatus(
+    status?: string,
+    statusDetail?: string,
+  ): OrderStatus {
+    if (!status || !statusDetail) return OrderStatus.PENDING;
+
+    const lowerStatus = status.toLowerCase();
+    const lowerDetail = statusDetail?.toLowerCase();
+
+    if (lowerStatus === 'processed') {
+      if (lowerDetail === 'partially_refunded') {
+        return OrderStatus.REFUNDED;
+      }
+      return OrderStatus.APPROVED;
+    }
+
+    // Status 'charged_back' com seus sub-status
+    if (lowerStatus === 'charged_back') {
+      if (lowerDetail === 'in_process') {
+        return OrderStatus.PENDING;
+      }
+      if (lowerDetail === 'settled') {
+        return OrderStatus.APPROVED;
+      }
+      if (lowerDetail === 'reimbursed') {
+        return OrderStatus.REFUNDED;
+      }
+      return OrderStatus.CANCELED;
+    }
+
+    switch (lowerStatus) {
+      case 'created':
+        return OrderStatus.PENDING;
+      case 'processing':
+      case 'in_process':
+        return OrderStatus.PENDING;
+      case 'action_required':
+        return OrderStatus.PENDING;
+      case 'canceled':
+        return OrderStatus.CANCELED;
+      case 'expired':
+        return OrderStatus.CANCELED;
+      case 'failed':
+        return OrderStatus.CANCELED;
+      case 'refunded':
+        return OrderStatus.REFUNDED;
+      default:
+        return OrderStatus.PENDING;
+    }
   }
 }

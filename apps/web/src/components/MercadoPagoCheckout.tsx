@@ -13,12 +13,15 @@ import {
 } from '@mui/material';
 import { initMercadoPago, CardPayment, Payment } from '@mercadopago/sdk-react';
 import { createOrder } from '../services/paymentService';
-import type { OrderResponse } from '@repo/shared';
 import {
   ICardPaymentBrickPayer,
   ICardPaymentFormData,
 } from '@mercadopago/sdk-react/esm/bricks/cardPayment/type';
 import { IBrickError } from '@mercadopago/sdk-react/esm/bricks/util/types/common';
+import { OrderResponse } from '@repo/shared';
+import { IPaymentFormData } from '@mercadopago/sdk-react/esm/bricks/payment/type';
+import { CartItem } from '../context/cart-context';
+import { findBookById } from '../data/books';
 
 const publicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY || '';
 if (publicKey) {
@@ -28,15 +31,29 @@ if (publicKey) {
 export interface CheckoutProps {
   onSuccess?: (orderId: string | undefined, paymentData: OrderResponse) => void;
   onError?: (error: Error) => void;
+  items: CartItem[];
 }
 
-export function MercadoPagoCheckout({ onSuccess, onError }: CheckoutProps) {
+export function MercadoPagoCheckout({
+  onSuccess,
+  onError,
+  items,
+}: CheckoutProps) {
   const [error, setError] = useState<string | null>(null);
   const [paymentResult, setPaymentResult] = useState<OrderResponse>();
   const [showBricks, setShowBricks] = useState(false);
 
   const [email, setEmail] = useState('');
-  const [amount, setAmount] = useState(99.99);
+
+  const amount = items.reduce((sum, item) => {
+    const book = findBookById(item.bookId);
+
+    if (!book) {
+      return sum;
+    }
+
+    return sum + book.price * item.quantity;
+  }, 0);
 
   const handleContinueToPayment = () => {
     setError(null);
@@ -48,21 +65,31 @@ export function MercadoPagoCheckout({ onSuccess, onError }: CheckoutProps) {
   ) => {
     try {
       setError(null);
+      const identification = cardFormData.payer.identification;
+
+      if (!cardFormData.payer.email)
+        return setError('Email do pagador é obrigatório');
+
+      if (!items.length) {
+        return setError('Adicione pelo menos um livro ao carrinho');
+      }
 
       const orderResp = await createOrder({
-        price: amount,
-        quantity: 1,
-        email,
+        items: items.map((item) => ({
+          bookId: item.bookId,
+          quantity: item.quantity,
+        })),
+        email: cardFormData.payer.email,
         token: cardFormData.token,
+        identificationType: identification?.type,
+        identificationNumber: identification?.number,
+        paymentMethod: cardFormData.payment_method_id,
         installments: cardFormData.installments,
-        payment_method_id: cardFormData.payment_method_id,
-        issuer_id: Number(cardFormData.issuer_id),
+        issuerId: cardFormData.issuer_id,
       });
 
-      console.log('Order criada:', orderResp);
-
-      setPaymentResult(orderResp);
-      onSuccess?.(orderResp.id, orderResp);
+      setPaymentResult(orderResp.mpOrder);
+      onSuccess?.(orderResp.mpOrder.id, orderResp.mpOrder);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Erro ao processar pagamento';
@@ -76,22 +103,32 @@ export function MercadoPagoCheckout({ onSuccess, onError }: CheckoutProps) {
     onError?.(new Error(error?.message));
   };
 
-  const handlePixPaymentSubmit = async () => {
+  const handlePixPaymentSubmit = async (pixFormData: IPaymentFormData) => {
     try {
       setError(null);
+      const payer = pixFormData.formData.payer;
+      const identification = payer.identification;
+
+      if (!items.length) {
+        return setError('Adicione pelo menos um livro ao carrinho');
+      }
 
       const orderResp = await createOrder({
-        price: amount,
-        quantity: 1,
-        email,
-        payment_method_id: 'pix',
-        description: 'Pagamento PIX',
+        items: items.map((item) => ({
+          bookId: item.bookId,
+          quantity: item.quantity,
+        })),
+        email: payer.email,
+        installments: 1,
+        identificationNumber: identification?.number,
+        identificationType: identification?.type,
+        paymentMethod: pixFormData.paymentType,
+        paymentMethodDetail: pixFormData.formData.payment_method_id,
+        issuerId: pixFormData.formData.issuer_id,
       });
 
-      console.log('Order PIX criada:', orderResp);
-
-      setPaymentResult(orderResp);
-      onSuccess?.(orderResp.id, orderResp);
+      setPaymentResult(orderResp.mpOrder);
+      onSuccess?.(orderResp.mpOrder.id, orderResp.mpOrder);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Erro ao criar PIX';
@@ -140,23 +177,16 @@ export function MercadoPagoCheckout({ onSuccess, onError }: CheckoutProps) {
                   variant='outlined'
                 />
 
-                <TextField
-                  label='Valor (R$)'
-                  type='number'
-                  value={amount}
-                  onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-                  slotProps={{
-                    input: {
-                      inputProps: {
-                        step: '0.01',
-                        min: '0',
-                      },
-                    },
-                  }}
-                  required
-                  fullWidth
-                  variant='outlined'
-                />
+                <Alert severity='info'>
+                  Total do carrinho: R$ {amount.toFixed(2)}
+                </Alert>
+
+                {!items.length && (
+                  <Alert severity='warning'>
+                    O carrinho está vazio. Adicione livros antes de seguir para
+                    o pagamento.
+                  </Alert>
+                )}
 
                 {error && <Alert severity='error'>{error}</Alert>}
 
@@ -169,7 +199,7 @@ export function MercadoPagoCheckout({ onSuccess, onError }: CheckoutProps) {
 
                 <Button
                   onClick={handleContinueToPayment}
-                  disabled={!publicKey}
+                  disabled={!publicKey || !items.length}
                   fullWidth
                   variant='contained'
                   size='large'
@@ -180,7 +210,7 @@ export function MercadoPagoCheckout({ onSuccess, onError }: CheckoutProps) {
             </Box>
           )}
 
-          {showBricks && publicKey && !paymentResult && (
+          {showBricks && publicKey && !paymentResult && items.length > 0 && (
             <Box sx={{ mt: 3 }}>
               <Alert severity='info' sx={{ mb: 2 }}>
                 Total: R$ {amount.toFixed(2)}
@@ -203,9 +233,7 @@ export function MercadoPagoCheckout({ onSuccess, onError }: CheckoutProps) {
                 <CardPayment
                   initialization={{
                     amount,
-                    payer: {
-                      email,
-                    },
+                    payer: email ? { email } : undefined,
                   }}
                   locale='pt-BR'
                   onSubmit={handleCardPaymentSubmit}

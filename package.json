@@ -9,7 +9,12 @@
     "test:watch": "turbo run test:watch",
     "test:cov": "turbo run test:cov",
     "test:debug": "turbo run test:debug",
-    "test:e2e": "turbo run test:e2e"
+    "test:e2e": "turbo run test:e2e",
+    "pg": "yarn workspace api prisma:generate",
+    "pm:dev": "yarn workspace api prisma:migrate:dev",
+    "pm:deploy": "yarn workspace api prisma:migrate:deploy",
+    "pm:reset": "yarn workspace api prisma:migrate:reset",
+    "pdb:seed": "yarn workspace api prisma:seed"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
