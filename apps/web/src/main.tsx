@@ -4,6 +4,7 @@ import './style.css';
 import { CartProvider } from './context/cart-context';
 import { CartPage } from './pages/CartPage';
 import { PaymentExample } from './pages/PaymentExample';
+import BookPage from './pages/BookPage';
 
 const App = () => (
   <CartProvider>
@@ -12,6 +13,7 @@ const App = () => (
         <Route path='/' element={<Navigate to='/checkout' replace />} />
         <Route path='/checkout' element={<PaymentExample />} />
         <Route path='/cart' element={<CartPage />} />
+        <Route path='/book' element={<BookPage />} />
         <Route path='*' element={<Navigate to='/checkout' replace />} />
       </Routes>
     </BrowserRouter>

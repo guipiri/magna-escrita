@@ -1,18 +1,8 @@
 import { Link } from 'react-router-dom';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Container,
-  Stack,
-  Typography,
-} from '@mui/material';
 import { MercadoPagoCheckout } from '../components/MercadoPagoCheckout';
 import { useCart } from '../context/cart-context';
 import { BOOKS, findBookById } from '../data/books';
+import { Button } from '../components/Button';
 
 export function PaymentExample() {
   const {
@@ -43,182 +33,109 @@ export function PaymentExample() {
   }, 0);
 
   return (
-    <Box sx={{ py: 4 }}>
-      <Container maxWidth='lg'>
-        <Stack spacing={3}>
-          <Box
-            sx={{
-              p: { xs: 3, md: 4 },
-              borderRadius: 4,
-              background:
-                'linear-gradient(135deg, rgba(17,24,39,0.96), rgba(79,70,229,0.9))',
-              color: '#fff',
-              boxShadow: '0 24px 80px rgba(15,23,42,0.2)',
-            }}
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'column', md: 'row' },
-                gap: 2,
-                alignItems: { md: 'center' },
-                justifyContent: 'space-between',
-              }}
-            >
-              <Box>
-                <Chip
-                  label='Livraria Magna'
-                  sx={{
-                    mb: 2,
-                    color: '#fff',
-                    borderColor: 'rgba(255,255,255,0.35)',
-                  }}
-                  variant='outlined'
-                />
-                <Typography variant='h3' component='h1' gutterBottom>
+    <div className='py-8'>
+      <div className='max-w-7xl mx-auto px-4'>
+        <div className='space-y-6'>
+          <div className='p-6 md:p-8 rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-600 text-white shadow-2xl'>
+            <div className='flex flex-col md:flex-row justify-between items-center gap-6'>
+              <div>
+                <div className='inline-block mb-2 px-3 py-1 border border-white/30 rounded-full text-sm'>
+                  Livraria Magna
+                </div>
+                <h1 className='text-3xl font-bold'>
                   Monte seu carrinho de livros
-                </Typography>
-                <Typography
-                  variant='body1'
-                  sx={{ maxWidth: 720, opacity: 0.9 }}
-                >
+                </h1>
+                <p className='text-white/90 max-w-xl mt-2'>
                   Adicione, remova e aumente quantidades com um carrinho
                   persistido. Depois siga para a página de carrinho para revisar
                   tudo e pagar.
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 1.5,
-                  alignItems: { xs: 'flex-start', md: 'flex-end' },
-                }}
-              >
-                <Alert
-                  severity='info'
-                  sx={{ backgroundColor: 'rgba(255,255,255,0.95)' }}
-                >
+              <div className='flex flex-col items-end gap-3'>
+                <div className='bg-white/95 text-slate-900 px-3 py-1 rounded-md'>
                   {totalQuantity} item(s) no carrinho
-                </Alert>
-                <Button
-                  component={Link}
-                  to='/cart'
-                  variant='contained'
-                  size='large'
-                >
-                  Ver carrinho
-                </Button>
-              </Box>
-            </Box>
-          </Box>
+                </div>
+                <Link to='/cart'>
+                  <Button size='lg'>Ver carrinho</Button>
+                </Link>
+              </div>
+            </div>
+          </div>
 
           {items.length > 0 && (
-            <Alert severity='success'>
+            <div className='bg-green-50 text-green-800 p-3 rounded-md'>
               Carrinho ativo com total estimado de R$ {total.toFixed(2)}.
-            </Alert>
+            </div>
           )}
 
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: '1fr',
-                md: 'repeat(2, minmax(0, 1fr))',
-                lg: 'repeat(4, minmax(0, 1fr))',
-              },
-              gap: 3,
-            }}
-          >
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
             {BOOKS.map((book) => {
               const currentItem = items.find((item) => item.bookId === book.id);
               const quantity = currentItem?.quantity ?? 0;
 
               return (
-                <Card
+                <div
                   key={book.id}
-                  sx={{
-                    height: '100%',
-                    borderRadius: 4,
-                    border: '1px solid rgba(148,163,184,0.18)',
-                    boxShadow: '0 18px 45px rgba(15,23,42,0.08)',
-                  }}
+                  className='bg-white rounded-xl p-4 shadow-md h-full flex flex-col justify-between'
                 >
-                  <CardContent>
-                    <Stack spacing={2}>
-                      <Box>
-                        <Typography variant='overline' color='text.secondary'>
-                          {book.author}
-                        </Typography>
-                        <Typography variant='h6' component='h2'>
-                          {book.title}
-                        </Typography>
-                      </Box>
+                  <div className='space-y-2'>
+                    <div className='text-sm text-gray-500'>{book.author}</div>
+                    <h3 className='text-lg font-semibold'>{book.title}</h3>
+                    <p className='text-sm text-gray-600'>{book.description}</p>
+                    <div className='text-xl font-bold text-indigo-600'>
+                      R$ {book.price.toFixed(2)}
+                    </div>
+                  </div>
 
-                      <Typography variant='body2' color='text.secondary'>
-                        {book.description}
-                      </Typography>
+                  <div className='mt-4'>
+                    {quantity > 0 ? (
+                      <div className='space-y-2'>
+                        <div className='bg-green-50 text-green-800 p-2 rounded-md'>
+                          {quantity} exemplar{quantity > 1 ? 'es' : ''} no
+                          carrinho
+                        </div>
 
-                      <Typography variant='h5' color='primary'>
-                        R$ {book.price.toFixed(2)}
-                      </Typography>
-
-                      {quantity > 0 ? (
-                        <Stack spacing={1.5}>
-                          <Alert severity='success'>
-                            {quantity} exemplar{quantity > 1 ? 'es' : ''} no
-                            carrinho
-                          </Alert>
-
-                          <Box
-                            sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}
+                        <div className='flex flex-wrap gap-2 mt-2'>
+                          <Button
+                            variant='secondary'
+                            onClick={() => decreaseBook(book.id)}
                           >
-                            <Button
-                              variant='outlined'
-                              onClick={() => decreaseBook(book.id)}
-                            >
-                              -
-                            </Button>
-                            <Button
-                              variant='contained'
-                              onClick={() => increaseBook(book.id)}
-                            >
-                              +
-                            </Button>
-                            <Button
-                              color='error'
-                              variant='text'
-                              onClick={() => removeBook(book.id)}
-                            >
-                              Remover
-                            </Button>
-                          </Box>
-                        </Stack>
-                      ) : (
-                        <Button
-                          fullWidth
-                          variant='contained'
-                          onClick={() => addBook(book.id)}
-                        >
-                          Adicionar ao carrinho
-                        </Button>
-                      )}
-                    </Stack>
-                  </CardContent>
-                </Card>
+                            -
+                          </Button>
+                          <Button onClick={() => increaseBook(book.id)}>
+                            +
+                          </Button>
+                          <Button
+                            variant='secondary'
+                            onClick={() => removeBook(book.id)}
+                          >
+                            Remover
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button
+                        onClick={() => addBook(book.id)}
+                        className='w-full'
+                      >
+                        Adicionar ao carrinho
+                      </Button>
+                    )}
+                  </div>
+                </div>
               );
             })}
-          </Box>
+          </div>
 
           <MercadoPagoCheckout
             items={items}
             onSuccess={handlePaymentSuccess}
             onError={handlePaymentError}
           />
-        </Stack>
-      </Container>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -1,16 +1,6 @@
 import { Link } from 'react-router-dom';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Container,
-  Divider,
-  Stack,
-  Typography,
-} from '@mui/material';
 import { MercadoPagoCheckout } from '../components/MercadoPagoCheckout';
+import { Button } from '../components/Button';
 import { findBookById } from '../data/books';
 import { useCart } from '../context/cart-context';
 
@@ -37,143 +27,95 @@ export function CartPage() {
   const hasItems = items.length > 0;
 
   return (
-    <Box sx={{ py: 4 }}>
-      <Container maxWidth='lg'>
-        <Stack spacing={3}>
-          <Box
-            sx={{
-              p: { xs: 3, md: 4 },
-              borderRadius: 4,
-              background:
-                'linear-gradient(135deg, rgba(15,23,42,0.96), rgba(14,165,233,0.88))',
-              color: '#fff',
-            }}
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'column', md: 'row' },
-                gap: 2,
-                justifyContent: 'space-between',
-                alignItems: { md: 'center' },
-              }}
-            >
-              <Box>
-                <Typography variant='overline' sx={{ opacity: 0.8 }}>
-                  Carrinho
-                </Typography>
-                <Typography variant='h3' component='h1' gutterBottom>
-                  Seus livros selecionados
-                </Typography>
-                <Typography
-                  variant='body1'
-                  sx={{ maxWidth: 720, opacity: 0.9 }}
-                >
+    <div className='py-8'>
+      <div className='max-w-7xl mx-auto px-4'>
+        <div className='space-y-6'>
+          <div className='p-6 md:p-8 rounded-2xl bg-gradient-to-r from-slate-900 to-sky-600 text-white'>
+            <div className='flex flex-col md:flex-row justify-between items-center gap-6'>
+              <div>
+                <div className='uppercase text-sm opacity-80'>Carrinho</div>
+                <h1 className='text-3xl font-bold'>Seus livros selecionados</h1>
+                <p className='text-gray-100 max-w-xl mt-2'>
                   Revise os itens, ajuste quantidades e siga para o checkout
                   quando o pedido estiver pronto.
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 1.5,
-                  alignItems: { xs: 'flex-start', md: 'flex-end' },
-                }}
-              >
-                <Typography variant='h6'>
+              <div className='flex flex-col items-end gap-3'>
+                <div className='text-lg font-semibold'>
                   {totalQuantity} item(s) | R$ {subtotal.toFixed(2)}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  <Button component={Link} to='/checkout' variant='contained'>
-                    Adicionar mais livros
-                  </Button>
+                </div>
+                <div className='flex flex-wrap gap-2'>
+                  <Link to='/checkout'>
+                    <Button size='md'>Adicionar mais livros</Button>
+                  </Link>
                   {hasItems && (
-                    <Button
-                      variant='outlined'
-                      color='inherit'
-                      onClick={clearCart}
-                    >
+                    <Button variant='secondary' onClick={clearCart}>
                       Limpar carrinho
                     </Button>
                   )}
-                </Box>
-              </Box>
-            </Box>
-          </Box>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {!hasItems && (
-            <Alert severity='info'>
+            <div className='p-4 rounded-lg bg-blue-50 border border-blue-100 text-blue-800'>
               O carrinho está vazio. Volte para a vitrine e adicione alguns
               livros.
-            </Alert>
+            </div>
           )}
 
           {hasItems && (
-            <Card sx={{ borderRadius: 4 }}>
-              <CardContent>
-                <Stack spacing={2} divider={<Divider flexItem />}>
-                  {items.map((item) => {
-                    const book = findBookById(item.bookId);
+            <div className='bg-white rounded-2xl shadow-md p-4'>
+              <div className='space-y-4 divide-y divide-gray-100'>
+                {items.map((item) => {
+                  const book = findBookById(item.bookId);
 
-                    if (!book) {
-                      return null;
-                    }
+                  if (!book) return null;
 
-                    return (
-                      <Box
-                        key={book.id}
-                        sx={{
-                          display: 'flex',
-                          flexDirection: { xs: 'column', md: 'row' },
-                          gap: 2,
-                          alignItems: { md: 'center' },
-                          justifyContent: 'space-between',
-                        }}
-                      >
-                        <Box>
-                          <Typography variant='h6'>{book.title}</Typography>
-                          <Typography variant='body2' color='text.secondary'>
-                            {book.author}
-                          </Typography>
-                          <Typography variant='body2' sx={{ mt: 1 }}>
-                            R$ {book.price.toFixed(2)} x {item.quantity}
-                          </Typography>
-                        </Box>
+                  return (
+                    <div
+                      key={book.id}
+                      className='flex flex-col md:flex-row items-center md:items-start justify-between gap-4 py-4'
+                    >
+                      <div>
+                        <div className='text-lg font-semibold'>
+                          {book.title}
+                        </div>
+                        <div className='text-sm text-gray-500'>
+                          {book.author}
+                        </div>
+                        <div className='mt-2 text-sm'>
+                          R$ {book.price.toFixed(2)} x {item.quantity}
+                        </div>
+                      </div>
 
-                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                          <Button
-                            variant='outlined'
-                            onClick={() => decreaseBook(book.id)}
-                          >
-                            -
-                          </Button>
-                          <Button
-                            variant='contained'
-                            onClick={() => increaseBook(book.id)}
-                          >
-                            +
-                          </Button>
-                          <Button
-                            color='error'
-                            variant='text'
-                            onClick={() => removeBook(book.id)}
-                          >
-                            Remover
-                          </Button>
-                        </Box>
-                      </Box>
-                    );
-                  })}
-                </Stack>
-              </CardContent>
-            </Card>
+                      <div className='flex flex-wrap gap-2'>
+                        <Button
+                          variant='secondary'
+                          onClick={() => decreaseBook(book.id)}
+                        >
+                          -
+                        </Button>
+                        <Button onClick={() => increaseBook(book.id)}>+</Button>
+                        <Button
+                          variant='secondary'
+                          onClick={() => removeBook(book.id)}
+                        >
+                          Remover
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
 
           <MercadoPagoCheckout items={items} />
-        </Stack>
-      </Container>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }

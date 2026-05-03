@@ -1,16 +1,5 @@
 import { useState } from 'react';
-import {
-  Container,
-  Card,
-  CardContent,
-  TextField,
-  Button,
-  Alert,
-  Box,
-  Typography,
-  Stack,
-  Divider,
-} from '@mui/material';
+import { Button } from './Button';
 import { initMercadoPago, CardPayment, Payment } from '@mercadopago/sdk-react';
 import { createOrder } from '../services/paymentService';
 import {
@@ -156,188 +145,147 @@ export function MercadoPagoCheckout({
   const qrImgSrc = qrBase64 ? `data:image/png;base64,${qrBase64}` : undefined;
 
   return (
-    <Container maxWidth='sm' sx={{ py: 4 }}>
-      <Card>
-        <CardContent>
-          <Typography variant='h5' component='h2' gutterBottom>
-            Checkout Transparente
-          </Typography>
+    <div className='max-w-xl mx-auto py-6'>
+      <div className='bg-white rounded-2xl shadow-md p-6'>
+        <h2 className='text-2xl font-bold mb-4'>Checkout Transparente</h2>
 
-          {!showBricks && !paymentResult && (
-            <Box sx={{ mb: 3 }}>
-              <Stack spacing={2}>
-                <TextField
-                  label='Email'
-                  type='email'
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder='seu@email.com'
-                  required
-                  fullWidth
-                  variant='outlined'
-                />
+        {!showBricks && !paymentResult && (
+          <div className='space-y-4 mb-4'>
+            <input
+              className='w-full border border-gray-200 rounded-md px-4 py-2'
+              placeholder='seu@email.com'
+              type='email'
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
 
-                <Alert severity='info'>
-                  Total do carrinho: R$ {amount.toFixed(2)}
-                </Alert>
+            <div className='bg-blue-50 text-blue-800 p-3 rounded-md'>
+              Total do carrinho: R$ {amount.toFixed(2)}
+            </div>
 
-                {!items.length && (
-                  <Alert severity='warning'>
-                    O carrinho está vazio. Adicione livros antes de seguir para
-                    o pagamento.
-                  </Alert>
-                )}
+            {!items.length && (
+              <div className='bg-yellow-50 text-yellow-800 p-3 rounded-md'>
+                O carrinho está vazio. Adicione livros antes de seguir para o
+                pagamento.
+              </div>
+            )}
 
-                {error && <Alert severity='error'>{error}</Alert>}
+            {error && (
+              <div className='bg-red-50 text-red-800 p-3 rounded-md'>
+                {error}
+              </div>
+            )}
 
-                {!publicKey && (
-                  <Alert severity='error'>
-                    VITE_MERCADOPAGO_PUBLIC_KEY não configurada. Configure no
-                    arquivo .env para usar checkout transparente.
-                  </Alert>
-                )}
+            {!publicKey && (
+              <div className='bg-red-50 text-red-800 p-3 rounded-md'>
+                VITE_MERCADOPAGO_PUBLIC_KEY não configurada. Configure no
+                arquivo .env para usar checkout transparente.
+              </div>
+            )}
 
-                <Button
-                  onClick={handleContinueToPayment}
-                  disabled={!publicKey || !items.length}
-                  fullWidth
-                  variant='contained'
-                  size='large'
-                >
-                  Continuar para Pagamento
-                </Button>
-              </Stack>
-            </Box>
-          )}
+            <Button onClick={handleContinueToPayment} className='w-full'>
+              Continuar para Pagamento
+            </Button>
+          </div>
+        )}
 
-          {showBricks && publicKey && !paymentResult && items.length > 0 && (
-            <Box sx={{ mt: 3 }}>
-              <Alert severity='info' sx={{ mb: 2 }}>
-                Total: R$ {amount.toFixed(2)}
-              </Alert>
+        {showBricks && publicKey && !paymentResult && items.length > 0 && (
+          <div className='mt-3 space-y-4'>
+            <div className='bg-blue-50 text-blue-800 p-3 rounded-md'>
+              Total: R$ {amount.toFixed(2)}
+            </div>
 
-              <Divider sx={{ my: 2 }} />
+            <div className='border-t border-gray-100' />
 
-              <Typography variant='h6' gutterBottom>
-                Pagar com Cartão
-              </Typography>
+            <h3 className='text-lg font-semibold'>Pagar com Cartão</h3>
 
-              <Box
-                sx={{
-                  p: 2,
-                  border: '1px solid #e0e0e0',
-                  borderRadius: 1,
-                  mb: 3,
+            <div className='p-3 border rounded-md'>
+              <CardPayment
+                initialization={{
+                  amount,
+                  payer: email ? { email } : undefined,
                 }}
-              >
-                <CardPayment
-                  initialization={{
-                    amount,
-                    payer: email ? { email } : undefined,
-                  }}
-                  locale='pt-BR'
-                  onSubmit={handleCardPaymentSubmit}
-                  onError={handleCardPaymentError}
-                  customization={{
-                    paymentMethods: {
-                      types: {
-                        included: ['credit_card', 'debit_card'],
-                      },
+                locale='pt-BR'
+                onSubmit={handleCardPaymentSubmit}
+                onError={handleCardPaymentError}
+                customization={{
+                  paymentMethods: {
+                    types: {
+                      included: ['credit_card', 'debit_card'],
                     },
-                  }}
-                />
-              </Box>
-
-              <Typography variant='h6' gutterBottom>
-                Ou pague com PIX
-              </Typography>
-
-              <Box
-                sx={{
-                  p: 2,
-                  border: '1px solid #e0e0e0',
-                  borderRadius: 1,
+                  },
                 }}
-              >
-                <Payment
-                  initialization={{
-                    amount,
-                    payer: {
-                      email,
-                    },
-                  }}
-                  locale='pt-BR'
-                  onSubmit={handlePixPaymentSubmit}
-                  onError={handlePixPaymentError}
-                  customization={{
-                    paymentMethods: {
-                      bankTransfer: 'all',
-                    },
-                  }}
+              />
+            </div>
+
+            <h3 className='text-lg font-semibold'>Ou pague com PIX</h3>
+
+            <div className='p-3 border rounded-md'>
+              <Payment
+                initialization={{
+                  amount,
+                  payer: {
+                    email,
+                  },
+                }}
+                locale='pt-BR'
+                onSubmit={handlePixPaymentSubmit}
+                onError={handlePixPaymentError}
+                customization={{
+                  paymentMethods: {
+                    bankTransfer: 'all',
+                  },
+                }}
+              />
+            </div>
+
+            <Button
+              onClick={handleReset}
+              variant='secondary'
+              className='w-full'
+            >
+              Voltar
+            </Button>
+          </div>
+        )}
+
+        {paymentResult && (
+          <div className='mt-3 space-y-4'>
+            <div
+              className={`p-3 rounded-md ${
+                paymentResult.status === 'approved' ||
+                paymentResult.status === 'paid'
+                  ? 'bg-green-50 text-green-800'
+                  : 'bg-yellow-50 text-yellow-800'
+              }`}
+            >
+              Pagamento {paymentResult.status} - ID: {paymentResult.id}
+            </div>
+
+            {qrImgSrc && (
+              <div className='mt-2 text-center'>
+                <div className='text-base font-medium mb-2'>QR Code PIX</div>
+                <img
+                  src={qrImgSrc}
+                  alt='QR Code PIX'
+                  className='mx-auto mb-2 max-w-[200px]'
                 />
-              </Box>
-
-              <Button
-                onClick={handleReset}
-                fullWidth
-                variant='outlined'
-                size='large'
-                sx={{ mt: 2 }}
-              >
-                Voltar
-              </Button>
-            </Box>
-          )}
-
-          {paymentResult && (
-            <Box sx={{ mt: 3 }}>
-              <Alert
-                severity={
-                  paymentResult.status === 'approved' ||
-                  paymentResult.status === 'paid'
-                    ? 'success'
-                    : 'warning'
-                }
-                sx={{ mb: 2 }}
-              >
-                Pagamento {paymentResult.status} - ID: {paymentResult.id}
-              </Alert>
-
-              {qrImgSrc && (
-                <Box sx={{ mt: 2, textAlign: 'center' }}>
-                  <Typography variant='subtitle1' gutterBottom>
-                    QR Code PIX
-                  </Typography>
-                  <Box
-                    component='img'
-                    src={qrImgSrc}
-                    alt='QR Code PIX'
-                    sx={{ maxWidth: 200, mb: 2 }}
+                {qrString && (
+                  <textarea
+                    readOnly
+                    className='w-full border border-gray-200 rounded-md p-2'
+                    value={qrString}
                   />
-                  {qrString && (
-                    <TextField
-                      fullWidth
-                      label='PIX Copia e Cola'
-                      value={qrString}
-                      slotProps={{ input: { readOnly: true } }}
-                      sx={{ mb: 2 }}
-                    />
-                  )}
-                </Box>
-              )}
+                )}
+              </div>
+            )}
 
-              <Button
-                onClick={handleReset}
-                fullWidth
-                variant='contained'
-                size='large'
-              >
-                Novo Pagamento
-              </Button>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-    </Container>
+            <Button onClick={handleReset} className='w-full'>
+              Novo Pagamento
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
