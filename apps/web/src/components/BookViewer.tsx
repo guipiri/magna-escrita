@@ -1,219 +1,309 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { type TouchEvent, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { ImageWithFallback } from './ImageWithFallback';
 
-interface BookPage {
-  id: number;
-  content: string;
-  image?: string;
+type ViewerPage =
+  | {
+      type: 'image';
+      src: string;
+      alt: string;
+      cover?: boolean;
+    }
+  | {
+      type: 'blank';
+      alt: string;
+    };
+
+interface ViewerSpread {
+  id: string;
+  label: string;
+  pages: ViewerPage[];
 }
 
-interface BookViewerProps {
-  pages: BookPage[];
+interface MobileViewerPage {
+  id: string;
+  label: string;
+  page: ViewerPage;
 }
 
-export function BookViewer({ pages }: BookViewerProps) {
-  const [currentPage, setCurrentPage] = useState(0);
-  const [currentMobileIndex, setCurrentMobileIndex] = useState(0);
+const storyPages = Array.from({ length: 14 }, (_, index) => ({
+  type: 'image' as const,
+  src: `/page${index + 2}.png`,
+  alt: `Pagina ${index + 2}`,
+}));
+
+const spreads: ViewerSpread[] = [
+  {
+    id: 'cover',
+    label: 'Capa',
+    pages: [
+      {
+        type: 'image',
+        src: '/cover.png',
+        alt: 'Capa do livro',
+        cover: true,
+      },
+    ],
+  },
+  {
+    id: 'summary',
+    label: 'Resumo',
+    pages: [
+      {
+        type: 'blank',
+        alt: 'Pagina em branco',
+      },
+      {
+        type: 'image',
+        src: '/summary.jpg',
+        alt: 'Resumo do livro',
+      },
+    ],
+  },
+  ...Array.from({ length: Math.ceil(storyPages.length / 2) }, (_, index) => {
+    const firstPage = storyPages[index * 2];
+    const secondPage = storyPages[index * 2 + 1];
+
+    return {
+      id: `pages-${index}`,
+      label: `${index * 2 + 2}-${index * 2 + 3}`,
+      pages: secondPage ? [firstPage, secondPage] : [firstPage],
+    };
+  }),
+  {
+    id: 'thanks',
+    label: 'Agradecimentos',
+    pages: [
+      {
+        type: 'image',
+        src: '/thanks.jpg',
+        alt: 'Agradecimentos',
+      },
+      {
+        type: 'blank',
+        alt: 'Pagina em branco',
+      },
+    ],
+  },
+  {
+    id: 'back-cover',
+    label: 'Contra capa',
+    pages: [
+      {
+        type: 'image',
+        src: '/back_cover.png',
+        alt: 'Contra capa do livro',
+        cover: true,
+      },
+    ],
+  },
+];
+
+const mobilePages: MobileViewerPage[] = spreads.flatMap((spread) =>
+  spread.pages.map((page, index) => ({
+    id: `${spread.id}-${index}`,
+    label:
+      spread.pages.length === 1 ? spread.label : `${spread.label} ${index + 1}`,
+    page,
+  })),
+);
+
+export function BookViewer() {
+  const [currentSpread, setCurrentSpread] = useState(0);
+  const [currentMobilePage, setCurrentMobilePage] = useState(0);
   const [direction, setDirection] = useState(0);
+  const indicatorRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const mobileIndicatorRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
-  // Desktop: navega de 2 em 2 páginas
-  const nextPage = () => {
-    if (currentPage < pages.length - 1) {
-      setDirection(1);
-      setCurrentPage(currentPage + 1);
+  const current = spreads[currentSpread];
+  const currentMobile = mobilePages[currentMobilePage];
+  const isFirstSpread = currentSpread === 0;
+  const isLastSpread = currentSpread === spreads.length - 1;
+  const isFirstMobilePage = currentMobilePage === 0;
+  const isLastMobilePage = currentMobilePage === mobilePages.length - 1;
+
+  const goToSpread = (nextSpread: number) => {
+    if (nextSpread < 0 || nextSpread >= spreads.length) return;
+
+    setDirection(nextSpread > currentSpread ? 1 : -1);
+    setCurrentSpread(nextSpread);
+  };
+
+  const nextSpread = () => goToSpread(currentSpread + 1);
+  const previousSpread = () => goToSpread(currentSpread - 1);
+
+  const goToMobilePage = (nextPage: number) => {
+    if (nextPage < 0 || nextPage >= mobilePages.length) return;
+
+    setDirection(nextPage > currentMobilePage ? 1 : -1);
+    setCurrentMobilePage(nextPage);
+  };
+
+  const nextMobilePage = () => goToMobilePage(currentMobilePage + 1);
+  const previousMobilePage = () => goToMobilePage(currentMobilePage - 1);
+
+  const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0];
+
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+    };
+  };
+
+  const handleTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
+    const start = touchStartRef.current;
+    const touch = event.changedTouches[0];
+
+    touchStartRef.current = null;
+
+    if (!start || !touch) return;
+
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    const isHorizontalSwipe =
+      Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2;
+
+    if (!isHorizontalSwipe) return;
+
+    if (deltaX < 0) {
+      nextMobilePage();
+    } else {
+      previousMobilePage();
     }
   };
 
-  const prevPage = () => {
-    if (currentPage > 0) {
-      setDirection(-1);
-      setCurrentPage(currentPage - 1);
-    }
-  };
+  useEffect(() => {
+    indicatorRefs.current[currentSpread]?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center',
+    });
+  }, [currentSpread]);
 
-  // Mobile: navega página por página alternando texto e imagem
-  const nextMobilePage = () => {
-    setDirection(1);
-    setCurrentMobileIndex(currentMobileIndex + 1);
-  };
-
-  const prevMobilePage = () => {
-    if (currentMobileIndex > 0) {
-      setDirection(-1);
-      setCurrentMobileIndex(currentMobileIndex - 1);
-    }
-  };
-
-  // Calcula qual página está sendo exibida no mobile
-  const getMobilePageInfo = () => {
-    const pageIndex = Math.floor(currentMobileIndex / 2);
-    const isImage = currentMobileIndex % 2 === 1;
-    return { page: pages[pageIndex], isImage, pageIndex };
-  };
-
-  const leftPage = pages[currentPage];
-  const rightPage = pages[currentPage + 1];
-
-  const pageVariants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? 1000 : -1000,
-      opacity: 0,
-      rotateY: direction > 0 ? -90 : 90,
-    }),
-    center: {
-      x: 0,
-      opacity: 1,
-      rotateY: 0,
-    },
-    exit: (direction: number) => ({
-      x: direction > 0 ? -1000 : 1000,
-      opacity: 0,
-      rotateY: direction > 0 ? 90 : -90,
-    }),
-  };
-
-  const mobilePageInfo = getMobilePageInfo();
-  const totalMobilePages = pages.length * 2;
+  useEffect(() => {
+    mobileIndicatorRefs.current[currentMobilePage]?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center',
+    });
+  }, [currentMobilePage]);
 
   return (
     <div className='w-full max-w-6xl mx-auto px-4'>
-      <div className='relative'>
-        {/* Desktop: 2 páginas lado a lado */}
-        <div className='hidden md:flex gap-1 perspective-[2000px]'>
-          <AnimatePresence initial={false} custom={direction} mode='wait'>
-            <motion.div
-              key={`left-${currentPage}`}
-              custom={direction}
-              variants={pageVariants}
-              initial='enter'
-              animate='center'
-              exit='exit'
-              transition={{ duration: 0.5, ease: 'easeInOut' }}
-              className='flex-1'
-            >
-              <Page page={leftPage} position='left' />
-            </motion.div>
-          </AnimatePresence>
-
-          <div className='w-1 from-gray-300 via-gray-400 to-gray-300 shadow-lg' />
-
-          <AnimatePresence initial={false} custom={direction} mode='wait'>
-            <motion.div
-              key={`right-${currentPage + 1}`}
-              custom={direction}
-              variants={pageVariants}
-              initial='enter'
-              animate='center'
-              exit='exit'
-              transition={{ duration: 0.5, ease: 'easeInOut' }}
-              className='flex-1'
-            >
-              <Page page={rightPage} position='right' />
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        {/* Mobile: 1 página por vez (quadrada) */}
-        <div className='md:hidden'>
-          <AnimatePresence initial={false} custom={direction} mode='wait'>
-            <motion.div
-              key={currentMobileIndex}
-              custom={direction}
-              variants={pageVariants}
-              initial='enter'
-              animate='center'
-              exit='exit'
-              transition={{ duration: 0.5, ease: 'easeInOut' }}
-            >
-              <MobilePage
-                page={mobilePageInfo.page}
-                isImage={mobilePageInfo.isImage}
-              />
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        {/* Botões de navegação */}
+      <div className='hidden md:block'>
+        <AnimatePresence initial={false} custom={direction} mode='wait'>
+          <motion.div
+            key={current.id}
+            custom={direction}
+            variants={spreadVariants}
+            initial='enter'
+            animate='center'
+            exit='exit'
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+          >
+            <SpreadView spread={current} />
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      <div className='flex justify-between mt-4 px-4'>
+      <div
+        className='md:hidden touch-pan-y select-none'
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <AnimatePresence initial={false} custom={direction} mode='wait'>
+          <motion.div
+            key={currentMobile.id}
+            custom={direction}
+            variants={spreadVariants}
+            initial='enter'
+            animate='center'
+            exit='exit'
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+          >
+            <SinglePageView page={currentMobile.page} />
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      <div className='hidden md:flex justify-between mt-2 px-4'>
         <button
-          onClick={() => {
-            if (window.innerWidth >= 768) {
-              prevPage();
-            } else {
-              prevMobilePage();
-            }
-          }}
-          disabled={
-            window.innerWidth >= 768
-              ? currentPage === 0
-              : currentMobileIndex === 0
-          }
+          onClick={previousSpread}
+          disabled={isFirstSpread}
           className='rounded-full p-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95'
-          aria-label='Página anterior'
+          aria-label='Pagina anterior'
         >
           <ChevronLeft className='w-6 h-6 text-purple-600' />
         </button>
 
         <button
-          onClick={() => {
-            if (window.innerWidth >= 768) {
-              nextPage();
-            } else {
-              nextMobilePage();
-            }
-          }}
-          disabled={
-            window.innerWidth >= 768
-              ? currentPage >= pages.length - 2
-              : currentMobileIndex >= totalMobilePages - 1
-          }
+          onClick={nextSpread}
+          disabled={isLastSpread}
           className='rounded-full p-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95'
-          aria-label='Próxima página'
+          aria-label='Proxima pagina'
         >
           <ChevronRight className='w-6 h-6 text-purple-600' />
         </button>
       </div>
 
-      {/* Indicadores de página */}
-      <div className='hidden md:flex justify-center gap-2 mt-8'>
-        {Array.from({ length: Math.ceil(pages.length) }).map((_, i) => (
+      <div className='md:hidden flex justify-between mt-2 px-4'>
+        <button
+          onClick={previousMobilePage}
+          disabled={isFirstMobilePage}
+          className='rounded-full p-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95'
+          aria-label='Pagina anterior'
+        >
+          <ChevronLeft className='w-6 h-6 text-purple-600' />
+        </button>
+
+        <button
+          onClick={nextMobilePage}
+          disabled={isLastMobilePage}
+          className='rounded-full p-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95'
+          aria-label='Proxima pagina'
+        >
+          <ChevronRight className='w-6 h-6 text-purple-600' />
+        </button>
+      </div>
+
+      <div className='hidden md:flex max-w-full justify-center gap-2 overflow-x-auto overflow-y-hidden px-4 pb-2 [-webkit-overflow-scrolling:touch]'>
+        {spreads.map((spread, index) => (
           <button
-            key={i}
-            onClick={() => {
-              setDirection(i > currentPage ? 1 : -1);
-              setCurrentPage(i);
+            key={spread.id}
+            ref={(element) => {
+              indicatorRefs.current[index] = element;
             }}
-            className={`rounded-full outline-0 transition-all ${
-              i === currentPage
-                ? 'bg-purple-600 w-8'
-                : 'bg-purple-200 hover:bg-purple-300'
+            onClick={() => goToSpread(index)}
+            className={`h-10 min-w-10 flex-none rounded-full px-3 text-sm transition-all ${
+              index === currentSpread
+                ? 'bg-purple-600 text-white'
+                : 'bg-purple-200 hover:bg-purple-300 text-purple-700'
             }`}
-            aria-label={`Ir para página ${i * 2 + 1}`}
-          />
+            aria-label={`Ir para ${spread.label}`}
+          >
+            {index + 1}
+          </button>
         ))}
       </div>
 
-      {/* Indicadores de página mobile */}
-      <div className='md:hidden flex justify-center gap-2 mt-8'>
-        {Array.from({ length: totalMobilePages }).map((_, i) => (
+      <div className='md:hidden flex max-w-full justify-start gap-2 overflow-x-auto overflow-y-hidden px-4 pb-2 [-webkit-overflow-scrolling:touch]'>
+        {mobilePages.map((page, index) => (
           <button
-            key={i}
-            onClick={() => {
-              setDirection(i > currentMobileIndex ? 1 : -1);
-              setCurrentMobileIndex(i);
+            key={page.id}
+            ref={(element) => {
+              mobileIndicatorRefs.current[index] = element;
             }}
-            className={`rounded-full transition-all ${
-              i === currentMobileIndex
-                ? 'bg-purple-600 w-8'
-                : 'bg-purple-200 hover:bg-purple-300'
+            onClick={() => goToMobilePage(index)}
+            className={`h-10 min-w-10 flex-none rounded-full px-3 text-sm transition-all ${
+              index === currentMobilePage
+                ? 'bg-purple-600 text-white'
+                : 'bg-purple-200 hover:bg-purple-300 text-purple-700'
             }`}
-            aria-label={`Ir para página ${i + 1}`}
+            aria-label={`Ir para ${page.label}`}
           >
-            {i}
+            {index + 1}
           </button>
         ))}
       </div>
@@ -221,155 +311,103 @@ export function BookViewer({ pages }: BookViewerProps) {
   );
 }
 
-interface PageProps {
-  page: BookPage | undefined;
-  position: 'left' | 'right';
-}
+const spreadVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 120 : -120,
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+  },
+  exit: (direction: number) => ({
+    x: direction > 0 ? -120 : 120,
+    opacity: 0,
+  }),
+};
 
-interface MobilePageProps {
-  page: BookPage | undefined;
-  isImage: boolean;
-}
-
-function MobilePage({ page, isImage }: MobilePageProps) {
-  if (!page) return null;
-
-  const bgClass =
-    isImage && page.image
-      ? 'bg-gray-100'
-      : 'bg-gradient-to-br from-amber-50 to-orange-50';
+function SpreadView({ spread }: { spread: ViewerSpread }) {
+  const isSinglePage = spread.pages.length === 1;
 
   return (
     <div
-      className={`rounded-2xl shadow-2xl h-96 w-full relative overflow-hidden ${bgClass} p-6 flex flex-col justify-center aspect-square h-auto`}
+      className={`mx-auto flex items-center justify-center ${
+        isSinglePage ? 'max-w-md' : 'max-w-5xl gap-1'
+      }`}
     >
-      <div className='absolute inset-0 opacity-5 pointer-events-none'>
-        <div
-          className='absolute inset-0'
-          style={{
-            backgroundImage:
-              'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.4"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v6h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-          }}
+      {spread.pages.map((page, index) => (
+        <BookPageSheet
+          key={`${spread.id}-${index}`}
+          page={page}
+          position={getPagePosition(index, spread.pages.length)}
         />
-      </div>
-      <div className='relative z-10 w-full h-full flex items-center justify-center'>
-        {isImage ? (
-          // Página com imagem
-          <>
-            {page.image ? (
-              <ImageWithFallback
-                src={page.image}
-                alt={`Ilustração da página ${page.id}`}
-                className='w-full h-full object-cover rounded-lg shadow-md'
-              />
-            ) : (
-              <div className='w-full h-full bg-purple-100 rounded-lg flex items-center justify-center'>
-                <span className='text-gray-400 text-center px-4'>
-                  Página {page.id}
-                </span>
-              </div>
-            )}
-          </>
-        ) : (
-          // Página com texto
-          <div className='prose prose-sm max-w-none text-center'>
-            <p className='text-gray-800 leading-relaxed whitespace-pre-wrap text-sm'>
-              {page.content}
-            </p>
-          </div>
-        )}
-      </div>
-      <div className='absolute bottom-3 right-4 text-gray-400 select-none text-xs'>
-        {page.id}
-      </div>
+      ))}
     </div>
   );
 }
 
-function Page({ page, position }: PageProps) {
-  if (!page) return null;
+function SinglePageView({ page }: { page: ViewerPage }) {
+  return (
+    <div className='mx-auto flex max-w-md items-center justify-center'>
+      <BookPageSheet page={page} position='single' />
+    </div>
+  );
+}
 
+function BookPageSheet({
+  page,
+  position,
+}: {
+  page: ViewerPage;
+  position: 'single' | 'left' | 'right';
+}) {
   const roundedClass =
-    position === 'left'
-      ? 'rounded-l-2xl'
-      : position === 'right'
-        ? 'rounded-r-2xl'
-        : 'rounded-2xl';
+    position === 'single'
+      ? 'rounded-2xl'
+      : position === 'left'
+        ? 'rounded-l-2xl'
+        : 'rounded-r-2xl';
 
   const shadowClass =
-    position === 'left'
-      ? 'shadow-[-10px_10px_30px_rgba(0,0,0,0.3)]'
-      : position === 'right'
-        ? 'shadow-[10px_10px_30px_rgba(0,0,0,0.3)]'
-        : 'shadow-2xl';
+    position === 'single'
+      ? 'shadow-2xl'
+      : position === 'left'
+        ? 'shadow-[-10px_10px_30px_rgba(0,0,0,0.25)]'
+        : 'shadow-[10px_10px_30px_rgba(0,0,0,0.25)]';
 
-  // Desktop: página esquerda mostra apenas texto
-  if (position === 'left') {
+  const aspectClass =
+    page.type === 'image' && page.cover
+      ? 'aspect-[1373/1413]'
+      : 'aspect-square';
+
+  if (page.type === 'blank') {
     return (
       <div
-        className={`${roundedClass} ${shadowClass} h-auto aspect-square relative overflow-hidden bg-gradient-to-br from-amber-50 to-orange-50 p-6 md:p-8 flex flex-col justify-center`}
-      >
-        <div className='absolute inset-0 opacity-5 pointer-events-none'>
-          <div
-            className='absolute inset-0'
-            style={{
-              backgroundImage:
-                'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.4"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v6h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-            }}
-          />
-        </div>
-
-        <div className='relative z-10 prose prose-sm md:prose-base max-w-none'>
-          <p className='text-gray-800 leading-relaxed whitespace-pre-wrap text-sm md:text-base'>
-            {page.content}
-          </p>
-        </div>
-
-        <div className='absolute bottom-3 right-4 text-gray-400 select-none text-xs md:text-sm'>
-          {page.id}
-        </div>
-      </div>
+        className={`${roundedClass} ${shadowClass} ${aspectClass} flex-1 relative overflow-hidden bg-white`}
+        aria-label={page.alt}
+      ></div>
     );
   }
 
-  // Desktop: página direita mostra apenas imagem
-  if (position === 'right') {
-    return (
-      <div
-        className={`${roundedClass} ${shadowClass} h-auto aspect-square relative overflow-hidden bg-gradient-to-br from-amber-50 to-orange-50 p-6 md:p-8 flex items-center justify-center`}
-      >
-        <div className='absolute inset-0 opacity-5 pointer-events-none'>
-          <div
-            className='absolute inset-0'
-            style={{
-              backgroundImage:
-                'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.4"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v6h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-            }}
-          />
-        </div>
+  return (
+    <div
+      className={`${roundedClass} ${shadowClass} ${aspectClass} flex-1 relative overflow-hidden bg-white`}
+    >
+      <img
+        src={page.src}
+        alt={page.alt}
+        className='h-full w-full object-contain'
+        draggable={false}
+      />
+    </div>
+  );
+}
 
-        <div className='relative z-10 w-full h-full'>
-          {page.image ? (
-            <ImageWithFallback
-              src={page.image}
-              alt={`Ilustração da página ${page.id}`}
-              className='w-full h-full object-cover rounded-lg shadow-md'
-            />
-          ) : (
-            <div className='w-full h-full bg-purple-100 rounded-lg flex items-center justify-center'>
-              <span className='text-gray-400 text-center px-4'>
-                Página {page.id}
-              </span>
-            </div>
-          )}
-        </div>
+function getPagePosition(
+  index: number,
+  totalPages: number,
+): 'single' | 'left' | 'right' {
+  if (totalPages === 1) return 'single';
 
-        <div className='absolute bottom-3 right-4 text-gray-400 select-none text-xs md:text-sm'>
-          {page.id}
-        </div>
-      </div>
-    );
-  }
-
-  return null;
+  return index === 0 ? 'left' : 'right';
 }

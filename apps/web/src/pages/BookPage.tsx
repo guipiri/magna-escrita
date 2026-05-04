@@ -14,48 +14,6 @@ const bookData = {
     'https://images.unsplash.com/photo-1627229045047-b53784b1c121?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
   synopsis:
     'Uma história encantadora sobre uma menina que descobre um mundo mágico cheio de cores, amizade e aventuras incríveis. Escrito e ilustrado com todo o carinho por uma jovem autora.',
-  pages: [
-    {
-      id: 1,
-      content:
-        'Era uma vez uma menina chamada Sofia que adorava desenhar e pintar.\n\nTodos os dias, ela criava mundos mágicos com seus lápis de cor.',
-      image:
-        'https://images.unsplash.com/photo-1696527018053-3343b9853505?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
-    },
-    {
-      id: 2,
-      content:
-        'Um dia, enquanto desenhava no jardim, algo mágico aconteceu.\n\nSeus desenhos começaram a ganhar vida!',
-      image:
-        'https://images.unsplash.com/photo-1649750291679-1ee88c324527?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
-    },
-    {
-      id: 3,
-      content:
-        'As cenouras que ela desenhou começaram a pular e dançar!\n\nE uma linda flor colorida apareceu bem na sua frente.',
-      image:
-        'https://images.unsplash.com/photo-1649750291589-8812197b698c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
-    },
-    {
-      id: 4,
-      content:
-        'Sofia descobriu que quando desenhava com amor e alegria, a magia acontecia.\n\nEla passou a criar cada vez mais desenhos mágicos!',
-      image:
-        'https://images.unsplash.com/photo-1696527014256-4755b3ac0b4a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
-    },
-    {
-      id: 5,
-      content:
-        'Seus amigos vieram conhecer as criações mágicas de Sofia.\n\nJuntos, eles exploraram o mundo colorido que ela havia desenhado.',
-      image:
-        'https://images.unsplash.com/photo-1627852682194-f793ca7a2035?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600',
-    },
-    {
-      id: 6,
-      content:
-        'E assim, Sofia aprendeu que a imaginação é o maior poder mágico que existe.\n\nFIM\n\n✨ Escrito com amor por Sofia Maria ✨',
-    },
-  ],
 };
 
 export default function BookPage() {
@@ -63,7 +21,7 @@ export default function BookPage() {
   const [showConfetti, setShowConfetti] = useState(false);
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 overflow-x-hidden'>
+    <div className='min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-blue-50 overflow-x-hidden'>
       <Confetti trigger={showConfetti} />
       <FloatingStars />
       <div className='absolute inset-0 opacity-30 pointer-events-none'>
@@ -81,7 +39,7 @@ export default function BookPage() {
               className='flex items-center gap-2'
             >
               <Sparkles className='w-8 h-8 text-purple-600' />
-              <span className='text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
+              <span className='text-xl md:text-2xl font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
                 Magna Escrita
               </span>
             </motion.div>
@@ -97,7 +55,7 @@ export default function BookPage() {
         </header>
 
         {!showBook ? (
-          <section className='py-12 md:py-20 px-4'>
+          <section className='p-8'>
             <div className='max-w-7xl mx-auto'>
               <div className='grid md:grid-cols-2 gap-12 items-center'>
                 <div className='order-2 md:order-1'>
@@ -113,7 +71,7 @@ export default function BookPage() {
                       </span>
                     </div>
 
-                    <h1 className='text-4xl md:text-5xl lg:text-6xl mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent'>
+                    <h1 className='text-4xl md:text-5xl lg:text-6xl mb-4 bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent'>
                       {bookData.title}
                     </h1>
 
@@ -121,11 +79,11 @@ export default function BookPage() {
                       por {bookData.author}
                     </p>
 
-                    <p className='text-lg text-gray-700 leading-relaxed mb-8'>
+                    <p className='text-lg text-gray-700 leading-relaxed mb-4'>
                       {bookData.synopsis}
                     </p>
 
-                    <div className='flex flex-col sm:flex-row gap-4'>
+                    <div className='flex flex-col sm:flex-row gap-4 mt-10 '>
                       <Button
                         onClick={() => {
                           setShowBook(true);
@@ -170,19 +128,19 @@ export default function BookPage() {
                   <BookCover
                     title={bookData.title}
                     author={bookData.author}
-                    coverImage={bookData.coverImage}
+                    coverImage={'/cover.png'}
                   />
                 </div>
               </div>
             </div>
           </section>
         ) : (
-          <section className='py-12 px-4'>
+          <section className='px-4'>
             <div className='max-w-7xl mx-auto'>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className='mb-8 text-center'
+                className='mb-4 text-center'
               >
                 <button
                   onClick={() => setShowBook(false)}
@@ -190,13 +148,13 @@ export default function BookPage() {
                 >
                   ← Voltar para a capa
                 </button>
-                <h2 className='text-3xl md:text-4xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
+                <h2 className='text-3xl md:text-4xl bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
                   {bookData.title}
                 </h2>
                 <p className='text-gray-600 mt-2'>por {bookData.author}</p>
               </motion.div>
 
-              <BookViewer pages={bookData.pages} />
+              <BookViewer />
 
               <motion.div
                 initial={{ opacity: 0 }}
@@ -214,11 +172,11 @@ export default function BookPage() {
           </section>
         )}
 
-        <footer className='py-12 px-4 mt-20 border-t border-purple-100'>
+        <footer className='py-12 px-4 mt-12 border-t border-purple-100'>
           <div className='max-w-7xl mx-auto text-center'>
             <div className='flex items-center justify-center gap-2 mb-4'>
               <Sparkles className='w-6 h-6 text-purple-600' />
-              <span className='text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
+              <span className='text-xl font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
                 Magna Escrita
               </span>
             </div>

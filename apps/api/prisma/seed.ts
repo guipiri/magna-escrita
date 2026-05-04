@@ -1,12 +1,26 @@
 import 'dotenv/config';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
+import { PageType, PrismaClient } from '@prisma/client';
 
 const connectionString = `${process.env.DATABASE_URL}`;
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
+
+const mockBookPages = [
+  { number: 0, type: PageType.COVER, imageUrl: '/cover.png' },
+  { number: 1, type: PageType.BLANK, imageUrl: null },
+  { number: 2, type: PageType.PREFACE, imageUrl: '/summary.jpg' },
+  ...Array.from({ length: 14 }, (_, index) => ({
+    number: index + 3,
+    type: PageType.DRAW,
+    imageUrl: `/page${index + 2}.png`,
+  })),
+  { number: 17, type: PageType.THANKS, imageUrl: '/thanks.jpg' },
+  { number: 18, type: PageType.BLANK, imageUrl: null },
+  { number: 19, type: PageType.BACK_COVER, imageUrl: '/back_cover.png' },
+];
 
 async function main() {
   console.log('🌱 Iniciando seed de livros...');
@@ -45,6 +59,16 @@ async function main() {
         amount: 58.8,
       },
     }),
+    prisma.price.upsert({
+      where: { id: 'price-mock-davina' },
+      update: {
+        amount: 39.9,
+      },
+      create: {
+        id: 'price-mock-davina',
+        amount: 39.9,
+      },
+    }),
   ]);
 
   console.log(`✅ ${prices.length} preços criados/atualizados`);
@@ -58,7 +82,7 @@ async function main() {
         id: 'book-001',
         title: 'A Cidade das Palavras',
         author: 'Lia Monteiro',
-        description:
+        synopsis:
           'Um romance sobre memória, linguagem e os encontros improváveis que mudam uma vida.',
         priceId: 'price-001',
       },
@@ -70,7 +94,7 @@ async function main() {
         id: 'book-002',
         title: 'Código em Movimento',
         author: 'Rafael Cordeiro',
-        description:
+        synopsis:
           'Ensaios curtos sobre produto, software e a disciplina de construir coisas que duram.',
         priceId: 'price-002',
       },
@@ -82,7 +106,7 @@ async function main() {
         id: 'book-003',
         title: 'Mar de Tinta',
         author: 'Helena Vieira',
-        description:
+        synopsis:
           'Crônicas poéticas para leitura lenta, com capítulos que alternam mar, rua e silêncio.',
         priceId: 'price-003',
       },
@@ -94,14 +118,53 @@ async function main() {
         id: 'book-004',
         title: 'Atlas de Pequenas Revoluções',
         author: 'Nuno Azevedo',
-        description:
+        synopsis:
           'Uma coleção de histórias sobre mudanças discretas que alteram o curso de uma cidade.',
         priceId: 'price-004',
+      },
+    }),
+    prisma.book.upsert({
+      where: { id: 'book-mock-davina' },
+      update: {
+        title: 'Livro Mock Davina',
+        author: 'Davina',
+        synopsis:
+          'Livro de demonstração criado a partir das imagens mock em public.',
+        priceId: 'price-mock-davina',
+      },
+      create: {
+        id: 'book-mock-davina',
+        title: 'Livro Mock Davina',
+        author: 'Davina',
+        synopsis:
+          'Livro de demonstração criado a partir das imagens mock em public.',
+        priceId: 'price-mock-davina',
       },
     }),
   ]);
 
   console.log(`✅ ${books.length} livros criados/atualizados`);
+
+  await Promise.all(
+    mockBookPages.map((page) =>
+      prisma.page.upsert({
+        where: { number: page.number },
+        update: {
+          type: page.type,
+          imageUrl: page.imageUrl,
+          bookId: 'book-mock-davina',
+        },
+        create: {
+          number: page.number,
+          type: page.type,
+          imageUrl: page.imageUrl,
+          bookId: 'book-mock-davina',
+        },
+      }),
+    ),
+  );
+
+  console.log(`✅ ${mockBookPages.length} páginas mock criadas/atualizadas`);
   console.log('📚 Livros no banco:');
   books.forEach((book) => {
     console.log(`  - ${book.title} (${book.author}) - R$ ${book.id}`);

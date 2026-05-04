@@ -49,7 +49,7 @@ model Book {
   id          String       @id @default(cuid())
   title       String
   author      String
-  description String?
+  synopsis    String?
   pages       Page[]
   priceId     String
   price       Price        @relation(fields: [priceId], references: [id])
@@ -74,11 +74,24 @@ model OrderItem {
   @@unique([orderId, bookId])
 }
 
+enum PageType {
+  COVER
+  TEXT
+  DRAW
+  DRAW_TEXT
+  BLANK
+  PREFACE
+  THANKS
+  BACK_COVER
+}
+
 model Page {
-  number       Int     @id
-  content      String?
+  number       Int      @id
+  type         PageType
+  textContent  String?
   drawImageUrl String?
-  book         Book?   @relation(fields: [bookId], references: [id])
+  imageUrl     String?
+  book         Book?    @relation(fields: [bookId], references: [id])
   bookId       String?
 
   createdAt DateTime @default(now())
@@ -103,6 +116,7 @@ model Enrollment {
   schoolYear SchoolYear
   gardeId    String
   grade      Grade      @relation(fields: [gardeId], references: [id])
+  age        Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -152,6 +166,7 @@ model AuthographsEvent {
 model Unit {
   id                String             @id @default(cuid())
   name              String
+  logoUrl           String?
   schoolId          String
   school            School             @relation(fields: [schoolId], references: [id])
   grades            Grade[]

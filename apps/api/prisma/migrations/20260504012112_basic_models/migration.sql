@@ -2,6 +2,9 @@
 CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'APPROVED', 'CANCELED', 'REFUNDED');
 
 -- CreateEnum
+CREATE TYPE "PageType" AS ENUM ('COVER', 'TEXT', 'DRAW', 'DRAW_TEXT', 'BLANK', 'PREFACE', 'THANKS', 'BACK_COVER');
+
+-- CreateEnum
 CREATE TYPE "SchoolYear" AS ENUM ('2026', '2027');
 
 -- CreateTable
@@ -39,7 +42,7 @@ CREATE TABLE "Book" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "author" TEXT NOT NULL,
-    "description" TEXT,
+    "synopsis" TEXT,
     "priceId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -60,8 +63,10 @@ CREATE TABLE "OrderItem" (
 -- CreateTable
 CREATE TABLE "Page" (
     "number" INTEGER NOT NULL,
-    "content" TEXT,
+    "type" "PageType" NOT NULL,
+    "textContent" TEXT,
     "drawImageUrl" TEXT,
+    "imageUrl" TEXT,
     "bookId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -86,6 +91,7 @@ CREATE TABLE "Enrollment" (
     "bookId" TEXT NOT NULL,
     "schoolYear" "SchoolYear" NOT NULL,
     "gardeId" TEXT NOT NULL,
+    "age" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -132,6 +138,7 @@ CREATE TABLE "AuthographsEvent" (
 CREATE TABLE "Unit" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "logoUrl" TEXT,
     "schoolId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
