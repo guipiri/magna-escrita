@@ -46,15 +46,16 @@ model Price {
 }
 
 model Book {
-  id          String       @id @default(cuid())
-  title       String
-  author      String
-  synopsis    String?
-  pages       Page[]
-  priceId     String
-  price       Price        @relation(fields: [priceId], references: [id])
-  enrollments Enrollment[]
-  orderItems  OrderItem[]
+  id           String       @id @default(cuid())
+  magnificCode String       @unique
+  title        String
+  author       String
+  synopsis     String?
+  pages        Page[]
+  priceId      String
+  price        Price        @relation(fields: [priceId], references: [id])
+  enrollments  Enrollment[]
+  orderItems   OrderItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -22,6 +22,15 @@ const mockBookPages = [
   { number: 19, type: PageType.BACK_COVER, imageUrl: '/back_cover.png' },
 ];
 
+function generateMagnificCode(): string {
+  const baseString = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 5; i++) {
+    result += baseString.charAt(Math.floor(Math.random() * baseString.length));
+  }
+  return result;
+}
+
 async function main() {
   console.log('🌱 Iniciando seed de livros...');
 
@@ -60,12 +69,12 @@ async function main() {
       },
     }),
     prisma.price.upsert({
-      where: { id: 'price-mock-davina' },
+      where: { id: 'price-mock-sofia' },
       update: {
         amount: 39.9,
       },
       create: {
-        id: 'price-mock-davina',
+        id: 'price-mock-sofia',
         amount: 39.9,
       },
     }),
@@ -77,10 +86,19 @@ async function main() {
   const books = await Promise.all([
     prisma.book.upsert({
       where: { id: 'book-001' },
-      update: {},
+      update: {
+        id: 'book-001',
+        title: 'A Cidade das Palavras',
+        magnificCode: generateMagnificCode(),
+        author: 'Lia Monteiro',
+        synopsis:
+          'Um romance sobre memória, linguagem e os encontros improváveis que mudam uma vida.',
+        priceId: 'price-001',
+      },
       create: {
         id: 'book-001',
         title: 'A Cidade das Palavras',
+        magnificCode: generateMagnificCode(),
         author: 'Lia Monteiro',
         synopsis:
           'Um romance sobre memória, linguagem e os encontros improváveis que mudam uma vida.',
@@ -89,10 +107,19 @@ async function main() {
     }),
     prisma.book.upsert({
       where: { id: 'book-002' },
-      update: {},
+      update: {
+        id: 'book-002',
+        title: 'Código em Movimento',
+        magnificCode: generateMagnificCode(),
+        author: 'Rafael Cordeiro',
+        synopsis:
+          'Ensaios curtos sobre produto, software e a disciplina de construir coisas que duram.',
+        priceId: 'price-002',
+      },
       create: {
         id: 'book-002',
         title: 'Código em Movimento',
+        magnificCode: generateMagnificCode(),
         author: 'Rafael Cordeiro',
         synopsis:
           'Ensaios curtos sobre produto, software e a disciplina de construir coisas que duram.',
@@ -101,10 +128,19 @@ async function main() {
     }),
     prisma.book.upsert({
       where: { id: 'book-003' },
-      update: {},
+      update: {
+        id: 'book-003',
+        title: 'Mar de Tinta',
+        magnificCode: generateMagnificCode(),
+        author: 'Helena Vieira',
+        synopsis:
+          'Crônicas poéticas para leitura lenta, com capítulos que alternam mar, rua e silêncio.',
+        priceId: 'price-003',
+      },
       create: {
         id: 'book-003',
         title: 'Mar de Tinta',
+        magnificCode: generateMagnificCode(),
         author: 'Helena Vieira',
         synopsis:
           'Crônicas poéticas para leitura lenta, com capítulos que alternam mar, rua e silêncio.',
@@ -113,10 +149,19 @@ async function main() {
     }),
     prisma.book.upsert({
       where: { id: 'book-004' },
-      update: {},
+      update: {
+        id: 'book-004',
+        title: 'Atlas de Pequenas Revoluções',
+        magnificCode: generateMagnificCode(),
+        author: 'Nuno Azevedo',
+        synopsis:
+          'Uma coleção de histórias sobre mudanças discretas que alteram o curso de uma cidade.',
+        priceId: 'price-004',
+      },
       create: {
         id: 'book-004',
         title: 'Atlas de Pequenas Revoluções',
+        magnificCode: generateMagnificCode(),
         author: 'Nuno Azevedo',
         synopsis:
           'Uma coleção de histórias sobre mudanças discretas que alteram o curso de uma cidade.',
@@ -124,21 +169,23 @@ async function main() {
       },
     }),
     prisma.book.upsert({
-      where: { id: 'book-mock-davina' },
+      where: { id: 'book-mock-sofia' },
       update: {
-        title: 'Livro Mock Davina',
-        author: 'Davina',
+        title: 'As Aventuras Mágicas de Sofia',
+        magnificCode: generateMagnificCode(),
+        author: 'Sofia Maria, 7 anos',
         synopsis:
-          'Livro de demonstração criado a partir das imagens mock em public.',
-        priceId: 'price-mock-davina',
+          'Uma história encantadora sobre uma menina que descobre um mundo mágico cheio de cores, amizade e aventuras incríveis. Escrito e ilustrado com todo o carinho por uma jovem autora.',
+        priceId: 'price-mock-sofia',
       },
       create: {
-        id: 'book-mock-davina',
-        title: 'Livro Mock Davina',
-        author: 'Davina',
+        id: 'book-mock-sofia',
+        title: 'As Aventuras Mágicas de Sofia',
+        magnificCode: generateMagnificCode(),
+        author: 'Sofia Maria, 7 anos',
         synopsis:
-          'Livro de demonstração criado a partir das imagens mock em public.',
-        priceId: 'price-mock-davina',
+          'Uma história encantadora sobre uma menina que descobre um mundo mágico cheio de cores, amizade e aventuras incríveis. Escrito e ilustrado com todo o carinho por uma jovem autora.',
+        priceId: 'price-mock-sofia',
       },
     }),
   ]);
@@ -152,13 +199,13 @@ async function main() {
         update: {
           type: page.type,
           imageUrl: page.imageUrl,
-          bookId: 'book-mock-davina',
+          bookId: 'book-mock-sofia',
         },
         create: {
           number: page.number,
           type: page.type,
           imageUrl: page.imageUrl,
-          bookId: 'book-mock-davina',
+          bookId: 'book-mock-sofia',
         },
       }),
     ),
