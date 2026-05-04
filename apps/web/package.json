@@ -18,6 +18,7 @@
     "@mercadopago/sdk-react": "^1.0.7",
     "@repo/shared": "*",
     "@repo/ui": "*",
+    "@tanstack/react-query": "^5.100.9",
     "axios": "^1.15.2",
     "canvas-confetti": "^1.9.4",
     "lucide-react": "^0.487.0",

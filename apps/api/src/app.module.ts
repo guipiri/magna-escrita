@@ -5,6 +5,7 @@ import { AppService } from './app.service.js';
 import { PaymentModule } from './payment/payment.module.js';
 import { DbModule } from './db/db.module.js';
 import { validationSchema } from './config/validation.js';
+import { BooksModule } from './books/books.module.js';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { validationSchema } from './config/validation.js';
       },
     }),
     DbModule,
+    BooksModule,
     PaymentModule,
   ],
   controllers: [AppController],

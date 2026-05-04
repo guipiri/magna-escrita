@@ -3,21 +3,34 @@ import { createRoot } from 'react-dom/client';
 import './style.css';
 import { CartProvider } from './context/cart-context';
 import { CartPage } from './pages/CartPage';
-import { PaymentExample } from './pages/PaymentExample';
+import { CheckoutPage } from './pages/CheckoutPage';
 import BookPage from './pages/BookPage';
+import { OrderPage } from './pages/OrderPage';
+import { QueryProvider } from './providers/query-provider';
+
+const DEFAULT_BOOK_PATH = '/book/SOFIA-MAGICA-001';
 
 const App = () => (
-  <CartProvider>
-    <BrowserRouter>
-      <Routes>
-        <Route path='/' element={<Navigate to='/checkout' replace />} />
-        <Route path='/checkout' element={<PaymentExample />} />
-        <Route path='/cart' element={<CartPage />} />
-        <Route path='/book' element={<BookPage />} />
-        <Route path='*' element={<Navigate to='/checkout' replace />} />
-      </Routes>
-    </BrowserRouter>
-  </CartProvider>
+  <QueryProvider>
+    <CartProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route
+            path='/'
+            element={<Navigate to={DEFAULT_BOOK_PATH} replace />}
+          />
+          <Route path='/checkout' element={<CheckoutPage />} />
+          <Route path='/order/:orderId' element={<OrderPage />} />
+          <Route path='/cart' element={<CartPage />} />
+          <Route path='/book/:magnificCode' element={<BookPage />} />
+          <Route
+            path='*'
+            element={<Navigate to={DEFAULT_BOOK_PATH} replace />}
+          />
+        </Routes>
+      </BrowserRouter>
+    </CartProvider>
+  </QueryProvider>
 );
 
 createRoot(document.getElementById('app')!).render(<App />);

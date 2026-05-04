@@ -5,15 +5,31 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { getBooksByIds } from '../services/book-service';
 
-export interface CartItem {
+interface StoredCartItem {
   bookId: string;
   quantity: number;
+}
+
+export interface CartItem extends StoredCartItem {
+  title: string;
+  author: string;
+  price: number;
+  lineTotal: number;
+  isAvailable: boolean;
+  isLoading: boolean;
 }
 
 interface CartContextValue {
   items: CartItem[];
   totalQuantity: number;
+  subtotal: number;
+  isLoadingBookDetails: boolean;
+  isBookDetailsError: boolean;
+  hasUnavailableItems: boolean;
+  checkoutDisabledReason?: string;
   addBook: (bookId: string) => void;
   increaseBook: (bookId: string) => void;
   decreaseBook: (bookId: string) => void;
@@ -22,10 +38,12 @@ interface CartContextValue {
 }
 
 const CART_STORAGE_KEY = 'magna-escrita-cart';
+const BOOK_DETAILS_UNAVAILABLE_MESSAGE =
+  'Não foi possível carregar os dados dos livros. Tente novamente em instantes.';
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 
-const loadCart = (): CartItem[] => {
+const loadCart = (): StoredCartItem[] => {
   if (typeof window === 'undefined') {
     return [];
   }
@@ -37,7 +55,7 @@ const loadCart = (): CartItem[] => {
       return [];
     }
 
-    const parsedCart = JSON.parse(rawCart) as CartItem[];
+    const parsedCart = JSON.parse(rawCart) as StoredCartItem[];
 
     if (!Array.isArray(parsedCart)) {
       return [];
@@ -52,14 +70,46 @@ const loadCart = (): CartItem[] => {
 };
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(() => loadCart());
+  const [storedItems, setStoredItems] = useState<StoredCartItem[]>(() =>
+    loadCart(),
+  );
 
   useEffect(() => {
-    window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-  }, [items]);
+    window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(storedItems));
+  }, [storedItems]);
+
+  const bookIds = storedItems.map((item) => item.bookId);
+  const {
+    data: books = [],
+    isError: isBookDetailsError,
+    isLoading: isLoadingBookDetails,
+  } = useQuery({
+    queryKey: ['cart-books', bookIds.join(',')],
+    queryFn: () => getBooksByIds(bookIds),
+    enabled: bookIds.length > 0,
+    retry: 1,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const booksById = new Map(books.map((book) => [book.id, book]));
+
+  const items = storedItems.map((item): CartItem => {
+    const book = booksById.get(item.bookId);
+    const price = book?.price ?? 0;
+
+    return {
+      ...item,
+      title: book?.title ?? 'Livro indisponível',
+      author: book?.author ?? 'Não encontramos este livro no banco de dados.',
+      price,
+      lineTotal: price * item.quantity,
+      isAvailable: Boolean(book),
+      isLoading: isLoadingBookDetails,
+    };
+  });
 
   const addBook = (bookId: string) => {
-    setItems((currentItems) => {
+    setStoredItems((currentItems) => {
       const existingItem = currentItems.find((item) => item.bookId === bookId);
 
       if (existingItem) {
@@ -79,7 +129,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const decreaseBook = (bookId: string) => {
-    setItems((currentItems) =>
+    setStoredItems((currentItems) =>
       currentItems
         .map((item) =>
           item.bookId === bookId
@@ -91,22 +141,40 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const removeBook = (bookId: string) => {
-    setItems((currentItems) =>
+    setStoredItems((currentItems) =>
       currentItems.filter((item) => item.bookId !== bookId),
     );
   };
 
   const clearCart = () => {
-    setItems([]);
+    setStoredItems([]);
   };
 
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
+  const hasUnavailableItems =
+    items.length > 0 &&
+    !isLoadingBookDetails &&
+    items.some((item) => !item.isAvailable);
+
+  const checkoutDisabledReason = isLoadingBookDetails
+    ? 'Carregando os dados dos livros antes de seguir para o pagamento.'
+    : isBookDetailsError
+      ? BOOK_DETAILS_UNAVAILABLE_MESSAGE
+      : hasUnavailableItems
+        ? 'Remova os livros indisponíveis antes de seguir para o pagamento.'
+        : undefined;
 
   return (
     <CartContext.Provider
       value={{
         items,
         totalQuantity,
+        subtotal,
+        isLoadingBookDetails,
+        isBookDetailsError,
+        hasUnavailableItems,
+        checkoutDisabledReason,
         addBook,
         increaseBook,
         decreaseBook,

@@ -7,6 +7,7 @@ const connectionString = `${process.env.DATABASE_URL}`;
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
+const MOCK_SOFIA_MAGNIFIC_CODE = 'SOFIA-MAGICA-001';
 
 const mockBookPages = [
   { number: 0, type: PageType.COVER, imageUrl: '/cover.png' },
@@ -172,7 +173,7 @@ async function main() {
       where: { id: 'book-mock-sofia' },
       update: {
         title: 'As Aventuras Mágicas de Sofia',
-        magnificCode: generateMagnificCode(),
+        magnificCode: MOCK_SOFIA_MAGNIFIC_CODE,
         author: 'Sofia Maria, 7 anos',
         synopsis:
           'Uma história encantadora sobre uma menina que descobre um mundo mágico cheio de cores, amizade e aventuras incríveis. Escrito e ilustrado com todo o carinho por uma jovem autora.',
@@ -181,7 +182,7 @@ async function main() {
       create: {
         id: 'book-mock-sofia',
         title: 'As Aventuras Mágicas de Sofia',
-        magnificCode: generateMagnificCode(),
+        magnificCode: MOCK_SOFIA_MAGNIFIC_CODE,
         author: 'Sofia Maria, 7 anos',
         synopsis:
           'Uma história encantadora sobre uma menina que descobre um mundo mágico cheio de cores, amizade e aventuras incríveis. Escrito e ilustrado com todo o carinho por uma jovem autora.',

@@ -1,12 +1,11 @@
-import { Link } from 'react-router-dom';
-import { MercadoPagoCheckout } from '../components/MercadoPagoCheckout';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { FloatingStars } from '../components/FloatingStars';
-import { findBookById } from '../data/books';
 import { useCart } from '../context/cart-context';
 import {
   ArrowLeft,
   BookOpen,
+  CreditCard,
   Heart,
   Minus,
   Plus,
@@ -17,29 +16,22 @@ import {
 import { motion } from 'motion/react';
 
 export function CartPage() {
+  const navigate = useNavigate();
   const {
     items,
     totalQuantity,
+    subtotal,
+    checkoutDisabledReason,
     increaseBook,
     decreaseBook,
     removeBook,
     clearCart,
   } = useCart();
 
-  const subtotal = items.reduce((sum, item) => {
-    const book = findBookById(item.bookId);
-
-    if (!book) {
-      return sum;
-    }
-
-    return sum + book.price * item.quantity;
-  }, 0);
-
   const hasItems = items.length > 0;
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 overflow-x-hidden'>
+    <div className='min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-blue-50 overflow-x-hidden'>
       <FloatingStars />
       <div className='absolute inset-0 opacity-30 pointer-events-none'>
         <div className='absolute top-10 left-10 w-20 h-20 bg-yellow-300 rounded-full blur-2xl animate-pulse' />
@@ -61,13 +53,13 @@ export function CartPage() {
               </span>
             </motion.div>
 
-            <Link
-              to='/book'
+            <button
+              onClick={() => navigate(-1)}
               className='flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all'
             >
               <ArrowLeft className='w-5 h-5 text-purple-600' />
               <span className='hidden md:inline'>Voltar ao livro</span>
-            </Link>
+            </button>
           </nav>
         </header>
 
@@ -83,7 +75,7 @@ export function CartPage() {
                 Livros escolhidos com carinho
               </span>
             </div>
-            <h1 className='text-4xl md:text-5xl lg:text-6xl mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent'>
+            <h1 className='text-4xl md:text-5xl lg:text-6xl mb-4 bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent'>
               Seu Carrinho
             </h1>
             <p className='text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed'>
@@ -108,7 +100,7 @@ export function CartPage() {
                 Escolha um livro para guardar esse pedacinho de imaginação no
                 seu pedido.
               </p>
-              <Link to='/book' className='inline-flex'>
+              <Link to='/' className='inline-flex'>
                 <Button size='lg'>
                   <BookOpen className='w-5 h-5' />
                   Ver livro
@@ -143,31 +135,27 @@ export function CartPage() {
 
                 <div className='divide-y divide-purple-100'>
                   {items.map((item) => {
-                    const book = findBookById(item.bookId);
-
-                    if (!book) return null;
-
-                    const lineTotal = book.price * item.quantity;
-
                     return (
                       <div
-                        key={book.id}
+                        key={item.bookId}
                         className='flex flex-col md:flex-row md:items-center justify-between gap-5 py-5'
                       >
                         <div className='flex items-start gap-4'>
-                          <div className='w-16 h-20 shrink-0 rounded-lg bg-gradient-to-br from-purple-100 via-pink-100 to-indigo-100 shadow-inner flex items-center justify-center'>
+                          <div className='w-16 h-20 shrink-0 rounded-lg bg-linear-to-br from-purple-100 via-pink-100 to-indigo-100 shadow-inner flex items-center justify-center'>
                             <BookOpen className='w-7 h-7 text-purple-500' />
                           </div>
 
                           <div>
                             <h3 className='text-lg font-semibold text-gray-800'>
-                              {book.title}
+                              {item.title}
                             </h3>
                             <p className='text-sm text-gray-500 mt-1'>
-                              {book.author}
+                              {item.author}
                             </p>
                             <p className='text-sm text-gray-600 mt-3'>
-                              R$ {book.price.toFixed(2)} cada
+                              {item.isAvailable
+                                ? `R$ ${item.price.toFixed(2)} cada`
+                                : 'Remova este item para continuar.'}
                             </p>
                           </div>
                         </div>
@@ -175,9 +163,9 @@ export function CartPage() {
                         <div className='flex flex-wrap items-center justify-between md:justify-end gap-4'>
                           <div className='flex items-center gap-2 rounded-full bg-purple-50 p-1'>
                             <button
-                              onClick={() => decreaseBook(book.id)}
+                              onClick={() => decreaseBook(item.bookId)}
                               className='w-9 h-9 rounded-full bg-white text-purple-600 shadow-sm hover:shadow-md transition-all flex items-center justify-center'
-                              aria-label={`Diminuir quantidade de ${book.title}`}
+                              aria-label={`Diminuir quantidade de ${item.title}`}
                             >
                               <Minus className='w-4 h-4' />
                             </button>
@@ -185,9 +173,9 @@ export function CartPage() {
                               {item.quantity}
                             </span>
                             <button
-                              onClick={() => increaseBook(book.id)}
-                              className='w-9 h-9 rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center'
-                              aria-label={`Aumentar quantidade de ${book.title}`}
+                              onClick={() => increaseBook(item.bookId)}
+                              className='w-9 h-9 rounded-full bg-linear-to-r from-pink-500 via-purple-500 to-indigo-500 text-white shadow-md hover:shadow-lg transition-all flex items-center justify-center'
+                              aria-label={`Aumentar quantidade de ${item.title}`}
                             >
                               <Plus className='w-4 h-4' />
                             </button>
@@ -195,10 +183,12 @@ export function CartPage() {
 
                           <div className='min-w-24 text-right'>
                             <div className='text-lg font-semibold text-purple-700'>
-                              R$ {lineTotal.toFixed(2)}
+                              {item.isAvailable
+                                ? `R$ ${item.lineTotal.toFixed(2)}`
+                                : '--'}
                             </div>
                             <button
-                              onClick={() => removeBook(book.id)}
+                              onClick={() => removeBook(item.bookId)}
                               className='text-sm text-gray-500 hover:text-pink-600 transition-colors'
                             >
                               Remover
@@ -242,7 +232,20 @@ export function CartPage() {
                 </div>
 
                 <div className='mt-6 flex flex-col gap-3'>
-                  <Link to='/book'>
+                  {checkoutDisabledReason && (
+                    <div className='rounded-xl bg-yellow-50 px-4 py-3 text-sm text-yellow-800'>
+                      {checkoutDisabledReason}
+                    </div>
+                  )}
+
+                  <Link to='/checkout'>
+                    <Button className='w-full'>
+                      <CreditCard className='w-5 h-5' />
+                      Finalizar compra
+                    </Button>
+                  </Link>
+
+                  <Link to='/'>
                     <Button variant='secondary' className='w-full'>
                       <BookOpen className='w-5 h-5' />
                       Adicionar mais livros
@@ -252,8 +255,6 @@ export function CartPage() {
               </motion.aside>
             </div>
           )}
-
-          {hasItems && <MercadoPagoCheckout items={items} />}
         </main>
 
         <footer className='py-12 px-4 mt-12 border-t border-purple-100'>
