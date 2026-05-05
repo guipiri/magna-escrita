@@ -2,21 +2,17 @@ import { useState } from 'react';
 import { BookCover } from '../components/BookCover';
 import { BookViewer } from '../components/BookViewer';
 import { Button } from '../components/Button';
-import { FloatingStars } from '../components/FloatingStars';
 import { Confetti } from '../components/Confetti';
 import { ShoppingCart, Sparkles, Heart } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { getBookByMagnificCode } from '../services/book-service';
-import { BookPageFooter } from '../components/BookPageFooter';
-import { BookPageHeader } from '../components/BookPageHeader';
 import { useCart } from '../context/cart-context';
 
 export default function BookPage() {
   const { magnificCode } = useParams();
-  const navigate = useNavigate();
-  const { addBook, totalQuantity } = useCart();
+  const { addBook } = useCart();
 
   const {
     data: book,
@@ -39,18 +35,16 @@ export default function BookPage() {
     addBook(book.id);
   };
 
-  const handleCartClick = () => {
-    navigate('/cart');
-  };
-
   if (!magnificCode) return null;
 
-  if (isLoading) return <p>Loading...</p>;
+  if (isLoading) {
+    return <p className='px-4 py-12 text-center'>Carregando...</p>;
+  }
 
   if (isError) {
     return (
-      <div className='min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-blue-50 flex items-center justify-center px-4'>
-        <div className='max-w-md text-center bg-white rounded-2xl shadow-lg p-8'>
+      <main className='px-4 py-12'>
+        <div className='max-w-md mx-auto text-center bg-white rounded-2xl shadow-lg p-8'>
           <Sparkles className='w-10 h-10 text-purple-600 mx-auto mb-4' />
           <h1 className='text-2xl font-bold text-gray-900 mb-3'>
             Livro não encontrado
@@ -59,152 +53,136 @@ export default function BookPage() {
             Verifique o código magnifico informado e tente novamente.
           </p>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (!book) return <p>Livro não encontrado...</p>;
 
   return (
-    <div className='min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-blue-50 overflow-x-hidden'>
+    <main>
       <Confetti trigger={showConfetti} />
-      <FloatingStars />
-      <div className='absolute inset-0 opacity-30 pointer-events-none'>
-        <div className='absolute top-10 left-10 w-20 h-20 bg-yellow-300 rounded-full blur-2xl animate-pulse' />
-        <div className='absolute top-1/3 right-20 w-32 h-32 bg-pink-300 rounded-full blur-3xl animate-pulse delay-100' />
-        <div className='absolute bottom-20 left-1/4 w-24 h-24 bg-purple-300 rounded-full blur-2xl animate-pulse delay-200' />
-      </div>
+      {!showBook ? (
+        <section className='p-8'>
+          <div className='max-w-7xl mx-auto'>
+            <div className='grid md:grid-cols-2 gap-12 items-center'>
+              <div className='order-2 md:order-1'>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <div className='inline-flex items-center gap-2 px-4 py-2 bg-purple-100 rounded-full mb-6'>
+                    <Heart className='w-4 h-4 text-purple-600 fill-purple-600' />
+                    <span className='text-sm text-purple-700'>
+                      Criado por uma criança magnífica
+                    </span>
+                  </div>
 
-      <div className='relative z-10'>
-        <BookPageHeader
-          cartQuantity={totalQuantity}
-          onCartClick={handleCartClick}
-        />
+                  <h1 className='text-4xl md:text-5xl lg:text-6xl mb-4 bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent'>
+                    {book.title}
+                  </h1>
 
-        {!showBook ? (
-          <section className='p-8'>
-            <div className='max-w-7xl mx-auto'>
-              <div className='grid md:grid-cols-2 gap-12 items-center'>
-                <div className='order-2 md:order-1'>
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    <div className='inline-flex items-center gap-2 px-4 py-2 bg-purple-100 rounded-full mb-6'>
-                      <Heart className='w-4 h-4 text-purple-600 fill-purple-600' />
-                      <span className='text-sm text-purple-700'>
-                        Criado por uma criança magnífica
+                  <p className='text-xl md:text-2xl text-gray-600 mb-6'>
+                    por {book.author}
+                  </p>
+
+                  <p className='text-lg text-gray-700 leading-relaxed mb-4'>
+                    {book.synopsis}
+                  </p>
+
+                  <div className='flex flex-col sm:flex-row gap-4 mt-10 '>
+                    <Button
+                      onClick={() => {
+                        setShowBook(true);
+                        setShowConfetti(true);
+                        setTimeout(() => setShowConfetti(false), 100);
+                      }}
+                      size='lg'
+                    >
+                      <Sparkles className='w-5 h-5' />
+                      Ler o Livro
+                    </Button>
+                    <Button
+                      variant='secondary'
+                      size='lg'
+                      onClick={handleAddToCart}
+                    >
+                      <ShoppingCart className='w-5 h-5' />
+                      Adicionar ao Carrinho
+                    </Button>
+                  </div>
+
+                  <div className='mt-8 flex gap-6 text-sm text-gray-600'>
+                    <div>
+                      <span className='block font-semibold text-purple-600'>
+                        6 páginas
                       </span>
+                      <span>de pura magia</span>
                     </div>
-
-                    <h1 className='text-4xl md:text-5xl lg:text-6xl mb-4 bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent'>
-                      {book.title}
-                    </h1>
-
-                    <p className='text-xl md:text-2xl text-gray-600 mb-6'>
-                      por {book.author}
-                    </p>
-
-                    <p className='text-lg text-gray-700 leading-relaxed mb-4'>
-                      {book.synopsis}
-                    </p>
-
-                    <div className='flex flex-col sm:flex-row gap-4 mt-10 '>
-                      <Button
-                        onClick={() => {
-                          setShowBook(true);
-                          setShowConfetti(true);
-                          setTimeout(() => setShowConfetti(false), 100);
-                        }}
-                        size='lg'
-                      >
-                        <Sparkles className='w-5 h-5' />
-                        Ler o Livro
-                      </Button>
-                      <Button
-                        variant='secondary'
-                        size='lg'
-                        onClick={handleAddToCart}
-                      >
-                        <ShoppingCart className='w-5 h-5' />
-                        Adicionar ao Carrinho
-                      </Button>
+                    <div className='border-l border-gray-300 pl-6'>
+                      <span className='block font-semibold text-purple-600'>
+                        100%
+                      </span>
+                      <span>autoria infantil</span>
                     </div>
-
-                    <div className='mt-8 flex gap-6 text-sm text-gray-600'>
-                      <div>
-                        <span className='block font-semibold text-purple-600'>
-                          6 páginas
-                        </span>
-                        <span>de pura magia</span>
-                      </div>
-                      <div className='border-l border-gray-300 pl-6'>
-                        <span className='block font-semibold text-purple-600'>
-                          100%
-                        </span>
-                        <span>autoria infantil</span>
-                      </div>
-                      <div className='border-l border-gray-300 pl-6'>
-                        <span className='block font-semibold text-purple-600'>
-                          Único
-                        </span>
-                        <span>no mundo</span>
-                      </div>
+                    <div className='border-l border-gray-300 pl-6'>
+                      <span className='block font-semibold text-purple-600'>
+                        Único
+                      </span>
+                      <span>no mundo</span>
                     </div>
-                  </motion.div>
-                </div>
+                  </div>
+                </motion.div>
+              </div>
 
-                <div className='order-1 md:order-2'>
-                  <BookCover
-                    title={book.title}
-                    author={book.author}
-                    coverImage={book.pages[0].imageUrl || '/cover.png'}
-                  />
-                </div>
+              <div className='order-1 md:order-2'>
+                <BookCover
+                  title={book.title}
+                  author={book.author}
+                  coverImage={book.pages[0].imageUrl || '/cover.png'}
+                />
               </div>
             </div>
-          </section>
-        ) : (
-          <section className='px-4'>
-            <div className='max-w-7xl mx-auto'>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className='mb-4 text-center'
+          </div>
+        </section>
+      ) : (
+        <section className='px-4'>
+          <div className='max-w-7xl mx-auto'>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className='mb-4 text-center'
+            >
+              <button
+                onClick={() => setShowBook(false)}
+                className='inline-flex items-center gap-2 px-6 py-3 bg-white rounded-full shadow-md hover:shadow-lg transition-all mb-4'
               >
-                <button
-                  onClick={() => setShowBook(false)}
-                  className='inline-flex items-center gap-2 px-6 py-3 bg-white rounded-full shadow-md hover:shadow-lg transition-all mb-4'
-                >
-                  ← Voltar para a capa
-                </button>
-                <h2 className='text-3xl md:text-4xl bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
-                  {book.title}
-                </h2>
-                <p className='text-gray-600 mt-2'>por {book.author}</p>
-              </motion.div>
+                ← Voltar para a capa
+              </button>
+              <h2 className='text-3xl md:text-4xl bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
+                {book.title}
+              </h2>
+              <p className='text-gray-600 mt-2'>por {book.author}</p>
+            </motion.div>
 
-              <BookViewer />
+            <BookViewer />
 
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className='mt-12 text-center'
-              >
-                <p className='text-gray-600 mb-6'>Gostou da história?</p>
-                <Button size='lg' onClick={handleAddToCart}>
-                  <ShoppingCart className='w-5 h-5' />
-                  Adicionar ao Carrinho
-                </Button>
-              </motion.div>
-            </div>
-          </section>
-        )}
-
-        <BookPageFooter />
-      </div>
-    </div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className='mt-12 text-center'
+            >
+              <p className='text-gray-600 mb-6'>Gostou da história?</p>
+              <Button size='lg' onClick={handleAddToCart}>
+                <ShoppingCart className='w-5 h-5' />
+                Adicionar ao Carrinho
+              </Button>
+            </motion.div>
+          </div>
+        </section>
+      )}
+    </main>
   );
 }
