@@ -1,16 +1,10 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Req,
-  Res,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import { GoogleAuthDto } from './dto/google-auth.dto.js';
-import { AuthService } from './auth.service.js';
+import { AuthService, type AuthUser } from './auth.service.js';
+import { AuthGuard } from './guards/auth.guard.js';
+import { User } from './auth.decorator.js';
 
 @Controller('auth')
 export class AuthController {
@@ -34,17 +28,8 @@ export class AuthController {
   }
 
   @Get('me')
-  async getMe(@Req() request: Request) {
-    const token: string | undefined = request.cookies?.[
-      this.getCookieName()
-    ] as string | undefined;
-
-    if (!token) {
-      throw new UnauthorizedException('Missing auth token');
-    }
-
-    const user = await this.authService.getUserFromToken(token);
-
+  @UseGuards(AuthGuard)
+  getMe(@User() user: AuthUser) {
     return { user };
   }
 
