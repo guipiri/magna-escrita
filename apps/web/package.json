@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@mercadopago/sdk-react": "^1.0.7",
+    "@react-oauth/google": "^0.12.1",
     "@repo/shared": "*",
     "@repo/ui": "*",
     "@tanstack/react-query": "^5.100.9",

@@ -1,7 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { Button } from '../components/Button';
 import { FloatingStars } from '../components/FloatingStars';
 import { useCart } from '../context/cart-context';
+import { useAuth } from '../context/auth-context';
 import {
   ArrowLeft,
   BookOpen,
@@ -14,9 +16,11 @@ import {
   Trash2,
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { GoogleLogin } from '@react-oauth/google';
 
 export function CartPage() {
   const navigate = useNavigate();
+  const googleEnabled = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
   const {
     items,
     totalQuantity,
@@ -27,8 +31,45 @@ export function CartPage() {
     removeBook,
     clearCart,
   } = useCart();
+  const {
+    user,
+    isLoading: isAuthLoading,
+    error,
+    loginWithGoogle,
+    logout,
+  } = useAuth();
+  const [showLogin, setShowLogin] = useState(false);
+  const [localAuthError, setLocalAuthError] = useState<string | null>(null);
 
   const hasItems = items.length > 0;
+  const checkoutBlocked = Boolean(checkoutDisabledReason);
+
+  const handleFinalizePurchase = () => {
+    if (checkoutBlocked) {
+      return;
+    }
+
+    if (user) {
+      navigate('/checkout');
+      return;
+    }
+
+    setShowLogin(true);
+
+    if (!googleEnabled) {
+      setLocalAuthError('Login Google indisponivel.');
+    }
+  };
+
+  const handleGoogleLogin = async (idToken: string) => {
+    try {
+      setLocalAuthError(null);
+      await loginWithGoogle(idToken);
+      navigate('/checkout');
+    } catch {
+      setLocalAuthError('Nao foi possivel autenticar com o Google.');
+    }
+  };
 
   return (
     <div className='min-h-screen bg-linear-to-br from-pink-50 via-purple-50 to-blue-50 overflow-x-hidden'>
@@ -53,13 +94,40 @@ export function CartPage() {
               </span>
             </motion.div>
 
-            <button
-              onClick={() => navigate(-1)}
-              className='flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all'
-            >
-              <ArrowLeft className='w-5 h-5 text-purple-600' />
-              <span className='hidden md:inline'>Voltar ao livro</span>
-            </button>
+            <div className='flex items-center gap-3'>
+              {user ? (
+                <>
+                  {user.picture ? (
+                    <img
+                      src={user.picture}
+                      alt={user.name}
+                      className='w-8 h-8 rounded-full border border-white shadow'
+                    />
+                  ) : (
+                    <div className='w-8 h-8 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold flex items-center justify-center'>
+                      {user.name.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <span className='hidden md:inline text-sm text-gray-700'>
+                    {user.name}
+                  </span>
+                  <button
+                    type='button'
+                    onClick={() => void logout()}
+                    className='px-3 py-1 text-xs rounded-full bg-white text-purple-600 shadow-sm hover:shadow transition-all'
+                  >
+                    Sair
+                  </button>
+                </>
+              ) : null}
+              <button
+                onClick={() => navigate(-1)}
+                className='flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all'
+              >
+                <ArrowLeft className='w-5 h-5 text-purple-600' />
+                <span className='hidden md:inline'>Voltar ao livro</span>
+              </button>
+            </div>
           </nav>
         </header>
 
@@ -238,12 +306,44 @@ export function CartPage() {
                     </div>
                   )}
 
-                  <Link to='/checkout'>
-                    <Button className='w-full'>
-                      <CreditCard className='w-5 h-5' />
-                      Finalizar compra
-                    </Button>
-                  </Link>
+                  <Button className='w-full' onClick={handleFinalizePurchase}>
+                    <CreditCard className='w-5 h-5' />
+                    Finalizar compra
+                  </Button>
+
+                  {showLogin && !user ? (
+                    <div className='rounded-2xl border border-purple-100 bg-white/80 px-4 py-4 text-sm text-gray-600'>
+                      <p className='text-sm text-gray-600 mb-3'>
+                        Para finalizar a compra, entre com Google.
+                      </p>
+                      {googleEnabled ? (
+                        <GoogleLogin
+                          onSuccess={(credentialResponse) => {
+                            const credential = credentialResponse.credential;
+                            if (credential) {
+                              void handleGoogleLogin(credential);
+                            }
+                          }}
+                          onError={() => {
+                            setLocalAuthError(
+                              'Falha ao autenticar com o Google.',
+                            );
+                          }}
+                          useOneTap
+                        />
+                      ) : null}
+                      {(error || localAuthError) && (
+                        <p className='mt-2 text-xs text-red-600'>
+                          {error ?? localAuthError}
+                        </p>
+                      )}
+                      {isAuthLoading ? (
+                        <p className='mt-2 text-xs text-gray-500'>
+                          Autenticando...
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   <Link to='/'>
                     <Button variant='secondary' className='w-full'>

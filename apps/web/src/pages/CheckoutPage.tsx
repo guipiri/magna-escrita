@@ -11,10 +11,12 @@ import { Button } from '../components/Button';
 import { FloatingStars } from '../components/FloatingStars';
 import { MercadoPagoCheckout } from '../components/MercadoPagoCheckout';
 import { useCart } from '../context/cart-context';
+import { useAuth } from '../context/auth-context';
 import { CartPage } from './CartPage';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const {
     items,
     totalQuantity,
@@ -77,13 +79,33 @@ export function CheckoutPage() {
               </span>
             </motion.div>
 
-            <button
-              onClick={() => navigate('/cart')}
-              className='flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all'
-            >
-              <ArrowLeft className='w-5 h-5 text-purple-600' />
-              <span className='hidden md:inline'>Voltar ao carrinho</span>
-            </button>
+            <div className='flex items-center gap-3'>
+              {user ? (
+                <div className='hidden sm:flex items-center gap-2 rounded-full bg-white px-3 py-1 shadow-md'>
+                  {user.picture ? (
+                    <img
+                      src={user.picture}
+                      alt={user.name ?? 'Usuario'}
+                      className='w-7 h-7 rounded-full border border-white'
+                    />
+                  ) : (
+                    <div className='w-7 h-7 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold flex items-center justify-center'>
+                      {(user.name ?? 'ME').slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <span className='text-sm text-gray-700'>
+                    {user.name ?? 'Usuario'}
+                  </span>
+                </div>
+              ) : null}
+              <button
+                onClick={() => navigate('/cart')}
+                className='flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all'
+              >
+                <ArrowLeft className='w-5 h-5 text-purple-600' />
+                <span className='hidden md:inline'>Voltar ao carrinho</span>
+              </button>
+            </div>
           </nav>
         </header>
 

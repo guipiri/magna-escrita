@@ -10,4 +10,10 @@ export const validationSchema = Joi.object({
   APP_URL: Joi.string().uri().required(),
   API_URL: Joi.string().uri().required(),
   DATABASE_URL: Joi.string().uri().required(),
+  GOOGLE_CLIENT_ID: Joi.string().required(),
+  GOOGLE_CLIENT_SECRET: Joi.string().required(),
+  JWT_SECRET: Joi.string().required(),
+  JWT_EXPIRES_IN_MILLISECONDS: Joi.number().default(604800000), // 7 days
+  AUTH_COOKIE_NAME: Joi.string().default('auth_token'),
+  AUTH_COOKIE_MAX_AGE_DAYS: Joi.number().default(7),
 });
