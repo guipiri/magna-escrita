@@ -19,6 +19,7 @@ import { QueryProvider } from './providers/query-provider';
 import { StoreLayout } from './layouts/StoreLayout';
 import { useAuth } from './context/auth-context';
 import { JSX } from 'react';
+import { OrdersPage } from './pages/OrdersPage';
 
 const DEFAULT_BOOK_PATH = '/';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
@@ -66,6 +67,14 @@ const AppRoutes = () => (
           element={
             <RequireAuth redirectTo='/cart'>
               <OrderPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path='/orders'
+          element={
+            <RequireAuth redirectTo='/cart'>
+              <OrdersPage />
             </RequireAuth>
           }
         />

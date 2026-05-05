@@ -1,3 +1,4 @@
+import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useMatch, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { ArrowLeft, Home, ShoppingCart, Sparkles } from 'lucide-react';
@@ -12,30 +13,77 @@ export function StoreHeader() {
   const isCartRoute = Boolean(useMatch('/cart'));
   const isCheckoutRoute = Boolean(useMatch('/checkout'));
   const isOrderRoute = Boolean(useMatch('/order/:orderId'));
+  const isOrdersRoute = Boolean(useMatch('/orders'));
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
+  const userMenuId = useId();
+
+  useEffect(() => {
+    if (!isUserMenuOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!(event.target instanceof Node)) return;
+      if (!userMenuRef.current?.contains(event.target)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isUserMenuOpen]);
 
   const userBadge = user ? (
-    <div className='flex items-center gap-2'>
-      {user.picture ? (
-        <img
-          src={user.picture}
-          alt={user.name ?? 'Usuario'}
-          className='w-8 h-8 rounded-full border border-white shadow'
-        />
-      ) : (
-        <div className='w-8 h-8 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold flex items-center justify-center'>
-          {user.name.slice(0, 2).toUpperCase()}
-        </div>
-      )}
-      <span className='hidden md:inline text-sm text-gray-700'>
-        {user.name}
-      </span>
+    <div className='relative' ref={userMenuRef}>
       <button
         type='button'
-        onClick={() => void logout()}
-        className='px-3 py-1 text-xs rounded-full bg-white text-purple-600 shadow-sm hover:shadow transition-all'
+        aria-haspopup='menu'
+        aria-expanded={isUserMenuOpen}
+        aria-controls={userMenuId}
+        onClick={() => setIsUserMenuOpen((prev) => !prev)}
+        className='flex items-center gap-2'
       >
-        Sair
+        {user.picture ? (
+          <img
+            src={user.picture}
+            alt={user.name ?? 'Usuario'}
+            className='w-9 h-9 rounded-full border border-white shadow'
+          />
+        ) : (
+          <div className='w-9 h-9 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold flex items-center justify-center'>
+            {user.name.slice(0, 2).toUpperCase()}
+          </div>
+        )}
       </button>
+      {isUserMenuOpen ? (
+        <div
+          id={userMenuId}
+          role='menu'
+          className='absolute right-0 mt-2 w-44 rounded-2xl border border-purple-100 bg-white/95 shadow-xl backdrop-blur p-2 z-20'
+        >
+          <button
+            type='button'
+            role='menuitem'
+            onClick={() => {
+              setIsUserMenuOpen(false);
+              navigate('/orders');
+            }}
+            className='w-full px-3 py-2 text-sm text-left rounded-xl hover:bg-purple-50 text-purple-700'
+          >
+            Pedidos
+          </button>
+          <button
+            type='button'
+            role='menuitem'
+            onClick={() => {
+              setIsUserMenuOpen(false);
+              void logout();
+            }}
+            className='w-full px-3 py-2 text-sm text-left rounded-xl hover:bg-purple-50 text-purple-700'
+          >
+            Sair
+          </button>
+        </div>
+      ) : null}
     </div>
   ) : null;
 
@@ -95,7 +143,7 @@ export function StoreHeader() {
       );
     }
 
-    if (isOrderRoute) {
+    if (isOrderRoute || isOrdersRoute) {
       return (
         <div className='flex items-center gap-3'>
           {userBadge}
