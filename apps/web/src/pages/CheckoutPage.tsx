@@ -7,14 +7,11 @@ import {
   ShoppingBag,
   Sparkles,
 } from 'lucide-react';
-import { OrderResponse } from '@repo/shared';
 import { Button } from '../components/Button';
 import { FloatingStars } from '../components/FloatingStars';
 import { MercadoPagoCheckout } from '../components/MercadoPagoCheckout';
 import { useCart } from '../context/cart-context';
 import { CartPage } from './CartPage';
-
-const PAYMENT_RESULT_STORAGE_KEY_PREFIX = 'magna-escrita-payment-result:';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -27,18 +24,8 @@ export function CheckoutPage() {
     clearCart,
   } = useCart();
 
-  const handlePaymentSuccess = (
-    orderId: string | undefined,
-    paymentData: OrderResponse,
-  ) => {
-    const storageKey = `${PAYMENT_RESULT_STORAGE_KEY_PREFIX}${orderId}`;
-
-    window.localStorage.setItem(storageKey, JSON.stringify(paymentData));
-    navigate(`/order/${orderId}`, {
-      state: {
-        paymentData,
-      },
-    });
+  const handlePaymentSuccess = (orderId: string | undefined) => {
+    navigate(`/order/${orderId}`);
     clearCart();
   };
 
@@ -113,7 +100,7 @@ export function CheckoutPage() {
               </span>
             </div>
             <h1 className='text-4xl md:text-5xl lg:text-6xl mb-4 bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent'>
-              Checkout
+              Já é quase seu...
             </h1>
             <p className='text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed'>
               Escolha a forma de pagamento e conclua a compra dos livros
@@ -125,7 +112,7 @@ export function CheckoutPage() {
             <motion.section
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              className='order-2 lg:order-1 bg-white/90 backdrop-blur rounded-2xl shadow-md border border-purple-100 p-4 md:p-6'
+              className={`order-2 lg:order-1 bg-white/90 backdrop-blur rounded-2xl shadow-md border border-purple-100 p-2 md:pt-0`}
             >
               {isLoadingBookDetails ? (
                 <div className='rounded-xl bg-purple-50 p-5 text-purple-800'>

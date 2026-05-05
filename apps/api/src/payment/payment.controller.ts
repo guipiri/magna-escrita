@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Param } from '@nestjs/common';
 import { PaymentService } from './payment.service.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
 import { WebhookSignatureGuard } from './guards/webhook-signature.guard.js';
@@ -10,6 +10,11 @@ export class PaymentController {
   @Post()
   async createOrder(@Body() body: CreateOrderDto) {
     return this.paymentService.createOrder(body);
+  }
+
+  @Get(':id')
+  async getOrder(@Param('id') id: string) {
+    return this.paymentService.getOrder(id);
   }
 
   @Post('webhook')

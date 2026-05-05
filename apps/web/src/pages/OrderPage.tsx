@@ -1,46 +1,34 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
+  BookOpen,
   Check,
   CheckCircle2,
   Clipboard,
   Clock,
   Home,
+  ShoppingBag,
   Sparkles,
 } from 'lucide-react';
-import { OrderResponse } from '@repo/shared';
+import { GetOrderRes, OrderResponse } from '@repo/shared';
 import { Button } from '../components/Button';
 import { FloatingStars } from '../components/FloatingStars';
-
-const PAYMENT_RESULT_STORAGE_KEY_PREFIX = 'magna-escrita-payment-result:';
+import { getOrder } from '../services/payment-service';
+import { useQuery } from '@tanstack/react-query';
 
 interface OrderPageLocationState {
   paymentData?: OrderResponse;
 }
 
-const readStoredPaymentData = (orderId: string | undefined) => {
-  if (!orderId || typeof window === 'undefined') {
-    return undefined;
-  }
-
-  try {
-    const storedPaymentData = window.localStorage.getItem(
-      `${PAYMENT_RESULT_STORAGE_KEY_PREFIX}${orderId}`,
-    );
-
-    if (!storedPaymentData) {
-      return undefined;
-    }
-
-    return JSON.parse(storedPaymentData) as OrderResponse;
-  } catch {
-    return undefined;
-  }
-};
-
-const getStatusMessage = (paymentData: OrderResponse) => {
-  if (paymentData.status_detail === 'accredited') {
+const getStatusMessage = (
+  paymentData?: OrderResponse,
+  orderStatus?: string,
+) => {
+  if (
+    paymentData?.status_detail === 'accredited' ||
+    orderStatus === 'APPROVED'
+  ) {
     return {
       icon: CheckCircle2,
       label: 'Pagamento aprovado!',
@@ -49,7 +37,7 @@ const getStatusMessage = (paymentData: OrderResponse) => {
     };
   }
 
-  if (paymentData.status_detail === 'waiting_transfer') {
+  if (paymentData?.status_detail === 'waiting_transfer') {
     return {
       icon: Clock,
       label: 'Aguardando pagamento via PIX',
@@ -71,26 +59,50 @@ export function OrderPage() {
   const location = useLocation();
   const [hasCopiedPixCode, setHasCopiedPixCode] = useState(false);
   const locationState = location.state as OrderPageLocationState | null;
-  const paymentData = useMemo(
-    () => locationState?.paymentData || readStoredPaymentData(orderId),
-    [locationState?.paymentData, orderId],
-  );
 
-  if (!paymentData) {
+  const query = useQuery<GetOrderRes | undefined>({
+    queryKey: ['order', orderId],
+    queryFn: async () => {
+      if (!orderId) return undefined;
+      return getOrder(orderId);
+    },
+    enabled: Boolean(orderId),
+    placeholderData: locationState?.paymentData
+      ? { mpOrder: locationState.paymentData }
+      : undefined,
+  });
+
+  const { data: orderData, isLoading, error } = query;
+
+  if (isLoading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        Carregando pedido...
+      </div>
+    );
+  }
+
+  if ((!orderData?.order && !orderData?.mpOrder) || error) {
     return <Navigate to='/cart' replace />;
   }
 
-  const paymentMethod = paymentData.transactions?.payments?.[0]?.payment_method;
+  const { order, mpOrder: paymentData } = orderData;
+  const paymentMethod =
+    paymentData?.transactions?.payments?.[0]?.payment_method;
   const qrBase64 = paymentMethod?.qr_code_base64;
   const qrString = paymentMethod?.qr_code;
   const qrImgSrc = qrBase64 ? `data:image/png;base64,${qrBase64}` : undefined;
-  const statusMessage = getStatusMessage(paymentData);
+  const statusMessage = getStatusMessage(paymentData, order?.status);
   const StatusIcon = statusMessage.icon;
+  const orderItems = order?.items ?? [];
+  const totalQuantity = orderItems.reduce(
+    (sum, item) => sum + item.quantity,
+    0,
+  );
+  const totalAmount = Number(order?.totalAmount ?? 0);
 
   const handleCopyPixCode = async () => {
-    if (!qrString) {
-      return;
-    }
+    if (!qrString) return;
 
     await window.navigator.clipboard.writeText(qrString);
     setHasCopiedPixCode(true);
@@ -135,16 +147,15 @@ export function OrderPage() {
             animate={{ opacity: 1, y: 0 }}
             className='mb-8 text-center'
           >
-            <div className='inline-flex items-center gap-2 px-4 py-2 bg-purple-100 rounded-full mb-5'>
-              <StatusIcon className='w-4 h-4 text-purple-600' />
-              <span className='text-sm text-purple-700'>Pedido criado</span>
-            </div>
             <h1 className='text-4xl md:text-5xl lg:text-6xl mb-4 bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent'>
               Seu pedido
             </h1>
             <p className='text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed'>
-              Acompanhe o status do pagamento e conclua o PIX quando disponível.
+              Acompanhe aqui.
             </p>
+            <div className='mt-5 rounded-xl bg-purple-50 px-4 py-3 text-sm text-purple-800 w-fit m-auto'>
+              Pedido: {order?.id}
+            </div>
           </motion.section>
 
           <motion.section
@@ -160,10 +171,6 @@ export function OrderPage() {
             </div>
 
             <p className='mt-4 text-gray-600'>{statusMessage.description}</p>
-
-            <div className='mt-5 rounded-xl bg-purple-50 px-4 py-3 text-sm text-purple-800'>
-              Pedido: {orderId || paymentData.id}
-            </div>
 
             {qrImgSrc && (
               <div className='mt-6 text-center'>
@@ -203,6 +210,71 @@ export function OrderPage() {
               </div>
             )}
           </motion.section>
+
+          <motion.aside
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            {orderItems.length > 0 && (
+              <div className='mt-6 rounded-xl border border-purple-100 bg-white/80 p-6'>
+                <div className='flex items-center justify-between gap-4 border-b border-purple-100 pb-6'>
+                  <div className='flex items-center gap-2'>
+                    <ShoppingBag className='w-5 h-5 text-purple-600' />
+                    <h2 className='text-xl font-semibold text-gray-800'>
+                      Produtos do pedido
+                    </h2>
+                  </div>
+                  <span className='text-sm text-gray-500'>
+                    {totalQuantity} item(s)
+                  </span>
+                </div>
+
+                <div className='divide-y divide-purple-100'>
+                  {orderItems.map((item) => {
+                    const unitAmount = Number(item.amount);
+                    const lineTotal = unitAmount * item.quantity;
+
+                    return (
+                      <div
+                        key={item.bookId}
+                        className='flex items-start justify-between gap-4 py-4'
+                      >
+                        <div className='flex min-w-0 items-start gap-3'>
+                          <div className='w-11 h-14 shrink-0 rounded-lg bg-linear-to-br from-purple-100 via-pink-100 to-indigo-100 shadow-inner flex items-center justify-center'>
+                            <BookOpen className='w-5 h-5 text-purple-500' />
+                          </div>
+
+                          <div className='min-w-0'>
+                            <h3 className='text-sm font-semibold text-gray-800'>
+                              {item.book.title}
+                            </h3>
+                            <p className='mt-1 text-xs text-gray-500'>
+                              {item.book.author}
+                            </p>
+                            <p className='mt-2 text-xs text-gray-600'>
+                              {item.quantity} x R$ {unitAmount.toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className='shrink-0 text-right text-sm font-semibold text-purple-700'>
+                          R$ {lineTotal.toFixed(2)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className='pt-4 border-t border-purple-100 flex items-center justify-between text-lg font-semibold text-gray-800'>
+                  <span>Total</span>
+                  <span className='text-purple-700'>
+                    R$ {totalAmount.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </motion.aside>
         </main>
       </div>
     </div>

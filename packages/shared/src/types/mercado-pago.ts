@@ -7,6 +7,32 @@ export interface CreateOrderRes {
   mpOrder: OrderResponse;
 }
 
+export interface OrderBook {
+  id: string;
+  title: string;
+  author: string;
+}
+
+export interface OrderSummaryItem {
+  bookId: string;
+  quantity: number;
+  amount: string | number;
+  book: OrderBook;
+}
+
+export interface OrderSummary {
+  id: string;
+  status: string;
+  totalAmount: string | number;
+  items: OrderSummaryItem[];
+}
+
+export interface GetOrderRes {
+  order?: OrderSummary;
+  mpOrder?: OrderResponse;
+  message?: string;
+}
+
 export interface OrderItem {
   bookId: string;
   quantity: number;

@@ -1,13 +1,12 @@
-import { useState } from 'react';
-import { initMercadoPago, CardPayment, Payment } from '@mercadopago/sdk-react';
+import { useCallback, useMemo, useState } from 'react';
+import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
 import { createOrder } from '../services/payment-service';
-import {
-  ICardPaymentBrickPayer,
-  ICardPaymentFormData,
-} from '@mercadopago/sdk-react/esm/bricks/cardPayment/type';
 import { IBrickError } from '@mercadopago/sdk-react/esm/bricks/util/types/common';
 import { OrderResponse } from '@repo/shared';
-import { IPaymentFormData } from '@mercadopago/sdk-react/esm/bricks/payment/type';
+import {
+  IPaymentBrickCustomization,
+  IPaymentFormData,
+} from '@mercadopago/sdk-react/esm/bricks/payment/type';
 import { CartItem } from '../context/cart-context';
 
 const publicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY || '';
@@ -31,98 +30,95 @@ export function MercadoPagoCheckout({
 }: CheckoutProps) {
   const [error, setError] = useState<string | null>(null);
 
-  const handleCardPaymentSubmit = async (
-    cardFormData: ICardPaymentFormData<ICardPaymentBrickPayer>,
-  ) => {
-    try {
-      setError(null);
-      const identification = cardFormData.payer.identification;
+  const cartItems = useMemo(
+    () =>
+      items.map((item) => ({
+        bookId: item.bookId,
+        quantity: item.quantity,
+      })),
+    [items],
+  );
 
-      if (!cardFormData.payer.email)
-        return setError('Email do pagador é obrigatório');
+  const paymentInitialization = useMemo(
+    () => ({ amount: totalAmount }),
+    [totalAmount],
+  );
 
-      if (!items.length) {
-        return setError('Adicione pelo menos um livro ao carrinho');
+  const paymentCustomization: IPaymentBrickCustomization = useMemo(
+    () => ({
+      paymentMethods: {
+        creditCard: 'all',
+        bankTransfer: 'all',
+      },
+    }),
+    [],
+  );
+
+  const handlePaymentSubmit = useCallback(
+    async (paymentFormData: IPaymentFormData) => {
+      try {
+        setError(null);
+
+        if (!cartItems.length) {
+          return setError('Adicione pelo menos um livro ao carrinho');
+        }
+
+        const { formData, paymentType } = paymentFormData;
+        const payer = formData.payer;
+        const identification = payer.identification;
+
+        if (!payer.email) {
+          return setError('Email do pagador é obrigatório');
+        }
+
+        const isPixPayment =
+          paymentType === 'bank_transfer' &&
+          formData.payment_method_id === 'pix';
+
+        const orderResp = await createOrder({
+          items: cartItems,
+          email: payer.email,
+          token: formData.token,
+          identificationType: identification?.type,
+          identificationNumber: identification?.number,
+          paymentMethod: isPixPayment
+            ? paymentType
+            : formData.payment_method_id,
+          paymentMethodDetail: isPixPayment
+            ? formData.payment_method_id
+            : undefined,
+          installments: isPixPayment ? 1 : formData.installments,
+          issuerId: formData.issuer_id,
+        });
+
+        onSuccess?.(orderResp.order.id, orderResp.mpOrder);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Erro ao processar pagamento';
+        setError(errorMessage);
+        onError?.(new Error(errorMessage));
       }
+    },
+    [cartItems, onError, onSuccess],
+  );
 
-      const orderResp = await createOrder({
-        items: items.map((item) => ({
-          bookId: item.bookId,
-          quantity: item.quantity,
-        })),
-        email: cardFormData.payer.email,
-        token: cardFormData.token,
-        identificationType: identification?.type,
-        identificationNumber: identification?.number,
-        paymentMethod: cardFormData.payment_method_id,
-        installments: cardFormData.installments,
-        issuerId: cardFormData.issuer_id,
-      });
-
-      onSuccess?.(orderResp.mpOrder.id, orderResp.mpOrder);
-    } catch (err) {
+  const handlePaymentError = useCallback(
+    (error: IBrickError) => {
       const errorMessage =
-        err instanceof Error ? err.message : 'Erro ao processar pagamento';
+        error?.message || 'Erro ao processar pagamento no Mercado Pago';
       setError(errorMessage);
       onError?.(new Error(errorMessage));
-    }
-  };
-
-  const handleCardPaymentError = (error: IBrickError) => {
-    setError(error?.message);
-    onError?.(new Error(error?.message));
-  };
-
-  const handlePixPaymentSubmit = async (pixFormData: IPaymentFormData) => {
-    try {
-      setError(null);
-      const payer = pixFormData.formData.payer;
-      const identification = payer.identification;
-
-      if (!items.length) {
-        return setError('Adicione pelo menos um livro ao carrinho');
-      }
-
-      const orderResp = await createOrder({
-        items: items.map((item) => ({
-          bookId: item.bookId,
-          quantity: item.quantity,
-        })),
-        email: payer.email,
-        installments: 1,
-        identificationNumber: identification?.number,
-        identificationType: identification?.type,
-        paymentMethod: pixFormData.paymentType,
-        paymentMethodDetail: pixFormData.formData.payment_method_id,
-        issuerId: pixFormData.formData.issuer_id,
-      });
-
-      onSuccess?.(orderResp.mpOrder.id, orderResp.mpOrder);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Erro ao criar PIX';
-      setError(errorMessage);
-      onError?.(new Error(errorMessage));
-    }
-  };
-
-  const handlePixPaymentError = (error: IBrickError) => {
-    const errorMessage = error?.message || 'Erro ao processar pagamento PIX';
-    setError(errorMessage);
-    onError?.(new Error(errorMessage));
-  };
+    },
+    [onError],
+  );
 
   const canRenderBricks = Boolean(publicKey) && items.length > 0;
 
-  return (
-    <div className='max-w-xl mx-auto'>
-      <div>
-        {!canRenderBricks && (
+  if (!canRenderBricks) {
+    return (
+      <div className='max-w-xl mx-auto'>
+        <div>
           <div className='space-y-4 mb-4'>
-            <div className='bg-blue-50 text-blue-800 p-3 rounded-md'>
-              Total do carrinho: R$ {totalAmount.toFixed(2)}
-            </div>
-
             {!items.length && (
               <div className='bg-yellow-50 text-yellow-800 p-3 rounded-md'>
                 {
@@ -144,54 +140,18 @@ export function MercadoPagoCheckout({
               </div>
             )}
           </div>
-        )}
-
-        {canRenderBricks && (
-          <div className='mt-3 space-y-4'>
-            {error && (
-              <div className='bg-red-50 text-red-800 p-3 rounded-md'>
-                {error}
-              </div>
-            )}
-
-            <div className='border-t border-gray-100' />
-
-            <h3 className='text-lg font-semibold'>Pagar com Cartão</h3>
-
-            <div className='p-3 border rounded-md'>
-              <CardPayment
-                initialization={{ amount: totalAmount }}
-                locale='pt-BR'
-                onSubmit={handleCardPaymentSubmit}
-                onError={handleCardPaymentError}
-                customization={{
-                  paymentMethods: {
-                    types: {
-                      included: ['credit_card', 'debit_card'],
-                    },
-                  },
-                }}
-              />
-            </div>
-
-            <h3 className='text-lg font-semibold'>Ou pague com PIX</h3>
-
-            <div className='p-3 border rounded-md'>
-              <Payment
-                initialization={{ amount: totalAmount }}
-                locale='pt-BR'
-                onSubmit={handlePixPaymentSubmit}
-                onError={handlePixPaymentError}
-                customization={{
-                  paymentMethods: {
-                    bankTransfer: 'all',
-                  },
-                }}
-              />
-            </div>
-          </div>
-        )}
+        </div>
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <Payment
+      initialization={paymentInitialization}
+      locale='pt-BR'
+      onSubmit={handlePaymentSubmit}
+      onError={handlePaymentError}
+      customization={paymentCustomization}
+    />
   );
 }

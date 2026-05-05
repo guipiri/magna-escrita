@@ -203,6 +203,28 @@ export class PaymentService {
     });
   }
 
+  async getOrder(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: { include: { book: true } } },
+    });
+
+    if (!order) {
+      return { message: 'Order not found' };
+    }
+
+    try {
+      const mpOrder = await this.mercadoPagoProvider.order.get({
+        id: order.mpId || orderId,
+      });
+
+      return { order, mpOrder };
+    } catch (error) {
+      console.error('Erro ao buscar pedido no Mercado Pago:', error);
+      return { order };
+    }
+  }
+
   private async syncOrderStatus({
     resourceId,
     externalReference,
