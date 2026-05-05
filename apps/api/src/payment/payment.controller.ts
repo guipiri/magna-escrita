@@ -3,6 +3,8 @@ import { PaymentService } from './payment.service.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
 import { WebhookSignatureGuard } from './guards/webhook-signature.guard.js';
 import { AuthGuard } from '../auth/guards/auth.guard.js';
+import { User } from '../auth/auth.decorator.js';
+import type { AuthUser } from '@/auth/auth.service.js';
 
 @Controller('order')
 export class PaymentController {
@@ -12,6 +14,13 @@ export class PaymentController {
   @UseGuards(AuthGuard)
   async createOrder(@Body() body: CreateOrderDto) {
     return this.paymentService.createOrder(body);
+  }
+
+  @Get()
+  @UseGuards(AuthGuard)
+  async listOrders(@User() user: AuthUser) {
+    console.log('Listando orders para usuário:', user.email);
+    return this.paymentService.listOrders(user.email);
   }
 
   @Get(':id')

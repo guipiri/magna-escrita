@@ -225,6 +225,16 @@ export class PaymentService {
     }
   }
 
+  async listOrders(email: string) {
+    const orders = await this.prisma.order.findMany({
+      where: { email },
+      include: { items: { include: { book: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return { orders };
+  }
+
   private async syncOrderStatus({
     resourceId,
     externalReference,

@@ -33,6 +33,11 @@ export interface GetOrderRes {
   message?: string;
 }
 
+export interface GetOrdersRes {
+  orders: OrderSummary[];
+  message?: string;
+}
+
 export interface OrderItem {
   bookId: string;
   quantity: number;
