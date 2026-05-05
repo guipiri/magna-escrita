@@ -1,15 +1,5 @@
 import { api } from './api';
-
-export interface AuthUser {
-  id: string;
-  email: string;
-  name: string;
-  picture?: string | null;
-}
-
-export interface AuthResponse {
-  user: AuthUser;
-}
+import { AuthResponse } from '@repo/shared';
 
 export const signInWithGoogle = async (
   idToken: string,

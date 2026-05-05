@@ -6,8 +6,10 @@ import { OrderResponse } from '@repo/shared';
 import {
   IPaymentBrickCustomization,
   IPaymentFormData,
+  TPaymentType,
 } from '@mercadopago/sdk-react/esm/bricks/payment/type';
 import { CartItem } from '../context/cart-context';
+import { useAuth } from '../context/auth-context';
 
 const publicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY || '';
 if (publicKey) {
@@ -28,6 +30,7 @@ export function MercadoPagoCheckout({
   items,
   totalAmount,
 }: CheckoutProps) {
+  const { user, isLoading: userIsLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   const cartItems = useMemo(
@@ -39,9 +42,9 @@ export function MercadoPagoCheckout({
     [items],
   );
 
-  const paymentInitialization = useMemo(
-    () => ({ amount: totalAmount }),
-    [totalAmount],
+  const paymentInitialization: TPaymentType['initialization'] = useMemo(
+    () => ({ amount: totalAmount, payer: { email: user?.email || '' } }),
+    [totalAmount, user?.email],
   );
 
   const paymentCustomization: IPaymentBrickCustomization = useMemo(
@@ -112,7 +115,8 @@ export function MercadoPagoCheckout({
     [onError],
   );
 
-  const canRenderBricks = Boolean(publicKey) && items.length > 0;
+  const canRenderBricks =
+    Boolean(publicKey) && items.length > 0 && !userIsLoading;
 
   if (!canRenderBricks) {
     return (

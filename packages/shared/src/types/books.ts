@@ -13,3 +13,5 @@ export interface BookPageData {
     imageUrl: string | null;
   }>;
 }
+
+export type CartBookData = Omit<BookPageData, 'pages'>;

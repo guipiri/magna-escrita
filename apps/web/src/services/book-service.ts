@@ -1,30 +1,11 @@
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-export interface BookPageData {
-  id: string;
-  magnificCode: string;
-  title: string;
-  author: string;
-  synopsis: string | null;
-  price: number;
-  pages: Array<{
-    number: number;
-    type: string;
-    textContent: string | null;
-    drawImageUrl: string | null;
-    imageUrl: string | null;
-  }>;
-}
-
-export type CartBookData = Omit<BookPageData, 'pages'>;
+import { BookPageData, CartBookData } from '@repo/shared';
+import { api } from './api';
 
 export const getBookByMagnificCode = async (
   magnificCode: string,
 ): Promise<BookPageData> => {
-  const response = await axios.get<BookPageData>(
-    `${API_URL}/books/${encodeURIComponent(magnificCode)}`,
+  const response = await api.get<BookPageData>(
+    `/books/${encodeURIComponent(magnificCode)}`,
   );
 
   return response.data;
@@ -37,7 +18,7 @@ export const getBooksByIds = async (ids: string[]): Promise<CartBookData[]> => {
     return [];
   }
 
-  const response = await axios.get<CartBookData[]>(`${API_URL}/books`, {
+  const response = await api.get<CartBookData[]>(`/books`, {
     params: {
       ids: uniqueIds.join(','),
     },
