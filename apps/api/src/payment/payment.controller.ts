@@ -12,21 +12,21 @@ export class PaymentController {
 
   @Post()
   @UseGuards(AuthGuard)
-  async createOrder(@Body() body: CreateOrderDto) {
-    return this.paymentService.createOrder(body);
+  async createOrder(@Body() body: CreateOrderDto, @User() user: AuthUser) {
+    return this.paymentService.createOrder(body, user.id);
   }
 
   @Get()
   @UseGuards(AuthGuard)
   async listOrders(@User() user: AuthUser) {
     console.log('Listando orders para usuário:', user.email);
-    return this.paymentService.listOrders(user.email);
+    return this.paymentService.listOrders(user.id);
   }
 
   @Get(':id')
   @UseGuards(AuthGuard)
-  async getOrder(@Param('id') id: string) {
-    return this.paymentService.getOrder(id);
+  async getOrder(@Param('id') id: string, @User() user: AuthUser) {
+    return this.paymentService.getOrder(id, user.id);
   }
 
   @Post('webhook')

@@ -26,6 +26,8 @@ model Order {
   paymentMethodDetail  String?
   totalAmount          Decimal     @db.Decimal(10, 2)
   email                String
+  userId               String
+  user                 User        @relation(fields: [userId], references: [id])
   identificationType   String?
   identificationNumber String?
   token                String?
@@ -192,6 +194,7 @@ model User {
   email    String  @unique
   name     String?
   picture  String?
+  orders   Order[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -12,15 +12,15 @@ export class PaymentService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async createOrder(data: CreateOrderDto) {
+  async createOrder(data: CreateOrderDto, userId: string) {
     if (data.paymentMethodDetail === 'pix') {
-      return this.createPixOrder(data);
+      return this.createPixOrder(data, userId);
     }
 
-    return this.createCardOrder(data);
+    return this.createCardOrder(data, userId);
   }
 
-  private async createPixOrder(data: CreateOrderDto) {
+  private async createPixOrder(data: CreateOrderDto, userId: string) {
     try {
       const bookIds = data.items.map((it) => it.bookId);
       const books = await this.prisma.book.findMany({
@@ -75,6 +75,7 @@ export class PaymentService {
             mpOrder.transactions?.payments?.[0]?.payment_method?.id || 'pix',
           totalAmount: parseFloat(totalAmount),
           email: data.email,
+          user: { connect: { id: userId } },
           installments: 1,
           identificationType: data.identificationType,
           identificationNumber: data.identificationNumber,
@@ -99,7 +100,7 @@ export class PaymentService {
     }
   }
 
-  private async createCardOrder(data: CreateOrderDto) {
+  private async createCardOrder(data: CreateOrderDto, userId: string) {
     const {
       paymentMethod,
       email,
@@ -164,6 +165,7 @@ export class PaymentService {
           paymentMethodDetail,
           totalAmount,
           email,
+          user: { connect: { id: userId } },
           identificationType,
           identificationNumber,
           issuerId,
@@ -203,15 +205,13 @@ export class PaymentService {
     });
   }
 
-  async getOrder(orderId: string) {
+  async getOrder(orderId: string, userId: string) {
     const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
+      where: { id: orderId, userId },
       include: { items: { include: { book: true } } },
     });
 
-    if (!order) {
-      return { message: 'Order not found' };
-    }
+    if (!order) throw new Error('Pedido não encontrado');
 
     try {
       const mpOrder = await this.mercadoPagoProvider.order.get({
@@ -225,9 +225,9 @@ export class PaymentService {
     }
   }
 
-  async listOrders(email: string) {
+  async listOrders(userId: string) {
     const orders = await this.prisma.order.findMany({
-      where: { email },
+      where: { userId },
       include: { items: { include: { book: true } } },
       orderBy: { createdAt: 'desc' },
     });
