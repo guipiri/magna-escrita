@@ -12,6 +12,7 @@ import './style.css';
 import { CartProvider } from './context/cart-context';
 import { CartPage } from './pages/CartPage';
 import { CheckoutPage } from './pages/CheckoutPage';
+import { HomePage } from './pages/HomePage';
 import BookPage from './pages/BookPage';
 import { OrderPage } from './pages/OrderPage';
 import { QueryProvider } from './providers/query-provider';
@@ -19,7 +20,7 @@ import { StoreLayout } from './layouts/StoreLayout';
 import { useAuth } from './context/auth-context';
 import { JSX } from 'react';
 
-const DEFAULT_BOOK_PATH = '/book/r4d3m';
+const DEFAULT_BOOK_PATH = '/';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
 const RequireAuth = ({
@@ -51,7 +52,7 @@ const AppRoutes = () => (
   <BrowserRouter>
     <Routes>
       <Route element={<StoreLayout />}>
-        <Route path='/' element={<Navigate to={DEFAULT_BOOK_PATH} replace />} />
+        <Route path='/' element={<HomePage />} />
         <Route
           path='/checkout'
           element={

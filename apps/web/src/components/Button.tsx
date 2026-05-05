@@ -1,7 +1,7 @@
-import { motion } from 'motion/react';
+import { HTMLMotionProps, motion } from 'motion/react';
 import { ReactNode } from 'react';
 
-interface ButtonProps {
+interface ButtonProps extends Omit<HTMLMotionProps<'button'>, 'ref'> {
   children: ReactNode;
   onClick?: () => void;
   variant?: 'primary' | 'secondary';
@@ -9,13 +9,15 @@ interface ButtonProps {
   className?: string;
 }
 
-export function Button({
-  children,
-  onClick,
-  variant = 'primary',
-  size = 'md',
-  className = '',
-}: ButtonProps) {
+export function Button(buttonProps: ButtonProps) {
+  const {
+    children,
+    onClick,
+    variant = 'primary',
+    size = 'md',
+    className,
+    ...rest
+  } = buttonProps;
   const baseClasses =
     'rounded-full transition-all duration-200 flex items-center gap-2 justify-center';
 
@@ -39,8 +41,10 @@ export function Button({
       onClick={onClick}
       style={{ border: '0' }}
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      {...rest}
     >
       {children}
+      <button></button>
     </motion.button>
   );
 }

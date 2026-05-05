@@ -119,12 +119,14 @@ export function StoreHeader() {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className='flex items-center gap-2'
         >
-          <Sparkles className='w-8 h-8 text-purple-600' />
-          <span className='text-xl md:text-2xl font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
+          <Link
+            to='/'
+            className='flex items-center gap-2 text-xl md:text-2xl font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'
+          >
+            <Sparkles className='w-8 h-8 text-purple-600' />
             Magna Escrita
-          </span>
+          </Link>
         </motion.div>
         {renderActions()}
       </nav>

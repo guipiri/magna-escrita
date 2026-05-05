@@ -34,15 +34,6 @@ body {
     linear-gradient(180deg, #f6f7fb 0%, #eef2ff 100%);
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
 #app {
   width: 100%;
 }
