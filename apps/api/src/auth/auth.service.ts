@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OAuth2Client } from 'google-auth-library';
@@ -22,6 +21,8 @@ interface JwtClaims {
 export class AuthService {
   private googleClient: OAuth2Client;
   private googleClientId: string;
+  private googleClientSecret: string;
+  private googleRedirectUri: string;
   private jwtSecret: string;
   private jwtExpiresInMilliseconds: number | undefined;
 
@@ -31,10 +32,20 @@ export class AuthService {
   ) {
     this.googleClientId =
       this.configService.getOrThrow<string>('GOOGLE_CLIENT_ID');
+    this.googleClientSecret = this.configService.getOrThrow<string>(
+      'GOOGLE_CLIENT_SECRET',
+    );
+    this.googleRedirectUri =
+      this.configService.get<string>('GOOGLE_AUTH_REDIRECT_URI') ??
+      'postmessage';
     this.jwtSecret = this.configService.getOrThrow<string>('JWT_SECRET');
     this.jwtExpiresInMilliseconds =
       this.configService.get<number>('JWT_EXPIRES_IN');
-    this.googleClient = new OAuth2Client(this.googleClientId);
+    this.googleClient = new OAuth2Client(
+      this.googleClientId,
+      this.googleClientSecret,
+      this.googleRedirectUri,
+    );
   }
 
   async authenticateWithGoogle(
@@ -72,6 +83,25 @@ export class AuthService {
       },
       token,
     };
+  }
+
+  async authenticateWithGoogleAuthCode(
+    code: string,
+  ): Promise<{ user: AuthUser; token: string }> {
+    try {
+      const { tokens } = await this.googleClient.getToken({
+        code,
+        redirect_uri: this.googleRedirectUri,
+      });
+
+      if (!tokens.id_token) {
+        throw new UnauthorizedException('Invalid Google auth code');
+      }
+
+      return await this.authenticateWithGoogle(tokens.id_token);
+    } catch {
+      throw new UnauthorizedException('Invalid Google auth code');
+    }
   }
 
   async getUserFromToken(token: string): Promise<AuthUser> {

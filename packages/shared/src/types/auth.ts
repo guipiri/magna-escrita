@@ -8,3 +8,13 @@ export interface AuthUser {
 export interface AuthResponse {
   user: AuthUser;
 }
+
+export interface GoogleAuthRequest {
+  idToken?: string;
+  code?: string;
+}
+
+export interface GoogleAuthRequest {
+  idToken?: string;
+  code?: string;
+}

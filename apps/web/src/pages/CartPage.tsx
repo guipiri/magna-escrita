@@ -56,7 +56,7 @@ export function CartPage() {
   const handleGoogleLogin = async (idToken: string) => {
     try {
       setLocalAuthError(null);
-      await loginWithGoogle(idToken);
+      await loginWithGoogle({ idToken });
       navigate('/checkout');
     } catch {
       setLocalAuthError('Nao foi possivel autenticar com o Google.');

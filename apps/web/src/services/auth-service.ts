@@ -1,10 +1,10 @@
 import { api } from './api';
-import { AuthResponse } from '@repo/shared';
+import { AuthResponse, GoogleAuthRequest } from '@repo/shared';
 
 export const signInWithGoogle = async (
-  idToken: string,
+  payload: GoogleAuthRequest,
 ): Promise<AuthResponse> => {
-  const response = await api.post<AuthResponse>('/auth/google', { idToken });
+  const response = await api.post<AuthResponse>('/auth/google', payload);
   return response.data;
 };
 

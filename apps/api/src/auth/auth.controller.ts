@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Post,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
 import { GoogleAuthDto } from './dto/google-auth.dto.js';
@@ -18,9 +26,13 @@ export class AuthController {
     @Body() body: GoogleAuthDto,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const { user, token } = await this.authService.authenticateWithGoogle(
-      body.idToken,
-    );
+    if (!body.idToken && !body.code) {
+      throw new BadRequestException('Missing Google auth token');
+    }
+
+    const { user, token } = body.code
+      ? await this.authService.authenticateWithGoogleAuthCode(body.code)
+      : await this.authService.authenticateWithGoogle(body.idToken as string);
 
     response.cookie(this.getCookieName(), token, this.getCookieOptions());
 

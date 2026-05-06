@@ -52,7 +52,7 @@ export function AuthButton() {
           const credential = credentialResponse.credential;
           if (credential) {
             setLocalError(null);
-            void loginWithGoogle(credential);
+            void loginWithGoogle({ idToken: credential });
           }
         }}
         onError={() => {

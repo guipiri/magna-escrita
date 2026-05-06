@@ -1,11 +1,7 @@
 import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  AuthUser,
-  fetchMe,
-  signInWithGoogle,
-  signOut,
-} from '../services/auth-service';
+import { AuthUser, GoogleAuthRequest } from '@repo/shared';
+import { fetchMe, signInWithGoogle, signOut } from '../services/auth-service';
 
 const AUTH_QUERY_KEY = ['auth', 'me'] as const;
 
@@ -13,7 +9,7 @@ interface AuthHookValue {
   user: AuthUser | null;
   isLoading: boolean;
   error: string | null;
-  loginWithGoogle: (idToken: string) => Promise<void>;
+  loginWithGoogle: (payload: GoogleAuthRequest) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -58,8 +54,8 @@ export function useAuth(): AuthHookValue {
     return null;
   }, [loginMutation.isError, logoutMutation.isError]);
 
-  const loginWithGoogle = async (idToken: string) => {
-    await loginMutation.mutateAsync(idToken);
+  const loginWithGoogle = async (payload: GoogleAuthRequest) => {
+    await loginMutation.mutateAsync(payload);
   };
 
   const logout = async () => {

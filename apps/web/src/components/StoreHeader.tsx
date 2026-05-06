@@ -1,19 +1,25 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useMatch, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { ArrowLeft, Home, ShoppingCart, Sparkles } from 'lucide-react';
+import { ArrowLeft, Home, LogIn, ShoppingCart, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/auth-context';
 import { useCart } from '../context/cart-context';
+import { useGoogleLogin } from '@react-oauth/google';
 
 export function StoreHeader() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, loginWithGoogle } = useAuth();
+  const handleLoginWithGoogle = useGoogleLogin({
+    flow: 'auth-code',
+    onSuccess: (coderesponse) => loginWithGoogle({ code: coderesponse.code }),
+  });
   const { totalQuantity } = useCart();
   const isBookRoute = Boolean(useMatch('/book/:magnificCode'));
   const isCartRoute = Boolean(useMatch('/cart'));
   const isCheckoutRoute = Boolean(useMatch('/checkout'));
   const isOrderRoute = Boolean(useMatch('/order/:orderId'));
   const isOrdersRoute = Boolean(useMatch('/orders'));
+  const isHomeRoute = Boolean(useMatch('/'));
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const userMenuId = useId();
@@ -85,10 +91,19 @@ export function StoreHeader() {
         </div>
       ) : null}
     </div>
-  ) : null;
+  ) : (
+    <motion.button
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className='flex items-center gap-2 px-4 py-2 bg-white shadow-md hover:shadow-lg transition-all'
+      onClick={() => handleLoginWithGoogle()}
+    >
+      <LogIn className='w-5 h-5 text-purple-600' />
+    </motion.button>
+  );
 
   const renderActions = () => {
-    if (isBookRoute) {
+    if (isBookRoute || isHomeRoute) {
       return (
         <div className='flex items-center gap-3'>
           {userBadge}
@@ -96,7 +111,7 @@ export function StoreHeader() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             onClick={() => navigate('/cart')}
-            className='flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all'
+            className='flex items-center gap-2 px-4 py-2 bg-white shadow-md hover:shadow-lg transition-all'
             type='button'
           >
             <ShoppingCart className='w-5 h-5 text-purple-600' />
