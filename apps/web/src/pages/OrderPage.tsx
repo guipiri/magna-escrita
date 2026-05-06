@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useLocation, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
   BookOpen,
@@ -11,12 +11,8 @@ import {
 } from 'lucide-react';
 import { GetOrderRes, OrderResponse } from '@repo/shared';
 import { Button } from '../components/Button';
-import { getOrder } from '../services/payment-service';
+import { getOrder } from '../services/order-service';
 import { useQuery } from '@tanstack/react-query';
-
-interface OrderPageLocationState {
-  paymentData?: OrderResponse;
-}
 
 const getStatusMessage = (
   paymentData?: OrderResponse,
@@ -53,9 +49,7 @@ const getStatusMessage = (
 
 export function OrderPage() {
   const { orderId } = useParams();
-  const location = useLocation();
   const [hasCopiedPixCode, setHasCopiedPixCode] = useState(false);
-  const locationState = location.state as OrderPageLocationState | null;
 
   const query = useQuery<GetOrderRes | undefined>({
     queryKey: ['order', orderId],
@@ -64,9 +58,7 @@ export function OrderPage() {
       return getOrder(orderId);
     },
     enabled: Boolean(orderId),
-    placeholderData: locationState?.paymentData
-      ? { mpOrder: locationState.paymentData }
-      : undefined,
+    retry: false,
   });
 
   const { data: orderData, isLoading, error } = query;
@@ -76,7 +68,15 @@ export function OrderPage() {
   }
 
   if ((!orderData?.order && !orderData?.mpOrder) || error) {
-    return <Navigate to='/cart' replace />;
+    return (
+      <main className='px-4 py-12'>
+        <div className='max-w-3xl mx-auto rounded-xl bg-red-50 p-5 text-red-800 text-center'>
+          Pedido não encontrado.
+          <br />
+          Verifique o ID do pedido ou tente novamente.
+        </div>
+      </main>
+    );
   }
 
   const { order, mpOrder: paymentData } = orderData;

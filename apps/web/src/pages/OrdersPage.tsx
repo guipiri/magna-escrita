@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { CheckCircle2, Clock, RotateCcw, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { GetOrdersRes, OrderSummary } from '@repo/shared';
-import { getOrders } from '../services/payment-service';
+import { getOrders } from '../services/order-service';
 
 const statusStyles: Record<
   string,

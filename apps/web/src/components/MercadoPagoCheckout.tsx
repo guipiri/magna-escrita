@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
-import { createOrder } from '../services/payment-service';
+import { createOrder } from '../services/order-service';
 import { IBrickError } from '@mercadopago/sdk-react/esm/bricks/util/types/common';
-import { OrderResponse } from '@repo/shared';
+import { ApiError, CreateOrderRes } from '@repo/shared';
 import {
   IPaymentBrickCustomization,
   IPaymentFormData,
@@ -10,15 +10,24 @@ import {
 } from '@mercadopago/sdk-react/esm/bricks/payment/type';
 import { CartItem } from '../context/cart-context';
 import { useAuth } from '../context/auth-context';
+import { getApiError } from '../services/api-error';
+import { useMutation } from '@tanstack/react-query';
 
 const publicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY || '';
 if (publicKey) {
   initMercadoPago(publicKey);
 }
 
+const paymentCustomization: IPaymentBrickCustomization = {
+  paymentMethods: {
+    creditCard: 'all',
+    bankTransfer: 'all',
+  },
+};
+
 export interface CheckoutProps {
-  onSuccess?: (orderId: string | undefined, paymentData: OrderResponse) => void;
-  onError?: (error: Error) => void;
+  onSuccess: (order: CreateOrderRes) => void;
+  onError?: (error: ApiError) => void;
   items: CartItem[];
   totalAmount: number;
   disabledReason?: string;
@@ -32,6 +41,7 @@ export function MercadoPagoCheckout({
 }: CheckoutProps) {
   const { user, isLoading: userIsLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [paymentKey, setPaymentKey] = useState(0);
 
   const cartItems = useMemo(
     () =>
@@ -47,60 +57,46 @@ export function MercadoPagoCheckout({
     [totalAmount, user?.email],
   );
 
-  const paymentCustomization: IPaymentBrickCustomization = useMemo(
-    () => ({
-      paymentMethods: {
-        creditCard: 'all',
-        bankTransfer: 'all',
-      },
-    }),
-    [],
-  );
+  const createOrderMutation = useMutation({
+    mutationFn: createOrder,
+    onError: (err) => {
+      const apiError = getApiError(err);
+      setError(apiError?.message || 'Erro ao criar pedido');
+      setPaymentKey((prev) => prev + 1);
+      onError?.(apiError);
+    },
+    onSuccess,
+  });
 
   const handlePaymentSubmit = useCallback(
     async (paymentFormData: IPaymentFormData) => {
-      try {
-        setError(null);
+      setError(null);
 
-        if (!cartItems.length) {
-          return setError('Adicione pelo menos um livro ao carrinho');
-        }
+      if (!cartItems.length)
+        return setError('Adicione pelo menos um livro ao carrinho');
 
-        const { formData, paymentType } = paymentFormData;
-        const payer = formData.payer;
-        const identification = payer.identification;
+      const { formData, paymentType } = paymentFormData;
+      const payer = formData.payer;
+      const identification = payer.identification;
 
-        if (!payer.email) {
-          return setError('Email do pagador é obrigatório');
-        }
+      if (!payer.email) return setError('Email do pagador é obrigatório');
 
-        const isPixPayment =
-          paymentType === 'bank_transfer' &&
-          formData.payment_method_id === 'pix';
+      const isPixPayment =
+        paymentType === 'bank_transfer' && formData.payment_method_id === 'pix';
 
-        const orderResp = await createOrder({
-          items: cartItems,
-          email: payer.email,
-          token: formData.token,
-          identificationType: identification?.type,
-          identificationNumber: identification?.number,
-          paymentMethod: isPixPayment
-            ? paymentType
-            : formData.payment_method_id,
-          paymentMethodDetail: isPixPayment
-            ? formData.payment_method_id
-            : undefined,
-          installments: isPixPayment ? 1 : formData.installments,
-          issuerId: formData.issuer_id,
-        });
-
-        onSuccess?.(orderResp.order.id, orderResp.mpOrder);
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Erro ao processar pagamento';
-        setError(errorMessage);
-        onError?.(new Error(errorMessage));
-      }
+      createOrderMutation.mutateAsync({
+        items: cartItems,
+        email: payer.email,
+        token: formData.token,
+        identificationType: identification?.type,
+        identificationNumber: identification?.number,
+        paymentMethod: isPixPayment ? paymentType : formData.payment_method_id,
+        paymentMethodDetail: isPixPayment
+          ? formData.payment_method_id
+          : undefined,
+        installments: isPixPayment ? 1 : formData.installments,
+        issuerId: formData.issuer_id,
+      });
     },
     [cartItems, onError, onSuccess],
   );
@@ -110,7 +106,6 @@ export function MercadoPagoCheckout({
       const errorMessage =
         error?.message || 'Erro ao processar pagamento no Mercado Pago';
       setError(errorMessage);
-      onError?.(new Error(errorMessage));
     },
     [onError],
   );
@@ -150,12 +145,20 @@ export function MercadoPagoCheckout({
   }
 
   return (
-    <Payment
-      initialization={paymentInitialization}
-      locale='pt-BR'
-      onSubmit={handlePaymentSubmit}
-      onError={handlePaymentError}
-      customization={paymentCustomization}
-    />
+    <>
+      {error && (
+        <div className='max-w-xl mx-auto mt-4'>
+          <div className='bg-red-50 text-red-800 p-3 rounded-md'>{error}</div>
+        </div>
+      )}
+      <Payment
+        key={paymentKey}
+        initialization={paymentInitialization}
+        locale='pt-BR'
+        onSubmit={handlePaymentSubmit}
+        onError={handlePaymentError}
+        customization={paymentCustomization}
+      />
+    </>
   );
 }

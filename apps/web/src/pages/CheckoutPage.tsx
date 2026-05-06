@@ -5,6 +5,7 @@ import { Button } from '../components/Button';
 import { MercadoPagoCheckout } from '../components/MercadoPagoCheckout';
 import { useCart } from '../context/cart-context';
 import { CartPage } from './CartPage';
+import { CreateOrderRes } from '@repo/shared';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -17,8 +18,8 @@ export function CheckoutPage() {
     clearCart,
   } = useCart();
 
-  const handlePaymentSuccess = (orderId: string | undefined) => {
-    navigate(`/order/${orderId}`);
+  const handlePaymentSuccess = (order: CreateOrderRes) => {
+    navigate(`/order/${order.order.id}`);
     clearCart();
   };
 

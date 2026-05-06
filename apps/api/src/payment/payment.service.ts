@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadGatewayException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { MercadoPagoProvider } from './providers/mercado-pago.provider.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
@@ -95,8 +95,15 @@ export class PaymentService {
 
       return { order, mpOrder };
     } catch (error: any) {
-      console.error('Erro ao criar Order PIX:', error);
-      throw new Error(`Erro ao criar Order PIX: ${error}`);
+      const providerMessage = (error as { errors?: { message?: string }[] })
+        ?.errors?.[0]?.message;
+      const message = providerMessage || 'Falha ao criar pedido PIX';
+
+      throw new BadGatewayException({
+        code: 'MP_CREATE_ORDER_FAILED',
+        message,
+        details: providerMessage ? { providerMessage } : undefined,
+      });
     }
   }
 
