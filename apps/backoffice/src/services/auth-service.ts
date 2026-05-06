@@ -4,7 +4,10 @@ import { AuthResponse, GoogleAuthRequest } from '@repo/shared';
 export const signInWithGoogle = async (
   payload: GoogleAuthRequest,
 ): Promise<AuthResponse> => {
-  const response = await api.post<AuthResponse>('/auth/google', payload);
+  const response = await api.post<AuthResponse>(
+    '/auth/backoffice/google',
+    payload,
+  );
   return response.data;
 };
 

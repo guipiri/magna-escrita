@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthUser, GoogleAuthRequest } from '@repo/shared';
 import { fetchMe, signInWithGoogle, signOut } from '../services/auth-service';
+import { useNavigate } from 'react-router-dom';
 
 const AUTH_QUERY_KEY = ['auth', 'me'] as const;
 
@@ -16,6 +17,7 @@ interface AuthHookValue {
 
 export function useAuth(): AuthHookValue {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const meQuery = useQuery({
     queryKey: AUTH_QUERY_KEY,
@@ -35,6 +37,7 @@ export function useAuth(): AuthHookValue {
     mutationFn: signOut,
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: AUTH_QUERY_KEY });
+      navigate('/login');
     },
   });
 
@@ -47,9 +50,7 @@ export function useAuth(): AuthHookValue {
       return 'Nao foi possivel autenticar com o Google.';
     }
 
-    if (logoutMutation.isError) {
-      return 'Nao foi possivel sair agora.';
-    }
+    if (logoutMutation.isError) return 'Nao foi possivel sair agora.';
 
     return null;
   }, [loginMutation.isError, logoutMutation.isError]);

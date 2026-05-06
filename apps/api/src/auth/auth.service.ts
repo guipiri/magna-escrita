@@ -3,18 +3,15 @@ import { ConfigService } from '@nestjs/config';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import { PrismaService } from '../db/db.service.js';
-
-export interface AuthUser {
-  id: string;
-  email: string;
-  name: string | null;
-  picture?: string | null;
-}
+import { $Enums } from '@prisma/client';
+import { UserRole } from '@repo/shared/dist/types/user.js';
+import { AuthUser } from '@repo/shared';
 
 interface JwtClaims {
   sub?: string;
   email?: string;
   name?: string;
+  role?: $Enums.Role;
 }
 
 @Injectable()
@@ -70,7 +67,9 @@ export class AuthService {
       create: { googleId: sub, email, name, picture },
     });
 
-    const token = jwt.sign({ sub, email, name }, this.jwtSecret, {
+    const role = user.role.toString();
+
+    const token = jwt.sign({ sub, email, name, role }, this.jwtSecret, {
       expiresIn: Number(this.jwtExpiresInMilliseconds) || '7d',
     });
 
@@ -78,8 +77,9 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        name: user.name || 'Magnífico usuário',
         picture: user.picture,
+        role: user.role as UserRole,
       },
       token,
     };
@@ -129,8 +129,25 @@ export class AuthService {
     return {
       id: user.id,
       email: user.email,
-      name: user.name,
+      name: user.name || 'Magnífico usuário',
       picture: user.picture,
+      role: user.role as UserRole,
     };
+  }
+
+  async backofficeLoginWithGoogle(
+    idToken: string,
+  ): Promise<{ user: AuthUser; token: string }> {
+    const authResult = await this.authenticateWithGoogle(idToken);
+
+    if (
+      !authResult.user.role ||
+      (authResult.user.role !== UserRole.ADMIN &&
+        authResult.user.role !== UserRole.SCHOOL)
+    ) {
+      throw new UnauthorizedException('User does not have backoffice access');
+    }
+
+    return authResult;
   }
 }

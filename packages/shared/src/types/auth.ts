@@ -1,8 +1,11 @@
+import type { UserRole } from './user';
+
 export interface AuthUser {
   id: string;
   email: string;
   name: string;
   picture?: string | null;
+  role: UserRole;
 }
 
 export interface AuthResponse {

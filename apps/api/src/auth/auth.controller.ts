@@ -10,9 +10,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
 import { GoogleAuthDto } from './dto/google-auth.dto.js';
-import { AuthService, type AuthUser } from './auth.service.js';
+import { AuthService } from './auth.service.js';
 import { AuthGuard } from './guards/auth.guard.js';
 import { User } from './auth.decorator.js';
+import type { AuthUser } from '@repo/shared';
 
 @Controller('auth')
 export class AuthController {
@@ -36,6 +37,25 @@ export class AuthController {
 
     response.cookie(this.getCookieName(), token, this.getCookieOptions());
 
+    return { user };
+  }
+
+  @Post('backoffice/google')
+  async backofficeGoogleSignIn(
+    @Body() body: GoogleAuthDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    if (!body.idToken && !body.code)
+      throw new BadRequestException('Missing Google auth token');
+
+    if (!body.idToken)
+      throw new BadRequestException('Missing auth code for backoffice login');
+
+    const { user, token } = await this.authService.backofficeLoginWithGoogle(
+      body.idToken,
+    );
+
+    response.cookie(this.getCookieName(), token, this.getCookieOptions());
     return { user };
   }
 

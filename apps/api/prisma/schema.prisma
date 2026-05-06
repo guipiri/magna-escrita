@@ -18,6 +18,12 @@ enum OrderStatus {
   REFUNDED
 }
 
+enum Role {
+  ADMIN
+  SCHOOL
+  CUSTOMER
+}
+
 model Order {
   id                   String      @id @default(cuid())
   mpId                 String      @unique
@@ -194,6 +200,7 @@ model User {
   email    String  @unique
   name     String?
   picture  String?
+  role     Role    @default(CUSTOMER)
   orders   Order[]
 
   createdAt DateTime @default(now())

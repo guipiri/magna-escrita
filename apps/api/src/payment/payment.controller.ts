@@ -4,7 +4,7 @@ import { CreateOrderDto } from './dto/create-order.dto.js';
 import { WebhookSignatureGuard } from './guards/webhook-signature.guard.js';
 import { AuthGuard } from '../auth/guards/auth.guard.js';
 import { User } from '../auth/auth.decorator.js';
-import type { AuthUser } from '@/auth/auth.service.js';
+import type { AuthUser } from '@repo/shared';
 
 @Controller('order')
 export class PaymentController {
