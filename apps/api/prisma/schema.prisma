@@ -54,16 +54,16 @@ model Price {
 }
 
 model Book {
-  id           String       @id @default(cuid())
-  magnificCode String       @unique
-  title        String
-  author       String
-  synopsis     String?
-  pages        Page[]
-  priceId      String
-  price        Price        @relation(fields: [priceId], references: [id])
-  enrollments  Enrollment[]
-  orderItems   OrderItem[]
+  id              String           @id @default(cuid())
+  magnificCode    String           @unique
+  title           String
+  author          String
+  synopsis        String?
+  pages           Page[]
+  priceId         String
+  price           Price            @relation(fields: [priceId], references: [id])
+  bookEnrollments BookEnrollment[]
+  orderItems      OrderItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -107,6 +107,18 @@ model Page {
   updatedAt DateTime @updatedAt
 }
 
+model UserUnit {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unitId String
+  unit   Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, unitId])
+}
+
 model Student {
   id          String       @id @default(cuid())
   name        String
@@ -117,18 +129,29 @@ model Student {
 }
 
 model Enrollment {
-  id         String     @id @default(cuid())
-  studentId  String
-  student    Student    @relation(fields: [studentId], references: [id])
-  bookId     String
-  book       Book       @relation(fields: [bookId], references: [id])
-  schoolYear SchoolYear
-  gardeId    String
-  grade      Grade      @relation(fields: [gardeId], references: [id])
-  age        Int?
+  id              String           @id @default(cuid())
+  studentId       String
+  student         Student          @relation(fields: [studentId], references: [id])
+  bookEnrollments BookEnrollment[]
+  gradeId         String
+  grade           Grade            @relation(fields: [gradeId], references: [id])
+  age             Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model BookEnrollment {
+  id           String     @id @default(cuid())
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  bookId       String
+  book         Book       @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([enrollmentId, bookId])
 }
 
 enum SchoolYear {
@@ -142,6 +165,8 @@ model Grade {
   units       Unit         @relation(fields: [unitId], references: [id])
   unitId      String
   enrollments Enrollment[]
+
+  schoolYear SchoolYear
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -174,34 +199,35 @@ model AuthographsEvent {
 
 model Unit {
   id                String             @id @default(cuid())
-  name              String
+  name              String?
   logoUrl           String?
   schoolId          String
   school            School             @relation(fields: [schoolId], references: [id])
   grades            Grade[]
   authographsEvents AuthographsEvent[]
+  userUnits         UserUnit[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model School {
-  id    String @id @default(cuid())
-  name  String
-  units Unit[]
-
+  id        String   @id @default(cuid())
+  name      String
+  units     Unit[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model User {
-  id       String  @id @default(cuid())
-  googleId String  @unique
-  email    String  @unique
+  id       String     @id @default(cuid())
+  googleId String     @unique
+  email    String     @unique
   name     String?
   picture  String?
-  role     Role    @default(CUSTOMER)
+  role     Role       @default(CUSTOMER)
   orders   Order[]
+  units    UserUnit[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -20,7 +20,7 @@ export class OrdersController {
   @UseGuards(AuthGuard)
   async listOrders(@User() user: AuthUser) {
     console.log('Listando orders para usuário:', user.email);
-    return this.ordersService.listOrders(user.id);
+    return this.ordersService.getOrders(user.id);
   }
 
   @Get(':id')

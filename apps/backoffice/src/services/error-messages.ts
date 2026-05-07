@@ -17,6 +17,14 @@ export const errorMessages: Record<ErrorKeys, string> = {
   INTERNAL_ERROR: 'Ocorreu um erro interno no servidor.',
 
   NOT_FOUND_ORDER: 'Pedido não encontrado.',
+  NOT_FOUND_SCHOOL: 'Escola não encontrada.',
+  NOT_FOUND_UNIT: 'Unidade não encontrada.',
+
+  BAD_REQUEST_GRADE_NAME: 'Nome da turma é obrigatório.',
+  BAD_REQUEST_STUDENTS: 'Adicione pelo menos um aluno.',
+
+  UNAUTHORIZED_USER_NO_ACCESS_TO_UNIT:
+    'Usuário não tem acesso à unidade selecionada.',
 
   CREATE_PIX_ORDER_FAILED: 'Falha ao criar pedido PIX.',
   CREATE_CARD_ORDER_FAILED: 'Falha ao criar pedido com cartão de crédito.',

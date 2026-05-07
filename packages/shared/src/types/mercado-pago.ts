@@ -56,4 +56,5 @@ export interface CreateOrderReq {
   issuerId?: string;
 }
 
-export * from 'mercadopago/dist/clients/order/commonTypes.js';
+import * as CommonTypes from 'mercadopago/dist/clients/order/commonTypes.js';
+export { CommonTypes };

@@ -10,6 +10,7 @@ import { createRoot } from 'react-dom/client';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import './style.css';
 import { HomePage } from './pages/HomePage';
+import { TurmasPage } from './pages/TurmasPage';
 import { LoginPage } from './pages/LoginPage';
 import { QueryProvider } from './providers/query-provider';
 import { useAuth } from './hooks/auth-hook';
@@ -60,6 +61,14 @@ const AppRoutes = () => (
           element={
             <RequireAdmin redirectTo='/login'>
               <HomePage />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path='/turmas'
+          element={
+            <RequireAdmin redirectTo='/login'>
+              <TurmasPage />
             </RequireAdmin>
           }
         />

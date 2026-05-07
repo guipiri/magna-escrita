@@ -217,6 +217,153 @@ async function main() {
   books.forEach((book) => {
     console.log(`  - ${book.title} (${book.author}) - R$ ${book.id}`);
   });
+
+  // Criar/atualizar escolas
+  console.log('\n🏫 Iniciando seed de escolas...');
+  const schools = await Promise.all([
+    prisma.school.upsert({
+      where: { id: 'school-001' },
+      update: {},
+      create: {
+        id: 'school-001',
+        name: 'Escola Municipal de São Paulo',
+      },
+    }),
+    prisma.school.upsert({
+      where: { id: 'school-002' },
+      update: {},
+      create: {
+        id: 'school-002',
+        name: 'Colégio Estadual Rio de Janeiro',
+      },
+    }),
+    prisma.school.upsert({
+      where: { id: 'school-003' },
+      update: {},
+      create: {
+        id: 'school-003',
+        name: 'Instituto de Educação Belo Horizonte',
+      },
+    }),
+  ]);
+
+  console.log(`✅ ${schools.length} escolas criadas/atualizadas`);
+
+  // Criar/atualizar unidades
+  console.log('🏢 Criando unidades...');
+  const units = await Promise.all([
+    prisma.unit.upsert({
+      where: { id: 'unit-001' },
+      update: {},
+      create: {
+        id: 'unit-001',
+        name: 'Unidade Centro',
+        schoolId: 'school-001',
+      },
+    }),
+    prisma.unit.upsert({
+      where: { id: 'unit-002' },
+      update: {},
+      create: {
+        id: 'unit-002',
+        name: 'Unidade Zona Oeste',
+        schoolId: 'school-001',
+      },
+    }),
+    prisma.unit.upsert({
+      where: { id: 'unit-003' },
+      update: {},
+      create: {
+        id: 'unit-003',
+        name: 'Unidade Centro',
+        schoolId: 'school-002',
+      },
+    }),
+    prisma.unit.upsert({
+      where: { id: 'unit-004' },
+      update: {},
+      create: {
+        id: 'unit-004',
+        name: 'Unidade Saúde',
+        schoolId: 'school-003',
+      },
+    }),
+  ]);
+
+  console.log(`✅ ${units.length} unidades criadas/atualizadas`);
+
+  // Upsert do usuário
+  console.log('👤 Criando/atualizando usuário...');
+  const user = await prisma.user.upsert({
+    where: { email: 'gui.soliveiras@gmail.com' },
+    update: {
+      name: 'Guilherme Soliveiras',
+      picture: null,
+      role: 'SCHOOL',
+    },
+    create: {
+      email: 'gui.soliveiras@gmail.com',
+      googleId: 'gui-soliveiras-001',
+      name: 'Guilherme Soliveiras',
+      picture: null,
+      role: 'SCHOOL',
+    },
+  });
+
+  console.log(`✅ Usuário criado/atualizado: ${user.email}`);
+
+  // Associar usuário às unidades
+  console.log('🔗 Associando usuário às unidades...');
+  const userUnits = await Promise.all([
+    prisma.userUnit.upsert({
+      where: {
+        userId_unitId: {
+          userId: user.id,
+          unitId: 'unit-001',
+        },
+      },
+      update: {},
+      create: {
+        userId: user.id,
+        unitId: 'unit-001',
+      },
+    }),
+    prisma.userUnit.upsert({
+      where: {
+        userId_unitId: {
+          userId: user.id,
+          unitId: 'unit-002',
+        },
+      },
+      update: {},
+      create: {
+        userId: user.id,
+        unitId: 'unit-002',
+      },
+    }),
+    prisma.userUnit.upsert({
+      where: {
+        userId_unitId: {
+          userId: user.id,
+          unitId: 'unit-003',
+        },
+      },
+      update: {},
+      create: {
+        userId: user.id,
+        unitId: 'unit-003',
+      },
+    }),
+  ]);
+
+  console.log(
+    `✅ ${userUnits.length} associações de usuário-unidade criadas/atualizadas`,
+  );
+  console.log(`\n📋 Resumo do seed:`);
+  console.log(`  Escolas: ${schools.length}`);
+  console.log(`  Unidades: ${units.length}`);
+  console.log(`  Usuário: ${user.email} (${user.role})`);
+  console.log(`  Unidades do usuário: ${userUnits.length}`);
 }
 
 main()

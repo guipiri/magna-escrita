@@ -7,6 +7,7 @@ import { DbModule } from './db/db.module.js';
 import { validationSchema } from './config/validation.js';
 import { BooksModule } from './books/books.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { SchoolsModule } from './schools/schools.module.js';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AuthModule } from './auth/auth.module.js';
     BooksModule,
     OrdersModule,
     AuthModule,
+    SchoolsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

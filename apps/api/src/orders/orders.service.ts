@@ -235,7 +235,7 @@ export class OrdersService {
     }
   }
 
-  async listOrders(userId: string) {
+  async getOrders(userId: string) {
     const orders = await this.prisma.order.findMany({
       where: { userId },
       include: { items: { include: { book: true } } },
