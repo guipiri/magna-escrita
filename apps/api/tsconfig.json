@@ -10,9 +10,6 @@
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
-    "paths": {
-      "@/*": ["./src/*"]
-    },
     "types": ["node", "jest"],
     "incremental": true,
     "skipLibCheck": true,
