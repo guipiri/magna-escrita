@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthUser, GoogleAuthRequest } from '@repo/shared';
 import { fetchMe, signInWithGoogle, signOut } from '../services/auth-service';
 import { useNavigate } from 'react-router-dom';
+import { getApiError } from '../services/api-error';
 
 const AUTH_QUERY_KEY = ['auth', 'me'] as const;
 
@@ -47,7 +48,10 @@ export function useAuth(): AuthHookValue {
 
   const error = useMemo(() => {
     if (loginMutation.isError) {
-      return 'Nao foi possivel autenticar com o Google.';
+      return (
+        getApiError(loginMutation.error).message ||
+        'Nao foi possivel entrar agora.'
+      );
     }
 
     if (logoutMutation.isError) return 'Nao foi possivel sair agora.';

@@ -3,15 +3,16 @@ import { ConfigService } from '@nestjs/config';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import { PrismaService } from '../db/db.service.js';
-import { $Enums } from '@prisma/client';
 import { UserRole } from '@repo/shared/dist/types/user.js';
-import { AuthUser } from '@repo/shared';
+import { AuthResponse, AuthUser } from '@repo/shared';
+import { GoogleAuthDto } from './dto/google-auth.dto.js';
+import { UnauthorizedAccessToBackofficeException } from './auth.erros.js';
 
 interface JwtClaims {
   sub?: string;
   email?: string;
   name?: string;
-  role?: $Enums.Role;
+  role?: string;
 }
 
 @Injectable()
@@ -45,9 +46,15 @@ export class AuthService {
     );
   }
 
-  async authenticateWithGoogle(
-    idToken: string,
-  ): Promise<{ user: AuthUser; token: string }> {
+  async authenticateWithGoogle(g: GoogleAuthDto) {
+    if (g.idToken) return await this.authenticateWithGoogleIdToken(g.idToken);
+
+    if (g.code) return await this.authenticateWithGoogleAuthCode(g.code);
+
+    throw new UnauthorizedException('Missing Google auth token');
+  }
+
+  async authenticateWithGoogleIdToken(idToken: string): Promise<AuthResponse> {
     const ticket = await this.googleClient.verifyIdToken({
       idToken,
       audience: this.googleClientId,
@@ -85,9 +92,7 @@ export class AuthService {
     };
   }
 
-  async authenticateWithGoogleAuthCode(
-    code: string,
-  ): Promise<{ user: AuthUser; token: string }> {
+  async authenticateWithGoogleAuthCode(code: string): Promise<AuthResponse> {
     try {
       const { tokens } = await this.googleClient.getToken({
         code,
@@ -98,7 +103,7 @@ export class AuthService {
         throw new UnauthorizedException('Invalid Google auth code');
       }
 
-      return await this.authenticateWithGoogle(tokens.id_token);
+      return await this.authenticateWithGoogleIdToken(tokens.id_token);
     } catch {
       throw new UnauthorizedException('Invalid Google auth code');
     }
@@ -114,17 +119,13 @@ export class AuthService {
       throw new UnauthorizedException('Invalid token');
     }
 
-    if (!decoded.sub) {
-      throw new UnauthorizedException('Invalid token');
-    }
+    if (!decoded.sub) throw new UnauthorizedException('Invalid token');
 
     const user = await this.prismaService.user.findUnique({
       where: { googleId: decoded.sub },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
+    if (!user) throw new UnauthorizedException('User not found');
 
     return {
       id: user.id,
@@ -135,18 +136,15 @@ export class AuthService {
     };
   }
 
-  async backofficeLoginWithGoogle(
-    idToken: string,
-  ): Promise<{ user: AuthUser; token: string }> {
-    const authResult = await this.authenticateWithGoogle(idToken);
+  async backofficeLoginWithGoogle(g: GoogleAuthDto) {
+    const authResult = await this.authenticateWithGoogle(g);
 
     if (
       !authResult.user.role ||
       (authResult.user.role !== UserRole.ADMIN &&
         authResult.user.role !== UserRole.SCHOOL)
-    ) {
-      throw new UnauthorizedException('User does not have backoffice access');
-    }
+    )
+      throw new UnauthorizedAccessToBackofficeException();
 
     return authResult;
   }

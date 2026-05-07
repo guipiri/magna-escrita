@@ -8,6 +8,11 @@ import {
 import { ApiError } from '@repo/shared';
 import { Request, Response } from 'express';
 
+export interface HttpExceptionConstructor {
+  key: string;
+  message: string;
+}
+
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
@@ -22,7 +27,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const payload: ApiError = {
       statusCode: status,
-      code: isHttpException ? 'HTTP_ERROR' : 'INTERNAL_ERROR',
+      key: isHttpException ? 'HTTP_ERROR' : 'INTERNAL_ERROR',
       message: 'Unexpected error',
       path: request.url,
       timestamp: new Date().toISOString(),
@@ -38,7 +43,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
           message?: string | string[];
         };
 
-        if (body.code) payload.code = body.code;
+        if (body.key) payload.key = body.key;
 
         if (body.message) {
           payload.message = Array.isArray(body.message)

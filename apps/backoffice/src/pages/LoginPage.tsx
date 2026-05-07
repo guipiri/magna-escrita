@@ -1,17 +1,24 @@
 import { useNavigate } from 'react-router-dom';
-import { CredentialResponse, GoogleLogin } from '@react-oauth/google';
+import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../hooks/auth-hook';
 import { useState } from 'react';
 
 export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
+  const { loginWithGoogle, error: authError } = useAuth();
   const navigate = useNavigate();
-  const { loginWithGoogle } = useAuth();
 
-  const handleLogin = async (credentialsResponse: CredentialResponse) => {
-    await loginWithGoogle({ idToken: credentialsResponse.credential });
-    navigate('/');
-  };
+  const handleGoogleLogin = useGoogleLogin({
+    flow: 'auth-code',
+    onSuccess: async (tokenResponse) => {
+      await loginWithGoogle({ code: tokenResponse.code });
+      navigate('/');
+    },
+    onError: () => {
+      console.error('Google login failed');
+      setError('Falha na autenticação com o Google.');
+    },
+  });
 
   return (
     <main className='max-w-md mx-auto mt-20 p-6 bg-white rounded shadow'>
@@ -19,17 +26,12 @@ export function LoginPage() {
       <p className='text-sm text-gray-600 mb-6'>
         Use sua conta Google autorizada.
       </p>
-      {error && (
-        <div className='mb-4 p-3 bg-red-100 text-red-700 rounded'>{error}</div>
-      )}
-      <GoogleLogin
-        onSuccess={handleLogin}
-        onError={() => {
-          setError(
-            'Erro ao fazer login com o Google. Por favor, tente novamente.',
-          );
-        }}
-      />
+      {error || authError ? (
+        <div className='mb-4 p-3 bg-red-100 text-red-700 rounded'>
+          {error || authError}
+        </div>
+      ) : null}
+      <button onClick={handleGoogleLogin}>Fazer login com o Google</button>
     </main>
   );
 }
