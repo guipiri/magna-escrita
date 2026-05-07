@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { ErrorKeys } from '@repo/shared';
-import { HttpExceptionConstructor } from '../common/filters/http-exception.filter';
+import { HttpExceptionConstructor } from '../common/filters/http-exception.filter.js';
 
 export class NotFoundBookException extends NotFoundException {
   constructor() {
