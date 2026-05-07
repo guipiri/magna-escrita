@@ -1,9 +1,5 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { UnauthorizedInvalidWebhookSignatureException } from '../../auth/guards/guards.errors.js';
 import { Request } from 'express';
 import * as crypto from 'node:crypto';
 
@@ -56,8 +52,7 @@ export class WebhookSignatureGuard implements CanActivate {
     // Obtain the hash result as a hexadecimal string
     const sha = hmac.digest('hex');
 
-    if (sha !== hash)
-      throw new UnauthorizedException('Invalid webhook signature');
+    if (sha !== hash) throw new UnauthorizedInvalidWebhookSignatureException();
 
     return true;
   }

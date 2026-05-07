@@ -1,13 +1,9 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { AuthService } from '../auth.service.js';
 import type { AuthUser } from '@repo/shared';
+import { UnauthorizedMissingAuthTokenException } from '../auth.erros.js';
 
 interface RequestWithUser extends Request {
   user?: AuthUser;
@@ -26,9 +22,7 @@ export class AuthGuard implements CanActivate {
       this.configService.getOrThrow<string>('AUTH_COOKIE_NAME');
     const token = request.cookies?.[cookieName] as string | undefined;
 
-    if (!token) {
-      throw new UnauthorizedException('Missing auth token');
-    }
+    if (!token) throw new UnauthorizedMissingAuthTokenException();
 
     const user = await this.authService.getUserFromToken(token);
     request.user = user;

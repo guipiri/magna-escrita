@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
@@ -6,7 +6,14 @@ import { PrismaService } from '../db/db.service.js';
 import { UserRole } from '@repo/shared/dist/types/user.js';
 import { AuthResponse, AuthUser } from '@repo/shared';
 import { GoogleAuthDto } from './dto/google-auth.dto.js';
-import { UnauthorizedAccessToBackofficeException } from './auth.erros.js';
+import {
+  UnauthorizedAccessToBackofficeException,
+  UnauthorizedMissingGoogleAuthTokenException,
+  UnauthorizedInvalidGoogleTokenException,
+  UnauthorizedInvalidGoogleAuthCodeException,
+  UnauthorizedInvalidTokenException,
+  UnauthorizedUserNotFoundException,
+} from './auth.erros.js';
 
 interface JwtClaims {
   sub?: string;
@@ -51,7 +58,7 @@ export class AuthService {
 
     if (g.code) return await this.authenticateWithGoogleAuthCode(g.code);
 
-    throw new UnauthorizedException('Missing Google auth token');
+    throw new UnauthorizedMissingGoogleAuthTokenException();
   }
 
   async authenticateWithGoogleIdToken(idToken: string): Promise<AuthResponse> {
@@ -62,9 +69,8 @@ export class AuthService {
 
     const payload = ticket.getPayload();
 
-    if (!payload?.sub || !payload.email) {
-      throw new UnauthorizedException('Invalid Google token');
-    }
+    if (!payload?.sub || !payload.email)
+      throw new UnauthorizedInvalidGoogleTokenException();
 
     const { sub, email, name, picture } = payload;
 
@@ -99,13 +105,12 @@ export class AuthService {
         redirect_uri: this.googleRedirectUri,
       });
 
-      if (!tokens.id_token) {
-        throw new UnauthorizedException('Invalid Google auth code');
-      }
+      if (!tokens.id_token)
+        throw new UnauthorizedInvalidGoogleAuthCodeException();
 
       return await this.authenticateWithGoogleIdToken(tokens.id_token);
     } catch {
-      throw new UnauthorizedException('Invalid Google auth code');
+      throw new UnauthorizedInvalidGoogleAuthCodeException();
     }
   }
 
@@ -116,16 +121,16 @@ export class AuthService {
       const verified = jwt.verify(token, this.jwtSecret);
       decoded = typeof verified === 'string' ? {} : verified;
     } catch {
-      throw new UnauthorizedException('Invalid token');
+      throw new UnauthorizedInvalidTokenException();
     }
 
-    if (!decoded.sub) throw new UnauthorizedException('Invalid token');
+    if (!decoded.sub) throw new UnauthorizedInvalidTokenException();
 
     const user = await this.prismaService.user.findUnique({
       where: { googleId: decoded.sub },
     });
 
-    if (!user) throw new UnauthorizedException('User not found');
+    if (!user) throw new UnauthorizedUserNotFoundException();
 
     return {
       id: user.id,

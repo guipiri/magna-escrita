@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
+import { NotFoundBookException } from './books.errors.js';
 
 @Injectable()
 export class BooksService {
@@ -73,9 +74,7 @@ export class BooksService {
       },
     });
 
-    if (!book) {
-      throw new NotFoundException('Livro não encontrado');
-    }
+    if (!book) throw new NotFoundBookException();
 
     return {
       ...book,
