@@ -50,3 +50,12 @@ export class UnauthorizedUserNoAccessToUnitException extends UnauthorizedExcepti
     } satisfies HttpExceptionConstructor);
   }
 }
+
+export class BadRequestGradeNameAlreadyExistsException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.BAD_REQUEST_GRADE_NAME_ALREADY_EXISTS,
+      message: 'Já existe uma turma com esse nome nesta unidade',
+    } satisfies HttpExceptionConstructor);
+  }
+}

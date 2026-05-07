@@ -25,6 +25,8 @@ export const errorMessages: Record<ErrorKeys, string> = {
 
   UNAUTHORIZED_USER_NO_ACCESS_TO_UNIT:
     'Usuário não tem acesso à unidade selecionada.',
+  BAD_REQUEST_GRADE_NAME_ALREADY_EXISTS:
+    'Já existe uma turma com esse nome nesta unidade.',
 
   CREATE_PIX_ORDER_FAILED: 'Falha ao criar pedido PIX.',
   CREATE_CARD_ORDER_FAILED: 'Falha ao criar pedido com cartão de crédito.',

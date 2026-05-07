@@ -17,8 +17,6 @@ export function TurmasPage() {
     queryFn: getSchoolUnits,
   });
 
-  console.log({ schools });
-
   const createGradeMutation = useMutation({
     mutationFn: createGrade,
     onSuccess: (data) => {

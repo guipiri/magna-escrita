@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
 import { AuthUser, GetSchoolsResponse } from '@repo/shared';
 import { UserRole } from '@repo/shared/dist/types/user.js';
-import { UnauthorizedUserNoAccessToUnitException } from './schools.errors.js';
+import {
+  BadRequestGradeNameAlreadyExistsException,
+  UnauthorizedUserNoAccessToUnitException,
+} from './schools.errors.js';
 import { SchoolsMapper } from './schools.mapper.js';
 import { Prisma } from '@prisma/client';
 
@@ -43,7 +46,7 @@ export class SchoolsService {
     unitId?: string,
     schoolYear?: string,
   ) {
-    const unit = await this.prisma.userUnit.findMany({
+    const units = await this.prisma.userUnit.findMany({
       where: { userId: user.id, unitId },
       select: {
         id: true,
@@ -62,15 +65,21 @@ export class SchoolsService {
       },
     });
 
-    if (!unitId && unit.length > 1)
+    if (!unitId && units.length > 1)
       throw new Error(
         'User has access to multiple units, unitId must be provided',
       );
 
-    if (!unit[0] || unit.length === 0)
+    if (!units[0] || units.length === 0)
       throw new UnauthorizedUserNoAccessToUnitException();
 
-    const unitIdtoUse = unitId || unit[0].unit.id;
+    const unitIdtoUse = unitId || units[0].unit.id;
+
+    const gradeNameExists = await this.prisma.grade.findFirst({
+      where: { name, unitId: unitIdtoUse },
+    });
+
+    if (gradeNameExists) throw new BadRequestGradeNameAlreadyExistsException();
 
     const grade = await this.prisma.grade.create({
       data: {
@@ -104,8 +113,8 @@ export class SchoolsService {
     return {
       id: grade.id,
       name: grade.name,
-      school: { id: unit[0].unit.school.id, name: unit[0].unit.school.name },
-      unit: { id: unit[0].unit.id, name: unit[0].unit.name },
+      school: { id: units[0].unit.school.id, name: units[0].unit.school.name },
+      unit: { id: units[0].unit.id, name: units[0].unit.name },
       students: students.map((s) => ({ id: s.id, name: s.name })),
     };
   }
