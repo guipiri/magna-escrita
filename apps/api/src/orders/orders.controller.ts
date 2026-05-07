@@ -1,5 +1,5 @@
 import { Controller, Post, Body, UseGuards, Get, Param } from '@nestjs/common';
-import { PaymentService } from './payment.service.js';
+import { OrdersService } from './orders.service.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
 import { WebhookSignatureGuard } from './guards/webhook-signature.guard.js';
 import { AuthGuard } from '../auth/guards/auth.guard.js';
@@ -7,26 +7,26 @@ import { User } from '../auth/auth.decorator.js';
 import type { AuthUser } from '@repo/shared';
 
 @Controller('order')
-export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) {}
+export class OrdersController {
+  constructor(private readonly ordersService: OrdersService) {}
 
   @Post()
   @UseGuards(AuthGuard)
   async createOrder(@Body() body: CreateOrderDto, @User() user: AuthUser) {
-    return this.paymentService.createOrder(body, user.id);
+    return this.ordersService.createOrder(body, user.id);
   }
 
   @Get()
   @UseGuards(AuthGuard)
   async listOrders(@User() user: AuthUser) {
     console.log('Listando orders para usuário:', user.email);
-    return this.paymentService.listOrders(user.id);
+    return this.ordersService.listOrders(user.id);
   }
 
   @Get(':id')
   @UseGuards(AuthGuard)
   async getOrder(@Param('id') id: string, @User() user: AuthUser) {
-    return this.paymentService.getOrder(id, user.id);
+    return this.ordersService.getOrder(id, user.id);
   }
 
   @Post('webhook')
@@ -41,6 +41,6 @@ export class PaymentController {
       return { message: 'Invalid payload' };
     }
 
-    return this.paymentService.handleOrderWebhook(resourceId);
+    return this.ordersService.handleOrderWebhook(resourceId);
   }
 }

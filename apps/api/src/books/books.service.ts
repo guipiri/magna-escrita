@@ -31,11 +31,11 @@ export class BooksService {
 
     const booksById = new Map(books.map((book) => [book.id, book]));
 
-    return uniqueIds.flatMap((id) => {
+    const res = uniqueIds.map((id) => {
       const book = booksById.get(id);
 
       if (!book) {
-        return [];
+        throw new NotFoundBookException();
       }
 
       return {
@@ -43,6 +43,8 @@ export class BooksService {
         price: Number(book.price.amount),
       };
     });
+
+    return res;
   }
 
   async findByMagnificCode(magnificCode: string) {

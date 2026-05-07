@@ -1,12 +1,18 @@
-import { BadGatewayException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { MercadoPagoProvider } from './providers/mercado-pago.provider.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
 import { PrismaService } from '../db/db.service.js';
 import { OrderStatus } from '@prisma/client';
+import {
+  CreateCardOrderFailedException,
+  CreatePixOrderFailedException,
+  NotFoundOrderException,
+} from './orders.errors.js';
+import { NotFoundBookException } from '../books/books.errors.js';
 
 @Injectable()
-export class PaymentService {
+export class OrdersService {
   constructor(
     private readonly mercadoPagoProvider: MercadoPagoProvider,
     private readonly prisma: PrismaService,
@@ -97,13 +103,8 @@ export class PaymentService {
     } catch (error: any) {
       const providerMessage = (error as { errors?: { message?: string }[] })
         ?.errors?.[0]?.message;
-      const message = providerMessage || 'Falha ao criar pedido PIX';
 
-      throw new BadGatewayException({
-        code: 'MP_CREATE_ORDER_FAILED',
-        message,
-        details: providerMessage ? { providerMessage } : undefined,
-      });
+      throw new CreatePixOrderFailedException(providerMessage);
     }
   }
 
@@ -127,7 +128,7 @@ export class PaymentService {
     let total = 0;
     for (const it of data.items) {
       const book = books.find((b) => b.id === it.bookId);
-      if (!book) throw new Error(`Livro não encontrado: ${it.bookId}`);
+      if (!book) throw new NotFoundBookException();
       const unit = Number(book.price.amount);
       total += unit * it.quantity;
     }
@@ -194,8 +195,10 @@ export class PaymentService {
 
       return { order, mpOrder };
     } catch (error: any) {
-      console.error('Erro ao criar Order de Cartão:', error);
-      throw new Error(`Erro ao criar Order de Cartão: ${error}`);
+      const providerMessage = (error as { errors?: { message?: string }[] })
+        ?.errors?.[0]?.message;
+
+      throw new CreateCardOrderFailedException(providerMessage);
     }
   }
 
@@ -218,7 +221,7 @@ export class PaymentService {
       include: { items: { include: { book: true } } },
     });
 
-    if (!order) throw new Error('Pedido não encontrado');
+    if (!order) throw new NotFoundOrderException(orderId);
 
     try {
       const mpOrder = await this.mercadoPagoProvider.order.get({

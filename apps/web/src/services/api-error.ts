@@ -1,4 +1,4 @@
-import { ApiError } from '@repo/shared';
+import { ApiError, ErrorKeys } from '@repo/shared';
 import axios, { AxiosError } from 'axios';
 
 export const getApiError = (error: unknown): ApiError => {
@@ -9,7 +9,7 @@ export const getApiError = (error: unknown): ApiError => {
 
   return {
     statusCode: 0,
-    code: 'UNKNOWN_ERROR',
+    key: ErrorKeys.UNKNOWN_ERROR,
     message: 'Erro inesperado',
     timestamp: new Date().toISOString(),
     path: 'UNKNOWN_PATH',

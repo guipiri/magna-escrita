@@ -5,11 +5,11 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiError } from '@repo/shared';
+import { type ApiError, ErrorKeys } from '@repo/shared';
 import { Request, Response } from 'express';
 
 export interface HttpExceptionConstructor {
-  key: string;
+  key: ErrorKeys;
   message: string;
 }
 
@@ -27,7 +27,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const payload: ApiError = {
       statusCode: status,
-      key: isHttpException ? 'HTTP_ERROR' : 'INTERNAL_ERROR',
+      key: ErrorKeys.UNKNOWN_ERROR,
       message: 'Unexpected error',
       path: request.url,
       timestamp: new Date().toISOString(),

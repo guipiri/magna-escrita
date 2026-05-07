@@ -8,11 +8,10 @@ import { AuthResponse, AuthUser } from '@repo/shared';
 import { GoogleAuthDto } from './dto/google-auth.dto.js';
 import {
   UnauthorizedAccessToBackofficeException,
-  UnauthorizedMissingGoogleAuthTokenException,
-  UnauthorizedInvalidGoogleTokenException,
-  UnauthorizedInvalidGoogleAuthCodeException,
   UnauthorizedInvalidTokenException,
   UnauthorizedUserNotFoundException,
+  BadRequestMissingGoogleAuthTokenException,
+  UnauthorizedInvalidGoogleCredentialsException,
 } from './auth.erros.js';
 
 interface JwtClaims {
@@ -58,7 +57,7 @@ export class AuthService {
 
     if (g.code) return await this.authenticateWithGoogleAuthCode(g.code);
 
-    throw new UnauthorizedMissingGoogleAuthTokenException();
+    throw new BadRequestMissingGoogleAuthTokenException();
   }
 
   async authenticateWithGoogleIdToken(idToken: string): Promise<AuthResponse> {
@@ -70,7 +69,7 @@ export class AuthService {
     const payload = ticket.getPayload();
 
     if (!payload?.sub || !payload.email)
-      throw new UnauthorizedInvalidGoogleTokenException();
+      throw new UnauthorizedInvalidGoogleCredentialsException();
 
     const { sub, email, name, picture } = payload;
 
@@ -106,11 +105,11 @@ export class AuthService {
       });
 
       if (!tokens.id_token)
-        throw new UnauthorizedInvalidGoogleAuthCodeException();
+        throw new UnauthorizedInvalidGoogleCredentialsException();
 
       return await this.authenticateWithGoogleIdToken(tokens.id_token);
     } catch {
-      throw new UnauthorizedInvalidGoogleAuthCodeException();
+      throw new UnauthorizedInvalidGoogleCredentialsException();
     }
   }
 

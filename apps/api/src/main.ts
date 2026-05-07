@@ -1,8 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
+import { ApiValidationPipe } from './common/pipes/validation.pipe.js';
 import { AppModule } from './app.module.js';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
-import { ApiValidationPipe } from './common/pipes/validation.pipe.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
