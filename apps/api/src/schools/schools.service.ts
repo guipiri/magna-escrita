@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
-import { AuthUser, GetSchoolsResponse } from '@repo/shared';
+import { AuthUser, GetGradesResponse, GetSchoolsResponse } from '@repo/shared';
 import { UserRole } from '@repo/shared/dist/types/user.js';
 import {
   BadRequestGradeNameAlreadyExistsException,
@@ -12,6 +12,61 @@ import { Prisma } from '@prisma/client';
 @Injectable()
 export class SchoolsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getGrades(user: AuthUser): Promise<GetGradesResponse[]> {
+    const grades = await this.prisma.grade.findMany({
+      where:
+        user.role === UserRole.ADMIN
+          ? undefined
+          : {
+              units: {
+                userUnits: {
+                  some: { userId: user.id },
+                },
+              },
+            },
+      select: {
+        id: true,
+        name: true,
+        schoolYear: true,
+        createdAt: true,
+        units: {
+          select: {
+            id: true,
+            name: true,
+            school: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            enrollments: true,
+          },
+        },
+      },
+      orderBy: [{ createdAt: 'desc' }, { name: 'asc' }],
+    });
+
+    return grades.map((grade) => ({
+      id: grade.id,
+      name: grade.name,
+      schoolYear: grade.schoolYear as GetGradesResponse['schoolYear'],
+      school: {
+        id: grade.units.school.id,
+        name: grade.units.school.name,
+      },
+      unit: {
+        id: grade.units.id,
+        name: grade.units.name,
+      },
+      studentsCount: grade._count.enrollments,
+      createdAt: grade.createdAt.toISOString(),
+    }));
+  }
 
   async getSchoolUnits(user: AuthUser): Promise<GetSchoolsResponse[]> {
     console.log('Getting school units for user:', user);

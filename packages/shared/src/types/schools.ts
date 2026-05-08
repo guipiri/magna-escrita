@@ -24,6 +24,22 @@ export interface CreateGradeResponse {
   }>;
 }
 
+export interface GetGradesResponse {
+  id: string;
+  name: string;
+  schoolYear: SchoolYear;
+  school: {
+    id: string;
+    name: string;
+  };
+  unit: {
+    id: string;
+    name: string | null;
+  };
+  studentsCount: number;
+  createdAt: string;
+}
+
 export enum SchoolYear {
   YEAR_2026 = 'YEAR_2026',
   YEAR_2027 = 'YEAR_2027',

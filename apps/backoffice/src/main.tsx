@@ -9,22 +9,26 @@ import {
 import { createRoot } from 'react-dom/client';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import './style.css';
-import { HomePage } from './pages/HomePage';
-import { TurmasPage } from './pages/TurmasPage';
-import { LoginPage } from './pages/LoginPage';
+import { GradesPage } from './pages/classes';
+import { LoginPage } from './pages/login';
 import { QueryProvider } from './providers/query-provider';
 import { useAuth } from './hooks/auth-hook';
 import { JSX } from 'react';
-import { MainLayout } from './layouts/MainLayout';
+import { UserRole } from '@repo/shared';
+import { CreateGrade } from './pages/create-grade';
+import { MainLayout } from './components/layouts/main-layout';
+import Home from './pages/home';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
-const RequireAdmin = ({
+const RequireAuth = ({
   children,
-  redirectTo,
+  allowedRoles = [UserRole.ADMIN, UserRole.SCHOOL],
+  redirectTo = '/login',
 }: {
   children: JSX.Element;
-  redirectTo: To;
+  allowedRoles?: UserRole[];
+  redirectTo?: To;
 }) => {
   const { user, isLoading } = useAuth();
   const location = useLocation();
@@ -37,16 +41,13 @@ const RequireAdmin = ({
     );
   }
 
-  if (!user) {
+  if (!user)
     return <Navigate to={redirectTo} replace state={{ from: location }} />;
-  }
 
-  const allowed =
-    user.role && (user.role === 'ADMIN' || user.role === 'SCHOOL');
+  const allowed = user.role && allowedRoles.includes(user.role);
 
-  if (!allowed) {
+  if (!allowed)
     return <Navigate to={redirectTo} replace state={{ from: location }} />;
-  }
 
   return children;
 };
@@ -59,19 +60,20 @@ const AppRoutes = () => (
         <Route
           path='/'
           element={
-            <RequireAdmin redirectTo='/login'>
-              <HomePage />
-            </RequireAdmin>
+            <RequireAuth>
+              <Home />
+            </RequireAuth>
           }
         />
         <Route
           path='/turmas'
           element={
-            <RequireAdmin redirectTo='/login'>
-              <TurmasPage />
-            </RequireAdmin>
+            <RequireAuth>
+              <GradesPage />
+            </RequireAuth>
           }
         />
+        <Route path='criar-turma' element={<CreateGrade />} />
       </Route>
     </Routes>
   </BrowserRouter>

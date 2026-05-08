@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { createGrade, getSchoolUnits } from '../services/schools-service';
 import { getErrorMessage } from '../services/error-messages';
 
-export function TurmasPage() {
+export function CreateGrade() {
   const [name, setName] = useState('');
   const [unitId, setUnitId] = useState<string>();
   const [studentsText, setStudentsText] = useState('');

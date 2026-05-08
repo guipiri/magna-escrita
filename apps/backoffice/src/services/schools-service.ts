@@ -1,5 +1,6 @@
 import { api } from './api';
 import {
+  GetGradesResponse,
   GetSchoolsResponse,
   CreateGradeRequest,
   CreateGradeResponse,
@@ -7,6 +8,11 @@ import {
 
 export const getSchoolUnits = async (): Promise<GetSchoolsResponse[]> => {
   const response = await api.get<GetSchoolsResponse[]>('/units');
+  return response.data;
+};
+
+export const getGrades = async (): Promise<GetGradesResponse[]> => {
+  const response = await api.get<GetGradesResponse[]>('/grades');
   return response.data;
 };
 

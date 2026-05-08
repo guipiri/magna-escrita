@@ -10,6 +10,12 @@ import type { AuthUser } from '@repo/shared';
 export class SchoolsController {
   constructor(private readonly schoolsService: SchoolsService) {}
 
+  @Get('grades')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  findGrades(@User() user: AuthUser) {
+    return this.schoolsService.getGrades(user);
+  }
+
   @Get('units')
   @UseGuards(AuthGuard, BackofficeGuard)
   findSchools(@User() user: AuthUser) {
