@@ -2,15 +2,8 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getClasses } from '../services/schools-service';
 import { ClassesTable, ClassData } from '../components/classes/classes-table';
-import { Button } from '../components/ui/button';
-import { CreateClass } from './create-class';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '../components/ui/dialog';
+import { CreateClassDialog } from '../components/classes/create-class-dialog';
+import { CreateClassButton } from '../components/classes/create-class-button';
 
 export function GradesPage() {
   const [search, setSearch] = useState('');
@@ -87,9 +80,9 @@ export function GradesPage() {
   }
 
   return (
-    <main className='px-4 py-10 md:px-8'>
-      <div className='mx-auto max-w-6xl space-y-6'>
-        <div className='flex justify-between items-center'>
+    <main className='px-4 py-10 md:px-8 '>
+      <div className='mx-auto max-w-6xl space-y-6 mb-4'>
+        <div className='flex justify-between items-center flex-wrap gap-4'>
           <div>
             <h1 className='text-2xl font-bold'>Turmas</h1>
             <p className='text-sm text-slate-500'>
@@ -108,28 +101,18 @@ export function GradesPage() {
               />
             </div>
           </div>
-          <Dialog
-            open={createClassModalOpen}
-            onOpenChange={setCreateClassModalOpen}
-          >
-            <DialogTrigger asChild>
-              <Button onClick={() => setCreateClassModalOpen(true)}>
-                Adicionar Turma
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader className='flex flex-row items-center'>
-                <DialogTitle>Criar Turma</DialogTitle>
-              </DialogHeader>
-              <CreateClass onClose={() => setCreateClassModalOpen(false)} />
-            </DialogContent>
-          </Dialog>
+          <CreateClassButton onClick={() => setCreateClassModalOpen(true)} />
         </div>
       </div>
 
       <ClassesTable
         classes={filteredClasses}
         onAddClass={() => setCreateClassModalOpen(true)}
+      />
+
+      <CreateClassDialog
+        onClose={() => setCreateClassModalOpen(false)}
+        isOpen={createClassModalOpen}
       />
     </main>
   );
