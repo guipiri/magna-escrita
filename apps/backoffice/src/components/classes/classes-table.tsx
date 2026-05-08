@@ -41,6 +41,7 @@ interface ClassesTableProps {
   onView?: (classId: string) => void;
   onEdit?: (classId: string) => void;
   onDelete?: (classId: string) => void;
+  onAddClass?: () => void;
 }
 
 const statusConfig = {
@@ -54,13 +55,15 @@ export function ClassesTable({
   onView,
   onEdit,
   onDelete,
+  onAddClass,
 }: ClassesTableProps) {
   const getProgressPercentage = (classData: ClassData) => {
     if (classData.bookCount === 0) return 0;
     return Math.round((classData.booksCompleted / classData.bookCount) * 100);
   };
 
-  if (classes.length === 0) return <ClassesEmptyState />;
+  if (classes.length === 0)
+    return <ClassesEmptyState onAddClass={onAddClass} />;
 
   return (
     <div className='rounded-md border border-border bg-card overflow-hidden shadow-sm'>
@@ -68,9 +71,7 @@ export function ClassesTable({
         <TableHeader>
           <TableRow className='bg-muted/50 hover:bg-muted/50'>
             <TableHead className='font-semibold'>Turma</TableHead>
-            <TableHead className='font-semibold'>Série</TableHead>
-            <TableHead className='font-semibold'>Turno</TableHead>
-            <TableHead className='font-semibold'>Professor(a)</TableHead>
+            <TableHead className='font-semibold'>Local</TableHead>
             <TableHead className='font-semibold text-center'>Alunos</TableHead>
             <TableHead className='font-semibold text-center'>Livros</TableHead>
             <TableHead className='font-semibold text-center'>

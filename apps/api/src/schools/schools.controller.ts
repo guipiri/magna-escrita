@@ -13,7 +13,7 @@ export class SchoolsController {
   @Get('grades')
   @UseGuards(AuthGuard, BackofficeGuard)
   findGrades(@User() user: AuthUser) {
-    return this.schoolsService.getGrades(user);
+    return this.schoolsService.getClasses(user);
   }
 
   @Get('units')

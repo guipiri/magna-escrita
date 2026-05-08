@@ -1,9 +1,10 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
-import { createGrade, getSchoolUnits } from '../services/schools-service';
+import { createClass, getSchoolUnits } from '../services/schools-service';
 import { getErrorMessage } from '../services/error-messages';
+import { Button } from '../components/ui/button';
 
-export function CreateGrade() {
+export function CreateClass({ onClose }: { onClose?: () => void }) {
   const [name, setName] = useState('');
   const [unitId, setUnitId] = useState<string>();
   const [studentsText, setStudentsText] = useState('');
@@ -17,12 +18,13 @@ export function CreateGrade() {
     queryFn: getSchoolUnits,
   });
 
-  const createGradeMutation = useMutation({
-    mutationFn: createGrade,
+  const createClassMutation = useMutation({
+    mutationFn: createClass,
     onSuccess: (data) => {
       setCreatedGrade({ name: data.name, students: data.students.length });
       setName('');
       setStudentsText('');
+      if (onClose) onClose();
     },
     onError: () => setCreatedGrade(null),
   });
@@ -34,7 +36,7 @@ export function CreateGrade() {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    createGradeMutation.mutate({ name, students, unitId });
+    createClassMutation.mutate({ name, students, unitId });
   };
 
   const units = schools?.flatMap((school) =>
@@ -62,8 +64,6 @@ export function CreateGrade() {
 
   return (
     <div className='max-w-lg mx-auto'>
-      <h2 className='text-2xl font-semibold mb-6'>Criar Turma</h2>
-
       {createdGrade && (
         <div className='mb-6 p-4 bg-green-100 text-green-800 rounded'>
           Turma "{createdGrade.name}" criada com {createdGrade.students}{' '}
@@ -77,9 +77,9 @@ export function CreateGrade() {
         </div>
       )}
 
-      {createGradeMutation.isError && (
+      {createClassMutation.isError && (
         <div className='mb-6 p-4 bg-red-100 text-red-700 rounded'>
-          {getErrorMessage(createGradeMutation.error) ||
+          {getErrorMessage(createClassMutation.error) ||
             'Erro ao criar turma. Tente novamente.'}
         </div>
       )}
@@ -131,13 +131,9 @@ export function CreateGrade() {
           />
         </div>
 
-        <button
-          type='submit'
-          disabled={createGradeMutation.isPending}
-          className='w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50 hover:cursor-pointer transition-colors'
-        >
-          {createGradeMutation.isPending ? 'Criando...' : 'Criar Turma'}
-        </button>
+        <Button type='submit' disabled={createClassMutation.isPending}>
+          {createClassMutation.isPending ? 'Criando...' : 'Criar Turma'}
+        </Button>
       </form>
     </div>
   );

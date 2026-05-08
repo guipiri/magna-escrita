@@ -7,13 +7,13 @@ export interface GetSchoolsResponse {
   }>;
 }
 
-export interface CreateGradeRequest {
+export interface CreateClassRequest {
   name: string;
   unitId?: string;
   students: string[];
 }
 
-export interface CreateGradeResponse {
+export interface CreateClassResponse {
   id: string;
   name: string;
   schoolId: string;
@@ -24,7 +24,7 @@ export interface CreateGradeResponse {
   }>;
 }
 
-export interface GetGradesResponse {
+export interface GetClassesResponse {
   id: string;
   name: string;
   schoolYear: SchoolYear;
@@ -37,6 +37,14 @@ export interface GetGradesResponse {
     name: string | null;
   };
   studentsCount: number;
+  bookCount: {
+    total: number;
+    draft: number;
+    forReview: number;
+    ready: number;
+    archived: number;
+    completed: number; // READY for ADMIN, FOR_REVIEW for SCHOOL
+  };
   createdAt: string;
 }
 

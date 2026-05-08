@@ -15,7 +15,7 @@ import { QueryProvider } from './providers/query-provider';
 import { useAuth } from './hooks/auth-hook';
 import { JSX } from 'react';
 import { UserRole } from '@repo/shared';
-import { CreateGrade } from './pages/create-grade';
+import { CreateClass } from './pages/create-class';
 import { MainLayout } from './components/layouts/main-layout';
 import Home from './pages/home';
 
@@ -73,7 +73,7 @@ const AppRoutes = () => (
             </RequireAuth>
           }
         />
-        <Route path='criar-turma' element={<CreateGrade />} />
+        <Route path='criar-turma' element={<CreateClass />} />
       </Route>
     </Routes>
   </BrowserRouter>

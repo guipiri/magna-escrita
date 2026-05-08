@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
-import { AuthUser, GetGradesResponse, GetSchoolsResponse } from '@repo/shared';
+import { AuthUser, GetClassesResponse, GetSchoolsResponse } from '@repo/shared';
 import { UserRole } from '@repo/shared/dist/types/user.js';
 import {
   BadRequestGradeNameAlreadyExistsException,
@@ -13,8 +13,8 @@ import { Prisma } from '@prisma/client';
 export class SchoolsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getGrades(user: AuthUser): Promise<GetGradesResponse[]> {
-    const grades = await this.prisma.grade.findMany({
+  async getClasses(user: AuthUser): Promise<GetClassesResponse[]> {
+    const classes = await this.prisma.class.findMany({
       where:
         user.role === UserRole.ADMIN
           ? undefined
@@ -42,6 +42,20 @@ export class SchoolsService {
             },
           },
         },
+        enrollments: {
+          select: {
+            bookEnrollments: {
+              select: {
+                book: {
+                  select: {
+                    id: true,
+                    status: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         _count: {
           select: {
             enrollments: true,
@@ -51,21 +65,70 @@ export class SchoolsService {
       orderBy: [{ createdAt: 'desc' }, { name: 'asc' }],
     });
 
-    return grades.map((grade) => ({
-      id: grade.id,
-      name: grade.name,
-      schoolYear: grade.schoolYear as GetGradesResponse['schoolYear'],
-      school: {
-        id: grade.units.school.id,
-        name: grade.units.school.name,
-      },
-      unit: {
-        id: grade.units.id,
-        name: grade.units.name,
-      },
-      studentsCount: grade._count.enrollments,
-      createdAt: grade.createdAt.toISOString(),
-    }));
+    const response: GetClassesResponse[] = classes.map((grade) => {
+      const bookStatusCount = {
+        total: 0,
+        draft: 0,
+        forReview: 0,
+        ready: 0,
+        archived: 0,
+        completed: 0,
+      };
+
+      // Count unique books by status
+      const uniqueBooksByStatus = new Map<string, Set<string>>();
+      grade.enrollments.forEach((enrollment) => {
+        enrollment.bookEnrollments.forEach((bookEnrollment) => {
+          const bookId = bookEnrollment.book.id;
+          const bookStatus = bookEnrollment.book.status;
+
+          if (!uniqueBooksByStatus.has(bookStatus)) {
+            uniqueBooksByStatus.set(bookStatus, new Set<string>());
+          }
+          uniqueBooksByStatus.get(bookStatus)!.add(bookId);
+        });
+      });
+
+      // Count total unique books and books per status
+      const allUniqueBookIds = new Set<string>();
+      uniqueBooksByStatus.forEach((bookIds, status) => {
+        const count = bookIds.size;
+        bookIds.forEach((id) => allUniqueBookIds.add(id));
+
+        if (status === 'DRAFT') bookStatusCount.draft = count;
+        else if (status === 'FOR_REVIEW') bookStatusCount.forReview = count;
+        else if (status === 'READY') bookStatusCount.ready = count;
+        else if (status === 'ARCHIVED') bookStatusCount.archived = count;
+      });
+
+      bookStatusCount.total = allUniqueBookIds.size;
+
+      // Set completed count based on user role
+      if (user.role === UserRole.ADMIN) {
+        bookStatusCount.completed = bookStatusCount.ready;
+      } else {
+        bookStatusCount.completed = bookStatusCount.forReview;
+      }
+
+      return {
+        id: grade.id,
+        name: grade.name,
+        schoolYear: grade.schoolYear as GetClassesResponse['schoolYear'],
+        school: {
+          id: grade.units.school.id,
+          name: grade.units.school.name,
+        },
+        unit: {
+          id: grade.units.id,
+          name: grade.units.name,
+        },
+        studentsCount: grade._count.enrollments,
+        bookCount: bookStatusCount,
+        createdAt: grade.createdAt.toISOString(),
+      };
+    });
+
+    return response;
   }
 
   async getSchoolUnits(user: AuthUser): Promise<GetSchoolsResponse[]> {
@@ -130,13 +193,13 @@ export class SchoolsService {
 
     const unitIdtoUse = unitId || units[0].unit.id;
 
-    const gradeNameExists = await this.prisma.grade.findFirst({
+    const gradeNameExists = await this.prisma.class.findFirst({
       where: { name, unitId: unitIdtoUse },
     });
 
     if (gradeNameExists) throw new BadRequestGradeNameAlreadyExistsException();
 
-    const grade = await this.prisma.grade.create({
+    const createdClass = await this.prisma.class.create({
       data: {
         name,
         unitId: unitIdtoUse,
@@ -159,15 +222,15 @@ export class SchoolsService {
     const enrollmentData: Prisma.EnrollmentCreateManyInput[] = students.map(
       (s) => ({
         studentId: s.id,
-        gradeId: grade.id,
+        classId: createdClass.id,
       }),
     );
 
     await this.prisma.enrollment.createMany({ data: enrollmentData });
 
     return {
-      id: grade.id,
-      name: grade.name,
+      id: createdClass.id,
+      name: createdClass.name,
       school: { id: units[0].unit.school.id, name: units[0].unit.school.name },
       unit: { id: units[0].unit.id, name: units[0].unit.name },
       students: students.map((s) => ({ id: s.id, name: s.name })),

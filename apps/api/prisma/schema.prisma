@@ -53,6 +53,13 @@ model Price {
   updatedAt DateTime @updatedAt
 }
 
+enum BookStatus {
+  DRAFT
+  FOR_REVIEW
+  READY // READY FOR SALE AND PRINT
+  ARCHIVED // NOT FOR SALE
+}
+
 model Book {
   id              String           @id @default(cuid())
   magnificCode    String           @unique
@@ -64,6 +71,8 @@ model Book {
   price           Price            @relation(fields: [priceId], references: [id])
   bookEnrollments BookEnrollment[]
   orderItems      OrderItem[]
+
+  status BookStatus @default(DRAFT)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -133,8 +142,8 @@ model Enrollment {
   studentId       String
   student         Student          @relation(fields: [studentId], references: [id])
   bookEnrollments BookEnrollment[]
-  gradeId         String
-  grade           Grade            @relation(fields: [gradeId], references: [id])
+  classId         String
+  class           Class            @relation(fields: [classId], references: [id])
   age             Int?
 
   createdAt DateTime @default(now())
@@ -159,7 +168,7 @@ enum SchoolYear {
   YEAR_2027 @map("2027")
 }
 
-model Grade {
+model Class {
   id          String       @id @default(cuid())
   name        String
   units       Unit         @relation(fields: [unitId], references: [id])
@@ -203,7 +212,7 @@ model Unit {
   logoUrl           String?
   schoolId          String
   school            School             @relation(fields: [schoolId], references: [id])
-  grades            Grade[]
+  classes           Class[]
   authographsEvents AuthographsEvent[]
   userUnits         UserUnit[]
 

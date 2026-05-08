@@ -1,70 +1,136 @@
-import { ClassesTable } from '../components/grades/classes-table';
-
-// const schoolYearLabels: Record<SchoolYear, string> = {
-//   [SchoolYear.YEAR_2026]: '2026',
-//   [SchoolYear.YEAR_2027]: '2027',
-// };
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { getClasses } from '../services/schools-service';
+import { ClassesTable, ClassData } from '../components/classes/classes-table';
+import { Button } from '../components/ui/button';
+import { CreateClass } from './create-class';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../components/ui/dialog';
 
 export function GradesPage() {
-  // const [search, setSearch] = useState('');
+  const [search, setSearch] = useState('');
+  const [createClassModalOpen, setCreateClassModalOpen] = useState(false);
 
-  // const {
-  //   data: grades,
-  //   isLoading,
-  //   isFetching,
-  //   error,
-  //   refetch,
-  // } = useQuery({
-  //   queryKey: ['grades'],
-  //   queryFn: getGrades,
-  // });
+  const {
+    data: classes,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['classes'],
+    queryFn: getClasses,
+  });
 
-  // const filteredGrades = useMemo(() => {
-  //   const normalizedSearch = search.trim().toLowerCase();
+  const classesData: ClassData[] = useMemo(() => {
+    if (!classes) return [];
 
-  //   if (!normalizedSearch) {
-  //     return grades ?? [];
-  //   }
+    return classes.map((grade) => ({
+      id: grade.id,
+      name: grade.name,
+      teacher: grade.unit.name || 'N/A',
+      studentCount: grade.studentsCount,
+      bookCount: grade.bookCount.total,
+      booksCompleted: grade.bookCount.completed,
+      status: (grade.bookCount.completed === grade.bookCount.total &&
+      grade.bookCount.total > 0
+        ? 'completed'
+        : grade.bookCount.completed > 0
+          ? 'in-progress'
+          : 'active') as 'active' | 'in-progress' | 'completed',
+      school: grade.school.name,
+    }));
+  }, [classes]);
 
-  //   return (grades ?? []).filter((grade) => {
-  //     const haystack = [
-  //       grade.name,
-  //       grade.school.name,
-  //       grade.unit.name ?? '',
-  //       schoolYearLabels[grade.schoolYear],
-  //     ]
-  //       .join(' ')
-  //       .toLowerCase();
+  const filteredClasses = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
 
-  //     return haystack.includes(normalizedSearch);
-  //   });
-  // }, [grades, search]);
+    if (!normalizedSearch) {
+      return classesData;
+    }
 
-  // const totalStudents =
-  //   grades?.reduce((sum, grade) => sum + grade.studentsCount, 0) ?? 0;
-  // const schoolsCount = new Set(grades?.map((grade) => grade.school.id) ?? [])
-  //   .size;
+    return classesData.filter((classItem) => {
+      const haystack = [classItem.name, classItem.school, classItem.teacher]
+        .join(' ')
+        .toLowerCase();
 
-  // const formatDate = (date: string) =>
-  //   new Intl.DateTimeFormat('pt-BR', {
-  //     day: '2-digit',
-  //     month: 'short',
-  //     year: 'numeric',
-  //   }).format(new Date(date));
+      return haystack.includes(normalizedSearch);
+    });
+  }, [classesData, search]);
 
-  // if (isLoading) {
-  //   return (
-  //     <main className='px-4 py-10 md:px-8'>
-  //       <div className='mx-auto max-w-6xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm'>
-  //         <p className='text-sm text-slate-500'>Carregando turmas...</p>
-  //       </div>
-  //     </main>
-  //   );
-  // }
+  const totalStudents = classesData.reduce((sum, c) => sum + c.studentCount, 0);
+  const schoolsCount = new Set(classesData.map((c) => c.school)).size;
+
+  if (isLoading) {
+    return (
+      <main className='px-4 py-10 md:px-8'>
+        <div className='mx-auto max-w-6xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm'>
+          <p className='text-sm text-slate-500'>Carregando turmas...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className='px-4 py-10 md:px-8'>
+        <div className='mx-auto max-w-6xl rounded-3xl border border-red-200 bg-red-50 p-6 shadow-sm'>
+          <p className='text-sm text-red-600'>
+            Erro ao carregar turmas. Tente novamente.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className='px-4 py-10 md:px-8'>
-      <ClassesTable classes={[]} />
+      <div className='mx-auto max-w-6xl space-y-6'>
+        <div className='flex justify-between items-center'>
+          <div>
+            <h1 className='text-2xl font-bold'>Turmas</h1>
+            <p className='text-sm text-slate-500'>
+              {classesData.length} turmas • {totalStudents} alunos •{' '}
+              {schoolsCount} escolas
+            </p>
+          </div>
+          <div className='flex items-center gap-3'>
+            <div className='relative'>
+              <input
+                type='text'
+                placeholder='Buscar turmas...'
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className='px-4 py-2 rounded-lg border border-slate-200 text-sm'
+              />
+            </div>
+          </div>
+          <Dialog
+            open={createClassModalOpen}
+            onOpenChange={setCreateClassModalOpen}
+          >
+            <DialogTrigger asChild>
+              <Button onClick={() => setCreateClassModalOpen(true)}>
+                Adicionar Turma
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader className='flex flex-row items-center'>
+                <DialogTitle>Criar Turma</DialogTitle>
+              </DialogHeader>
+              <CreateClass onClose={() => setCreateClassModalOpen(false)} />
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      <ClassesTable
+        classes={filteredClasses}
+        onAddClass={() => setCreateClassModalOpen(true)}
+      />
     </main>
   );
 }
