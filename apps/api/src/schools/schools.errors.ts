@@ -51,6 +51,15 @@ export class UnauthorizedUserNoAccessToUnitException extends UnauthorizedExcepti
   }
 }
 
+export class NotFoundClassException extends NotFoundException {
+  constructor() {
+    super({
+      key: ErrorKeys.NOT_FOUND_GRADE,
+      message: 'Turma não encontrada',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
 export class BadRequestGradeNameAlreadyExistsException extends BadRequestException {
   constructor() {
     super({

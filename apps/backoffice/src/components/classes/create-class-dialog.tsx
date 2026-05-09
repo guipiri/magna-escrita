@@ -73,7 +73,7 @@ export function CreateClassDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader className='flex flex-row items-center'>
           <DialogTitle>Criar Turma</DialogTitle>
         </DialogHeader>

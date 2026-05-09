@@ -9,7 +9,7 @@ import {
 import { createRoot } from 'react-dom/client';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import './style.css';
-import { GradesPage } from './pages/classes';
+import { ClassesPage } from './pages/classes';
 import { LoginPage } from './pages/login';
 import { QueryProvider } from './providers/query-provider';
 import { useAuth } from './hooks/auth-hook';
@@ -68,7 +68,7 @@ const AppRoutes = () => (
           path='/turmas'
           element={
             <RequireAuth>
-              <GradesPage />
+              <ClassesPage />
             </RequireAuth>
           }
         />
@@ -84,9 +84,7 @@ const App = () => {
     </QueryProvider>
   );
 
-  if (!GOOGLE_CLIENT_ID) {
-    return content;
-  }
+  if (!GOOGLE_CLIENT_ID) return content;
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>

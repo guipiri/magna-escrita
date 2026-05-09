@@ -1,9 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
-import { AuthUser, GetClassesResponse, GetSchoolsResponse } from '@repo/shared';
+import {
+  AuthUser,
+  GetClassesResponse,
+  GetSchoolsResponse,
+  ClassStudentResponse,
+  UpdateClassStudentItem,
+} from '@repo/shared';
 import { UserRole } from '@repo/shared/dist/types/user.js';
 import {
   BadRequestGradeNameAlreadyExistsException,
+  NotFoundClassException,
   UnauthorizedUserNoAccessToUnitException,
 } from './schools.errors.js';
 import { SchoolsMapper } from './schools.mapper.js';
@@ -132,7 +139,6 @@ export class SchoolsService {
   }
 
   async getSchoolUnits(user: AuthUser): Promise<GetSchoolsResponse[]> {
-    console.log('Getting school units for user:', user);
     if (user.role === UserRole.ADMIN) {
       return this.prisma.school.findMany({
         select: {
@@ -157,7 +163,7 @@ export class SchoolsService {
     return schools;
   }
 
-  async createGrade(
+  async createClass(
     name: string,
     studentNames: string[],
     user: AuthUser,
@@ -235,5 +241,178 @@ export class SchoolsService {
       unit: { id: units[0].unit.id, name: units[0].unit.name },
       students: students.map((s) => ({ id: s.id, name: s.name })),
     };
+  }
+
+  async updateClass(id: string, name: string, user: AuthUser) {
+    const existingClass = await this.prisma.class.findUnique({
+      where: { id },
+      include: { units: true },
+    });
+
+    if (!existingClass) throw new NotFoundClassException();
+
+    if (user.role !== UserRole.ADMIN) {
+      const access = await this.prisma.userUnit.findFirst({
+        where: { userId: user.id, unitId: existingClass.unitId },
+      });
+      if (!access) throw new UnauthorizedUserNoAccessToUnitException();
+    }
+
+    const gradeNameExists = await this.prisma.class.findFirst({
+      where: {
+        name,
+        unitId: existingClass.unitId,
+        id: { not: id },
+      },
+    });
+
+    if (gradeNameExists) throw new BadRequestGradeNameAlreadyExistsException();
+
+    const updated = await this.prisma.class.update({
+      where: { id },
+      data: { name },
+      select: { id: true, name: true },
+    });
+
+    return updated;
+  }
+
+  async deleteClass(id: string, user: AuthUser) {
+    const existingClass = await this.prisma.class.findUnique({
+      where: { id },
+      include: { units: true },
+    });
+
+    if (!existingClass) throw new NotFoundClassException();
+
+    if (user.role !== UserRole.ADMIN) {
+      const access = await this.prisma.userUnit.findFirst({
+        where: { userId: user.id, unitId: existingClass.unitId },
+      });
+      if (!access) throw new UnauthorizedUserNoAccessToUnitException();
+    }
+
+    await this.prisma.enrollment.deleteMany({ where: { classId: id } });
+    await this.prisma.class.delete({ where: { id } });
+  }
+
+  async getClassStudents(
+    classId: string,
+    user: AuthUser,
+  ): Promise<ClassStudentResponse[]> {
+    const classRecord = await this.prisma.class.findUnique({
+      where: { id: classId },
+      include: { units: true },
+    });
+
+    if (!classRecord) throw new NotFoundClassException();
+
+    if (user.role !== UserRole.ADMIN) {
+      const access = await this.prisma.userUnit.findFirst({
+        where: { userId: user.id, unitId: classRecord.unitId },
+      });
+      if (!access) throw new UnauthorizedUserNoAccessToUnitException();
+    }
+
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { classId },
+      select: {
+        id: true,
+        student: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: { student: { name: 'asc' } },
+    });
+
+    return enrollments.map((enrollment) => ({
+      id: enrollment.student.id,
+      name: enrollment.student.name,
+      enrollmentId: enrollment.id,
+    }));
+  }
+
+  async updateClassStudents(
+    classId: string,
+    students: UpdateClassStudentItem[],
+    user: AuthUser,
+  ) {
+    const classRecord = await this.prisma.class.findUnique({
+      where: { id: classId },
+      include: { units: true },
+    });
+
+    if (!classRecord) throw new NotFoundClassException();
+
+    if (user.role !== UserRole.ADMIN) {
+      const access = await this.prisma.userUnit.findFirst({
+        where: { userId: user.id, unitId: classRecord.unitId },
+      });
+      if (!access) throw new UnauthorizedUserNoAccessToUnitException();
+    }
+
+    const currentEnrollments = await this.prisma.enrollment.findMany({
+      where: { classId },
+      select: { id: true, studentId: true },
+    });
+
+    const currentStudentIds = new Set(
+      currentEnrollments.map((e) => e.studentId),
+    );
+    const newStudentIds = new Set(
+      students.filter((s) => s.id).map((s) => s.id as string),
+    );
+
+    // const enrollmentMap = new Map(
+    //   currentEnrollments.map((e) => [e.studentId, e.id]),
+    // );
+
+    const toDelete = currentEnrollments.filter(
+      (e) => !newStudentIds.has(e.studentId),
+    );
+
+    if (toDelete.length > 0) {
+      await this.prisma.bookEnrollment.deleteMany({
+        where: { enrollmentId: { in: toDelete.map((e) => e.id) } },
+      });
+      await this.prisma.enrollment.deleteMany({
+        where: { id: { in: toDelete.map((e) => e.id) } },
+      });
+    }
+
+    const toCreate: Array<{ name: string }> = [];
+    const toUpdate: Array<{ studentId: string; name: string }> = [];
+
+    for (const student of students) {
+      if (student.id && currentStudentIds.has(student.id as string)) {
+        toUpdate.push({ studentId: student.id, name: student.name });
+      } else if (!student.id) {
+        toCreate.push({ name: student.name });
+      }
+    }
+
+    for (const item of toUpdate) {
+      await this.prisma.student.updateMany({
+        where: { id: item.studentId },
+        data: { name: item.name },
+      });
+    }
+
+    if (toCreate.length > 0) {
+      const createdStudents = await Promise.all(
+        toCreate.map((item) =>
+          this.prisma.student.create({ data: { name: item.name.trim() } }),
+        ),
+      );
+
+      await this.prisma.enrollment.createMany({
+        data: createdStudents.map((s) => ({
+          studentId: s.id,
+          classId,
+        })),
+      });
+    }
+
+    return this.getClassStudents(classId, user);
   }
 }

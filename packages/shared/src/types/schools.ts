@@ -7,6 +7,10 @@ export interface GetSchoolsResponse {
   }>;
 }
 
+export interface UpdateClassRequest {
+  name: string;
+}
+
 export interface CreateClassRequest {
   name: string;
   unitId?: string;
@@ -46,6 +50,21 @@ export interface GetClassesResponse {
     completed: number; // READY for ADMIN, FOR_REVIEW for SCHOOL
   };
   createdAt: string;
+}
+
+export interface ClassStudentResponse {
+  id: string;
+  name: string;
+  enrollmentId: string;
+}
+
+export interface UpdateClassStudentItem {
+  id?: string;
+  name: string;
+}
+
+export interface UpdateClassStudentsRequest {
+  students: UpdateClassStudentItem[];
 }
 
 export enum SchoolYear {
