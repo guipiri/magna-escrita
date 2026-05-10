@@ -10,7 +10,7 @@ export class NotFoundSchoolException extends NotFoundException {
   constructor() {
     super({
       key: ErrorKeys.NOT_FOUND_SCHOOL,
-      message: 'Escola não encontrada',
+      message: 'School not found',
     } satisfies HttpExceptionConstructor);
   }
 }
@@ -19,7 +19,7 @@ export class NotFoundUnitException extends NotFoundException {
   constructor() {
     super({
       key: ErrorKeys.NOT_FOUND_UNIT,
-      message: 'Unidade não encontrada',
+      message: 'Unit not found',
     } satisfies HttpExceptionConstructor);
   }
 }
@@ -28,7 +28,7 @@ export class BadRequestTurmaNameException extends BadRequestException {
   constructor() {
     super({
       key: ErrorKeys.BAD_REQUEST_GRADE_NAME,
-      message: 'Nome da turma é obrigatório',
+      message: 'Grade name is required',
     } satisfies HttpExceptionConstructor);
   }
 }
@@ -37,7 +37,7 @@ export class BadRequestStudentsException extends BadRequestException {
   constructor() {
     super({
       key: ErrorKeys.BAD_REQUEST_STUDENTS,
-      message: 'Adicione pelo menos um aluno',
+      message: 'Add at least one student',
     } satisfies HttpExceptionConstructor);
   }
 }
@@ -46,7 +46,7 @@ export class UnauthorizedUserNoAccessToUnitException extends UnauthorizedExcepti
   constructor() {
     super({
       key: ErrorKeys.UNAUTHORIZED_USER_NO_ACCESS_TO_UNIT,
-      message: 'Usuário não tem acesso à unidade especificada',
+      message: 'User does not have access to the specified unit',
     } satisfies HttpExceptionConstructor);
   }
 }
@@ -55,7 +55,7 @@ export class NotFoundClassException extends NotFoundException {
   constructor() {
     super({
       key: ErrorKeys.NOT_FOUND_GRADE,
-      message: 'Turma não encontrada',
+      message: 'Class not found',
     } satisfies HttpExceptionConstructor);
   }
 }
@@ -64,7 +64,26 @@ export class BadRequestGradeNameAlreadyExistsException extends BadRequestExcepti
   constructor() {
     super({
       key: ErrorKeys.BAD_REQUEST_GRADE_NAME_ALREADY_EXISTS,
-      message: 'Já existe uma turma com esse nome nesta unidade',
+      message: 'A class with that name already exists in this unit',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class BadRequestMultipleUnitsAccessException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.BAD_REQUEST_MULTIPLE_UNITS_ACCESS,
+      message: 'User has access to multiple units, unitId must be provided',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class BadRequestNoValidUnitIdException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.BAD_REQUEST_NO_VALID_UNIT_ID,
+      message:
+        'No valid unitId provided and user does not have access to any units',
     } satisfies HttpExceptionConstructor);
   }
 }

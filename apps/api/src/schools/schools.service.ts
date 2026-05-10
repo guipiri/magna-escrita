@@ -11,6 +11,8 @@ import {
 import { UserRole } from '@repo/shared/dist/types/user.js';
 import {
   BadRequestGradeNameAlreadyExistsException,
+  BadRequestMultipleUnitsAccessException,
+  BadRequestNoValidUnitIdException,
   NotFoundClassException,
   UnauthorizedUserNoAccessToUnitException,
 } from './schools.errors.js';
@@ -300,14 +302,18 @@ export class SchoolsService {
     });
 
     if (!unitId && units.length > 1)
-      throw new Error(
-        'User has access to multiple units, unitId must be provided',
-      );
+      throw new BadRequestMultipleUnitsAccessException();
 
-    if (!units[0] || units.length === 0)
+    if (!units[0] && user.role !== UserRole.ADMIN)
       throw new UnauthorizedUserNoAccessToUnitException();
 
-    const unitIdtoUse = unitId || units[0].unit.id;
+    if (user.role === UserRole.ADMIN && !unitId)
+      throw new BadRequestMultipleUnitsAccessException();
+
+    if (!unitId && !units[0]?.unit.id)
+      throw new BadRequestNoValidUnitIdException();
+
+    const unitIdtoUse = (unitId || units[0]?.unit.id)!;
 
     const gradeNameExists = await this.prisma.class.findFirst({
       where: { name, unitId: unitIdtoUse },
@@ -347,8 +353,11 @@ export class SchoolsService {
     return {
       id: createdClass.id,
       name: createdClass.name,
-      school: { id: units[0].unit.school.id, name: units[0].unit.school.name },
-      unit: { id: units[0].unit.id, name: units[0].unit.name },
+      school: {
+        id: units[0]?.unit.school.id,
+        name: units[0]?.unit.school.name,
+      },
+      unit: { id: units[0]?.unit.id, name: units[0]?.unit.name },
       students: students.map((s) => ({ id: s.id, name: s.name })),
     };
   }
