@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { useSnackbar } from 'notistack';
 import {
   updateClass,
   getClassStudents,
@@ -33,6 +34,7 @@ export function EditClassDialog({
   const [name, setName] = useState(initialName);
   const [students, setStudents] = useState<StudentInput[]>([]);
   const queryClient = useQueryClient();
+  const { enqueueSnackbar } = useSnackbar();
 
   const { data: fetchedStudents, isLoading: studentsLoading } = useQuery({
     queryKey: ['class-students', classId],
@@ -120,13 +122,14 @@ export function EditClassDialog({
 
   useEffect(() => {
     if (allSaved) {
+      enqueueSnackbar('Turma editada com sucesso!', { variant: 'success' });
       onClose?.();
     }
     return () => {
       updateNameMutation.reset();
       updateStudentsMutation.reset();
     };
-  }, [allSaved, onClose]);
+  }, [allSaved, enqueueSnackbar, onClose]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

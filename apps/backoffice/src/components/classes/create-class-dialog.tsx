@@ -1,5 +1,6 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { SubmitEvent, useState } from 'react';
+import { useSnackbar } from 'notistack';
 import { createClass, getSchoolUnits } from '../../services/schools-service';
 import { getErrorMessage } from '../../services/error-messages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
@@ -22,6 +23,8 @@ export function CreateClassDialog({
     students: number;
   } | null>(null);
 
+  const { enqueueSnackbar } = useSnackbar();
+
   const {
     data: schools,
     isLoading: schoolsLoading,
@@ -37,6 +40,7 @@ export function CreateClassDialog({
       setCreatedGrade({ name: data.name, students: data.students.length });
       setName('');
       setStudentsText('');
+      enqueueSnackbar(`Turma "${data.name}" criada com ${data.students.length} aluno(s)!`, { variant: 'success' });
       if (onSuccess) onSuccess();
     },
     onError: () => setCreatedGrade(null),

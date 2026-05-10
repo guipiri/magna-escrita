@@ -8,6 +8,7 @@ import {
 } from 'react-router-dom';
 import { createRoot } from 'react-dom/client';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { SnackbarProvider } from 'notistack';
 import './style.css';
 import { ClassesPage } from './pages/classes';
 import { LoginPage } from './pages/login';
@@ -80,7 +81,12 @@ const AppRoutes = () => (
 const App = () => {
   const content = (
     <QueryProvider>
-      <AppRoutes />
+      <SnackbarProvider
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        autoHideDuration={3000}
+      >
+        <AppRoutes />
+      </SnackbarProvider>
     </QueryProvider>
   );
 

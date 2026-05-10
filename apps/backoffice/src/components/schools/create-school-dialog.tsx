@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useSnackbar } from 'notistack';
 import { createSchool } from '../../services/schools-service';
 import { getErrorMessage } from '../../services/error-messages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
@@ -28,6 +29,7 @@ export function CreateSchoolDialog({
     { tempId: nextTempId(), name: '' },
   ]);
   const queryClient = useQueryClient();
+  const { enqueueSnackbar } = useSnackbar();
 
   const createSchoolMutation = useMutation({
     mutationFn: createSchool,
@@ -35,6 +37,7 @@ export function CreateSchoolDialog({
       setName('');
       setUnits([{ tempId: nextTempId(), name: '' }]);
       queryClient.invalidateQueries({ queryKey: ['schools'] });
+      enqueueSnackbar('Unidade(s) criada(s) com sucesso!', { variant: 'success' });
       if (onSuccess) onSuccess();
     },
   });
