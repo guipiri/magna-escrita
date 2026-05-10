@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useState } from 'react';
+import { SubmitEvent, useState } from 'react';
 import { createClass, getSchoolUnits } from '../../services/schools-service';
 import { getErrorMessage } from '../../services/error-messages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
@@ -22,8 +22,12 @@ export function CreateClassDialog({
     students: number;
   } | null>(null);
 
-  const { data: schools, isLoading: schoolsLoading } = useQuery({
-    queryKey: ['schools'],
+  const {
+    data: schools,
+    isLoading: schoolsLoading,
+    error,
+  } = useQuery({
+    queryKey: ['school-units'],
     queryFn: getSchoolUnits,
   });
 
@@ -38,7 +42,7 @@ export function CreateClassDialog({
     onError: () => setCreatedGrade(null),
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     const students = studentsText
       .split('\n')
@@ -67,6 +71,14 @@ export function CreateClassDialog({
     return (
       <main className='px-4 py-12 text-center text-gray-500'>
         Nenhuma escola encontrada. Verifique se você tem acesso a alguma escola.
+      </main>
+    );
+  }
+
+  if (!schools || error) {
+    return (
+      <main className='px-4 py-12 text-center text-red-500'>
+        Erro ao carregar escolas. Tente novamente.
       </main>
     );
   }

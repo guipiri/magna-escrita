@@ -28,6 +28,12 @@ export class SchoolsController {
     return this.schoolsService.getClasses(user);
   }
 
+  @Get('schools')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  getSchools(@User() user: AuthUser) {
+    return this.schoolsService.getSchools(user);
+  }
+
   @Get('units')
   @UseGuards(AuthGuard, BackofficeGuard)
   findSchools(@User() user: AuthUser) {

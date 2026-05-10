@@ -1,75 +1,80 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Search, Filter, Plus } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { SchoolCard, SchoolData } from '../components/schools/school-card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { EmptyState } from '../components/schools/empty-state';
+import { getSchoolsList } from '../services/schools-service';
 
-// Mock data
-const mockSchools: SchoolData[] = [
-  {
-    id: '1',
-    name: 'Escola Municipal João da Silva',
-    classCount: 12,
-    studentCount: 345,
-    bookCount: 289,
-    status: 'active',
-    lastActivity: 'Atualizado há 2 horas',
-  },
-  {
-    id: '2',
-    name: 'Colégio Estadual Maria Santos',
-    classCount: 18,
-    studentCount: 512,
-    bookCount: 456,
-    status: 'in-progress',
-    lastActivity: 'Atualizado ontem',
-  },
-  {
-    id: '3',
-    name: 'Centro Educacional Esperança',
-    classCount: 8,
-    studentCount: 198,
-    bookCount: 178,
-    status: 'completed',
-    lastActivity: 'Atualizado há 3 dias',
-  },
-  {
-    id: '4',
-    name: 'Escola Criativa Mundo Infantil',
-    classCount: 10,
-    studentCount: 267,
-    bookCount: 234,
-    status: 'active',
-    lastActivity: 'Atualizado há 1 hora',
-  },
-  {
-    id: '5',
-    name: 'Instituto Educacional Saber',
-    classCount: 15,
-    studentCount: 423,
-    bookCount: 387,
-    status: 'in-progress',
-    lastActivity: 'Atualizado há 5 horas',
-  },
-  {
-    id: '6',
-    name: 'Escola Montessori Jardim das Letras',
-    classCount: 6,
-    studentCount: 142,
-    bookCount: 125,
-    status: 'active',
-    lastActivity: 'Atualizado há 30 minutos',
-  },
-];
+function formatRelativeTime(isoString: string): string {
+  const now = Date.now();
+  const date = new Date(isoString).getTime();
+  const diffMs = now - date;
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSeconds < 60) return 'Atualizado agora';
+  if (diffMinutes < 60) return `Atualizado há ${diffMinutes} minutos`;
+  if (diffHours < 24) return `Atualizado há ${diffHours} horas`;
+  if (diffDays < 7) return `Atualizado há ${diffDays} dias`;
+  return new Date(isoString).toLocaleDateString('pt-BR');
+}
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [schools] = useState<SchoolData[]>(mockSchools);
 
-  const filteredSchools = schools.filter((school) =>
+  const {
+    data: schools,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['schools'],
+    queryFn: getSchoolsList,
+  });
+
+  const schoolsData: SchoolData[] = useMemo(() => {
+    if (!schools) return [];
+
+    return schools.map((school) => ({
+      ...school,
+      lastActivity: formatRelativeTime(school.lastActivity),
+    }));
+  }, [schools]);
+
+  const filteredSchools = schoolsData.filter((school) =>
     school.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  if (isLoading) {
+    return (
+      <main className='flex-1 overflow-auto'>
+        <div className='max-w-7xl mx-auto p-6'>
+          <div className='rounded-lg border border-border bg-card p-6 shadow-sm'>
+            <p className='text-sm text-muted-foreground'>
+              Carregando unidades...
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className='flex-1 overflow-auto'>
+        <div className='max-w-7xl mx-auto p-6'>
+          <div className='rounded-lg border border-red-200 bg-red-50 p-6 shadow-sm'>
+            <p className='text-sm text-red-600'>
+              Erro ao carregar unidades. Tente novamente.
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className='flex-1 overflow-auto'>
@@ -77,7 +82,7 @@ export default function Home() {
         {/* Page Header */}
         <div className='flex items-center justify-between mb-6'>
           <div>
-          <h1 className='mb-2'>Unidades Escolares</h1>
+            <h1 className='mb-2'>Unidades Escolares</h1>
             <p className='text-muted-foreground'>
               Gerencie todas as unidades escolares do projeto
             </p>

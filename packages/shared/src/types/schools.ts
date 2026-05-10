@@ -72,6 +72,16 @@ export enum SchoolYear {
   YEAR_2027 = 'YEAR_2027',
 }
 
+export interface GetSchoolsListResponse {
+  id: string;
+  name: string;
+  classCount: number;
+  studentCount: number;
+  bookCount: number;
+  status: 'active' | 'in-progress' | 'completed';
+  lastActivity: string;
+}
+
 export function getCurrentSchoolYear(): SchoolYear {
   const currentYear = new Date().getFullYear();
 

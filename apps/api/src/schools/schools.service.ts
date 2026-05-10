@@ -4,6 +4,7 @@ import {
   AuthUser,
   GetClassesResponse,
   GetSchoolsResponse,
+  GetSchoolsListResponse,
   ClassStudentResponse,
   UpdateClassStudentItem,
 } from '@repo/shared';
@@ -14,7 +15,7 @@ import {
   UnauthorizedUserNoAccessToUnitException,
 } from './schools.errors.js';
 import { SchoolsMapper } from './schools.mapper.js';
-import { Prisma } from '@prisma/client';
+import { Prisma, SchoolYear } from '@prisma/client';
 
 @Injectable()
 export class SchoolsService {
@@ -161,6 +162,92 @@ export class SchoolsService {
     });
 
     return schools;
+  }
+
+  async getSchools(user: AuthUser): Promise<GetSchoolsListResponse[]> {
+    const where =
+      user.role === UserRole.ADMIN
+        ? {}
+        : {
+            units: {
+              some: { userUnits: { some: { userId: user.id } } },
+            },
+          };
+
+    const schools = await this.prisma.school.findMany({
+      where,
+      include: {
+        units: {
+          include: {
+            classes: {
+              where: { schoolYear: SchoolYear.YEAR_2026 },
+              include: {
+                enrollments: {
+                  include: {
+                    bookEnrollments: {
+                      include: {
+                        book: { select: { id: true, status: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return schools.map((school) => {
+      let classCount = 0;
+      let studentCount = 0;
+      const allBookIds = new Set<string>();
+      const completedBookIds = new Set<string>();
+      let lastActivity = school.updatedAt;
+
+      for (const unit of school.units) {
+        classCount += unit.classes.length;
+
+        for (const cls of unit.classes) {
+          studentCount += cls.enrollments.length;
+
+          if (cls.updatedAt > lastActivity) lastActivity = cls.updatedAt;
+
+          for (const enrollment of cls.enrollments) {
+            for (const be of enrollment.bookEnrollments) {
+              allBookIds.add(be.book.id);
+
+              const isCompleted =
+                user.role === UserRole.ADMIN
+                  ? be.book.status === 'READY'
+                  : be.book.status === 'FOR_REVIEW';
+
+              if (isCompleted) completedBookIds.add(be.book.id);
+            }
+          }
+        }
+      }
+
+      let status: GetSchoolsListResponse['status'] = 'active';
+      if (allBookIds.size > 0) {
+        if (completedBookIds.size === allBookIds.size) {
+          status = 'completed';
+        } else if (completedBookIds.size > 0) {
+          status = 'in-progress';
+        }
+      }
+
+      return {
+        id: school.id,
+        name: school.name,
+        classCount,
+        studentCount,
+        bookCount: allBookIds.size,
+        status,
+        lastActivity: lastActivity.toISOString(),
+      };
+    });
   }
 
   async createClass(

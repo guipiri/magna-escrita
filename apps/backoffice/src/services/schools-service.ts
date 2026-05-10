@@ -2,12 +2,19 @@ import { api } from './api';
 import {
   GetClassesResponse,
   GetSchoolsResponse,
+  GetSchoolsListResponse,
   CreateClassRequest,
   CreateClassResponse,
   UpdateClassRequest,
   ClassStudentResponse,
   UpdateClassStudentsRequest,
 } from '@repo/shared';
+
+export const getSchoolsList =
+  async (): Promise<GetSchoolsListResponse[]> => {
+    const response = await api.get<GetSchoolsListResponse[]>('/schools');
+    return response.data;
+  };
 
 export const getSchoolUnits = async (): Promise<GetSchoolsResponse[]> => {
   const response = await api.get<GetSchoolsResponse[]>('/units');
