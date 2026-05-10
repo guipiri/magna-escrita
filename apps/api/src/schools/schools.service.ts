@@ -384,7 +384,7 @@ export class SchoolsService {
     const toUpdate: Array<{ studentId: string; name: string }> = [];
 
     for (const student of students) {
-      if (student.id && currentStudentIds.has(student.id as string)) {
+      if (student.id && currentStudentIds.has(student.id)) {
         toUpdate.push({ studentId: student.id, name: student.name });
       } else if (!student.id) {
         toCreate.push({ name: student.name });

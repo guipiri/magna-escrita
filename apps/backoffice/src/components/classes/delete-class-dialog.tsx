@@ -1,0 +1,67 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { getErrorMessage } from '../../services/error-messages';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog';
+import { deleteClass } from '../../services/schools-service';
+
+export function DeleteClassDialog({
+  deletingClass,
+  onSuccess,
+  onConfirm,
+  onCancel,
+}: {
+  deletingClass: { id: string; name: string } | null;
+  onSuccess?: () => void;
+  onConfirm?: () => void;
+  onCancel?: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const deleteMutation = useMutation({
+    mutationFn: deleteClass,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['classes'] });
+      onSuccess?.();
+    },
+  });
+  return (
+    <AlertDialog open={!!deletingClass}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir Turma</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tem certeza que deseja excluir a turma "{deletingClass?.name}"? Esta
+            ação não pode ser desfeita.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {deleteMutation.isError && (
+          <div className='p-3 bg-red-100 text-red-700 rounded text-sm'>
+            {getErrorMessage(deleteMutation.error) ||
+              'Erro ao excluir turma. Tente novamente.'}
+          </div>
+        )}
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onCancel}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              if (!deletingClass) return;
+              deleteMutation.mutate(deletingClass.id);
+              onConfirm?.();
+            }}
+            disabled={deleteMutation.isPending}
+            className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+          >
+            {deleteMutation.isPending ? 'Excluindo...' : 'Excluir'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}

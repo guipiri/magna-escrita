@@ -1,21 +1,11 @@
 import { useMemo, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getClasses, deleteClass } from '../services/schools-service';
-import { getErrorMessage } from '../services/error-messages';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getClasses } from '../services/schools-service';
 import { ClassesTable, ClassData } from '../components/classes/classes-table';
 import { CreateClassDialog } from '../components/classes/create-class-dialog';
 import { CreateClassButton } from '../components/classes/create-class-button';
 import { EditClassDialog } from '../components/classes/edit-class-dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../components/ui/alert-dialog';
+import { DeleteClassDialog } from '../components/classes/delete-class-dialog';
 
 export function ClassesPage() {
   const [search, setSearch] = useState('');
@@ -37,14 +27,6 @@ export function ClassesPage() {
   } = useQuery({
     queryKey: ['classes'],
     queryFn: getClasses,
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteClass,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['classes'] });
-      setDeletingClass(null);
-    },
   });
 
   const classesData: ClassData[] = useMemo(() => {
@@ -167,42 +149,11 @@ export function ClassesPage() {
         className={editingClass?.name ?? ''}
       />
 
-      <AlertDialog
-        open={!!deletingClass}
-        onOpenChange={(open) => {
-          if (!open) setDeletingClass(null);
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Turma</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir a turma "{deletingClass?.name}"?
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {deleteMutation.isError && (
-            <div className='p-3 bg-red-100 text-red-700 rounded text-sm'>
-              {getErrorMessage(deleteMutation.error) ||
-                'Erro ao excluir turma. Tente novamente.'}
-            </div>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeletingClass(null)}>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (deletingClass) deleteMutation.mutate(deletingClass.id);
-              }}
-              disabled={deleteMutation.isPending}
-              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-            >
-              {deleteMutation.isPending ? 'Excluindo...' : 'Excluir'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteClassDialog
+        onSuccess={() => setDeletingClass(null)}
+        onCancel={() => setDeletingClass(null)}
+        deletingClass={deletingClass}
+      />
     </main>
   );
 }
