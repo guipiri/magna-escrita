@@ -17,11 +17,13 @@ export function DeleteClassDialog({
   onSuccess,
   onConfirm,
   onCancel,
+  onClose,
 }: {
   deletingClass: { id: string; name: string } | null;
   onSuccess?: () => void;
   onConfirm?: () => void;
   onCancel?: () => void;
+  onClose?: () => void;
 }) {
   const queryClient = useQueryClient();
   const deleteMutation = useMutation({
@@ -32,7 +34,7 @@ export function DeleteClassDialog({
     },
   });
   return (
-    <AlertDialog open={!!deletingClass}>
+    <AlertDialog open={!!deletingClass} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Excluir Turma</AlertDialogTitle>

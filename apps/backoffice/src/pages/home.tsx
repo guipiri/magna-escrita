@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Search, Filter, Plus } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SchoolCard, SchoolData } from '../components/schools/school-card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { EmptyState } from '../components/schools/empty-state';
+import { CreateSchoolDialog } from '../components/schools/create-school-dialog';
 import { getSchoolsList } from '../services/schools-service';
 
 function formatRelativeTime(isoString: string): string {
@@ -25,6 +26,8 @@ function formatRelativeTime(isoString: string): string {
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const {
     data: schools,
@@ -87,7 +90,7 @@ export default function Home() {
               Gerencie todas as unidades escolares do projeto
             </p>
           </div>
-          <Button>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className='w-4 h-4' />
             Nova Unidade
           </Button>
@@ -123,7 +126,7 @@ export default function Home() {
             ))}
           </div>
         ) : (
-          <EmptyState onAddSchool={() => console.log('Add school')} />
+          <EmptyState onAddSchool={() => setIsCreateDialogOpen(true)} />
         )}
 
         {/* Summary Stats */}
@@ -166,6 +169,15 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      <CreateSchoolDialog
+        isOpen={isCreateDialogOpen}
+        onClose={() => setIsCreateDialogOpen(false)}
+        onSuccess={() => {
+          setIsCreateDialogOpen(false);
+          queryClient.invalidateQueries({ queryKey: ['schools'] });
+        }}
+      />
     </main>
   );
 }

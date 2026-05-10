@@ -16,6 +16,8 @@ import {
 } from './schools.errors.js';
 import { SchoolsMapper } from './schools.mapper.js';
 import { Prisma, SchoolYear } from '@prisma/client';
+import { UnauthorizedAccessToBackofficeException } from '../auth/auth.erros.js';
+import { CreateSchoolDto } from './dto/create-school.dto.js';
 
 @Injectable()
 export class SchoolsService {
@@ -248,6 +250,27 @@ export class SchoolsService {
         lastActivity: lastActivity.toISOString(),
       };
     });
+  }
+
+  async createSchool({ name, unitNames }: CreateSchoolDto, user: AuthUser) {
+    if (user.role !== UserRole.ADMIN)
+      throw new UnauthorizedAccessToBackofficeException();
+
+    const school = await this.prisma.school.create({
+      data: {
+        name,
+        units: {
+          create: unitNames.map((unitName) => ({ name: unitName })),
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        units: { select: { id: true, name: true } },
+      },
+    });
+
+    return school;
   }
 
   async createClass(

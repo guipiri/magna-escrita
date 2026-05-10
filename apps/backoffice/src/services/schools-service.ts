@@ -5,16 +5,16 @@ import {
   GetSchoolsListResponse,
   CreateClassRequest,
   CreateClassResponse,
+  CreateSchoolRequest,
   UpdateClassRequest,
   ClassStudentResponse,
   UpdateClassStudentsRequest,
 } from '@repo/shared';
 
-export const getSchoolsList =
-  async (): Promise<GetSchoolsListResponse[]> => {
-    const response = await api.get<GetSchoolsListResponse[]>('/schools');
-    return response.data;
-  };
+export const getSchoolsList = async (): Promise<GetSchoolsListResponse[]> => {
+  const response = await api.get<GetSchoolsListResponse[]>('/schools');
+  return response.data;
+};
 
 export const getSchoolUnits = async (): Promise<GetSchoolsResponse[]> => {
   const response = await api.get<GetSchoolsResponse[]>('/units');
@@ -39,6 +39,16 @@ export const updateClass = async (
 ): Promise<{ id: string; name: string }> => {
   const response = await api.patch<{ id: string; name: string }>(
     `/classes/${id}`,
+    data,
+  );
+  return response.data;
+};
+
+export const createSchool = async (
+  data: CreateSchoolRequest,
+): Promise<{ id: string; name: string }> => {
+  const response = await api.post<{ id: string; name: string }>(
+    '/schools',
     data,
   );
   return response.data;

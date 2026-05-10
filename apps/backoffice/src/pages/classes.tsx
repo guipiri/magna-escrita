@@ -152,6 +152,7 @@ export function ClassesPage() {
       <DeleteClassDialog
         onSuccess={() => setDeletingClass(null)}
         onCancel={() => setDeletingClass(null)}
+        onClose={() => setDeletingClass(null)}
         deletingClass={deletingClass}
       />
     </main>

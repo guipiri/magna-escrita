@@ -82,6 +82,11 @@ export interface GetSchoolsListResponse {
   lastActivity: string;
 }
 
+export interface CreateSchoolRequest {
+  name: string;
+  unitNames: string[];
+}
+
 export function getCurrentSchoolYear(): SchoolYear {
   const currentYear = new Date().getFullYear();
 

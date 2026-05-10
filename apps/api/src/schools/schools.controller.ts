@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { SchoolsService } from './schools.service.js';
 import { CreateGradeDto } from './dto/create-grade.dto.js';
+import { CreateSchoolDto } from './dto/create-school.dto.js';
 import { UpdateGradeDto } from './dto/update-grade.dto.js';
 import { UpdateClassStudentsDto } from './dto/update-class-students.dto.js';
 import { AuthGuard } from '../auth/guards/auth.guard.js';
@@ -32,6 +33,12 @@ export class SchoolsController {
   @UseGuards(AuthGuard, BackofficeGuard)
   getSchools(@User() user: AuthUser) {
     return this.schoolsService.getSchools(user);
+  }
+
+  @Post('schools')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  createSchool(@Body() body: CreateSchoolDto, @User() user: AuthUser) {
+    return this.schoolsService.createSchool(body, user);
   }
 
   @Get('units')
