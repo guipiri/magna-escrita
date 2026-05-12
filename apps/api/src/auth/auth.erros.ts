@@ -46,3 +46,12 @@ export class UnauthorizedAccessToBackofficeException extends UnauthorizedExcepti
     } satisfies HttpExceptionConstructor);
   }
 }
+
+export class UnauthorizedAccessToCreateSchoolException extends UnauthorizedException {
+  constructor() {
+    super({
+      key: ErrorKeys.UNAUTHORIZED_CREATE_SCHOOL,
+      message: 'User does not have access to create school',
+    } satisfies HttpExceptionConstructor);
+  }
+}

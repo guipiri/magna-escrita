@@ -10,6 +10,9 @@ export const errorMessages: Record<ErrorKeys, string> = {
   UNAUTHORIZED_BACKOFFICE_ACCESS:
     'Acesso negado. Usuário não autorizado para acessar o backoffice.',
   UNAUTHORIZED_INVALID_WEBHOOK_SIGNATURE: 'Assinatura do webhook inválida.',
+  UNAUTHORIZED_CREATE_SCHOOL:
+    'Acesso negado. Usuário não autorizado para criar escola.',
+
   FORBIDDEN_MISSING_AUTH_TOKEN: 'Token de autenticação ausente.',
   FORBIDDEN_INSUFFICIENT_PERMISSIONS: 'Permissões insuficientes.',
   NOT_FOUND_BOOK_NOT_FOUND: 'Livro não encontrado.',
@@ -23,6 +26,9 @@ export const errorMessages: Record<ErrorKeys, string> = {
 
   BAD_REQUEST_GRADE_NAME: 'Nome da turma é obrigatório.',
   BAD_REQUEST_STUDENTS: 'Adicione pelo menos um aluno.',
+  BAD_REQUEST_MULTIPLE_UNITS_ACCESS:
+    'Usuário tem acesso a múltiplas unidades. Selecione uma unidade para continuar.',
+  BAD_REQUEST_NO_VALID_UNIT_ID: 'Nenhuma unidade válida encontrada.',
 
   UNAUTHORIZED_USER_NO_ACCESS_TO_UNIT:
     'Usuário não tem acesso à unidade selecionada.',

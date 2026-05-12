@@ -18,7 +18,7 @@ import {
 } from './schools.errors.js';
 import { SchoolsMapper } from './schools.mapper.js';
 import { Prisma, SchoolYear } from '@prisma/client';
-import { UnauthorizedAccessToBackofficeException } from '../auth/auth.erros.js';
+import { UnauthorizedAccessToCreateSchoolException } from '../auth/auth.erros.js';
 import { CreateSchoolDto } from './dto/create-school.dto.js';
 
 @Injectable()
@@ -256,7 +256,7 @@ export class SchoolsService {
 
   async createSchool({ name, unitNames }: CreateSchoolDto, user: AuthUser) {
     if (user.role !== UserRole.ADMIN)
-      throw new UnauthorizedAccessToBackofficeException();
+      throw new UnauthorizedAccessToCreateSchoolException();
 
     const school = await this.prisma.school.create({
       data: {
@@ -301,14 +301,11 @@ export class SchoolsService {
       },
     });
 
-    if (!unitId && units.length > 1)
+    if (!unitId && (units.length > 1 || user.role === UserRole.ADMIN))
       throw new BadRequestMultipleUnitsAccessException();
 
     if (!units[0] && user.role !== UserRole.ADMIN)
       throw new UnauthorizedUserNoAccessToUnitException();
-
-    if (user.role === UserRole.ADMIN && !unitId)
-      throw new BadRequestMultipleUnitsAccessException();
 
     if (!unitId && !units[0]?.unit.id)
       throw new BadRequestNoValidUnitIdException();
