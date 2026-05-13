@@ -1,11 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useSnackbar } from 'notistack';
-import {
-  updateClass,
-  getClassStudents,
-  updateClassStudents,
-} from '../../services/schools-service';
+import { updateClass, getClassStudents } from '../../services/schools-service';
 import { getErrorMessage } from '../../services/error-messages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
@@ -25,13 +21,16 @@ export function EditClassDialog({
   isOpen,
   classId,
   className: initialName,
+  teacherName: initialTeacherName,
 }: {
   onClose?: () => void;
   isOpen: boolean;
   classId: string;
   className: string;
+  teacherName: string;
 }) {
   const [name, setName] = useState(initialName);
+  const [teacherName, setTeacherName] = useState(initialTeacherName);
   const [students, setStudents] = useState<StudentInput[]>([]);
   const queryClient = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
@@ -45,6 +44,7 @@ export function EditClassDialog({
   useEffect(() => {
     if (fetchedStudents) {
       setName(initialName);
+      setTeacherName(initialTeacherName);
       setStudents(
         fetchedStudents.map((s) => ({
           tempId: nextTempId(),
@@ -53,27 +53,22 @@ export function EditClassDialog({
         })),
       );
     }
-  }, [fetchedStudents, initialName]);
+  }, [fetchedStudents, initialName, initialTeacherName]);
 
-  const updateNameMutation = useMutation({
-    mutationFn: (data: { name: string }) => updateClass(classId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['classes'] });
-    },
-  });
-
-  const updateStudentsMutation = useMutation({
-    mutationFn: (data: { students: Array<{ id?: string; name: string }> }) =>
-      updateClassStudents(classId, data),
+  const updateMutation = useMutation({
+    mutationFn: (data: {
+      name: string;
+      teacherName: string;
+      students: Array<{ id?: string; name: string }>;
+    }) => updateClass(classId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['class-students', classId] });
       queryClient.invalidateQueries({ queryKey: ['classes'] });
     },
   });
 
-  const isPending =
-    updateNameMutation.isPending || updateStudentsMutation.isPending;
-  const error = updateNameMutation.error || updateStudentsMutation.error;
+  const isPending = updateMutation.isPending;
+  const error = updateMutation.error;
 
   const addStudent = () => {
     setStudents((prev) => [...prev, { tempId: nextTempId(), name: '' }]);
@@ -107,18 +102,10 @@ export function EditClassDialog({
         name: s.name.trim(),
       }));
 
-    updateNameMutation.mutate(
-      { name },
-      {
-        onSuccess: () => {
-          updateStudentsMutation.mutate({ students: studentsPayload });
-        },
-      },
-    );
+    updateMutation.mutate({ name, teacherName, students: studentsPayload });
   };
 
-  const allSaved =
-    updateNameMutation.isSuccess && updateStudentsMutation.isSuccess;
+  const allSaved = updateMutation.isSuccess;
 
   useEffect(() => {
     if (allSaved) {
@@ -126,8 +113,7 @@ export function EditClassDialog({
       onClose?.();
     }
     return () => {
-      updateNameMutation.reset();
-      updateStudentsMutation.reset();
+      updateMutation.reset();
     };
   }, [allSaved, enqueueSnackbar, onClose]);
 
@@ -159,6 +145,20 @@ export function EditClassDialog({
                   onChange={(e) => setName(e.target.value)}
                   className='w-full border border-gray-300 rounded px-3 py-2'
                   placeholder='Ex: 3º Ano A'
+                  required
+                />
+              </div>
+
+              <div>
+                <label className='block text-sm font-medium mb-1'>
+                  Nome da Professora
+                </label>
+                <input
+                  type='text'
+                  value={teacherName}
+                  onChange={(e) => setTeacherName(e.target.value)}
+                  className='w-full border border-gray-300 rounded px-3 py-2'
+                  placeholder='Profª Claudia'
                   required
                 />
               </div>

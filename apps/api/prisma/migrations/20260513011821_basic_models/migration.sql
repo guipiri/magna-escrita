@@ -52,6 +52,7 @@ CREATE TABLE "Book" (
     "author" TEXT NOT NULL,
     "synopsis" TEXT,
     "priceId" TEXT NOT NULL,
+    "authographsEventId" TEXT,
     "status" "BookStatus" NOT NULL DEFAULT 'DRAFT',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -117,19 +118,17 @@ CREATE TABLE "Enrollment" (
 
 -- CreateTable
 CREATE TABLE "BookEnrollment" (
-    "id" TEXT NOT NULL,
     "enrollmentId" TEXT NOT NULL,
     "bookId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "BookEnrollment_pkey" PRIMARY KEY ("id")
+    "updatedAt" TIMESTAMP(3) NOT NULL
 );
 
 -- CreateTable
 CREATE TABLE "Class" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "teacherName" TEXT NOT NULL,
     "unitId" TEXT NOT NULL,
     "schoolYear" "SchoolYear" NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -225,6 +224,9 @@ ALTER TABLE "Order" ADD CONSTRAINT "Order_userId_fkey" FOREIGN KEY ("userId") RE
 
 -- AddForeignKey
 ALTER TABLE "Book" ADD CONSTRAINT "Book_priceId_fkey" FOREIGN KEY ("priceId") REFERENCES "Price"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Book" ADD CONSTRAINT "Book_authographsEventId_fkey" FOREIGN KEY ("authographsEventId") REFERENCES "AuthographsEvent"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;

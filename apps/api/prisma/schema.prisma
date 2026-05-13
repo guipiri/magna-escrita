@@ -72,6 +72,9 @@ model Book {
   bookEnrollments BookEnrollment[]
   orderItems      OrderItem[]
 
+  authographsEvent   AuthographsEvent? @relation(fields: [authographsEventId], references: [id])
+  authographsEventId String?
+
   status BookStatus @default(DRAFT)
 
   createdAt DateTime @default(now())
@@ -151,7 +154,6 @@ model Enrollment {
 }
 
 model BookEnrollment {
-  id           String     @id @default(cuid())
   enrollmentId String
   enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   bookId       String
@@ -171,6 +173,7 @@ enum SchoolYear {
 model Class {
   id          String       @id @default(cuid())
   name        String
+  teacherName String
   units       Unit         @relation(fields: [unitId], references: [id])
   unitId      String
   enrollments Enrollment[]
@@ -204,6 +207,7 @@ model AuthographsEvent {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  books     Book[]
 }
 
 model Unit {

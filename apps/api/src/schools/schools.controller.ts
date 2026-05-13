@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Patch,
-  Put,
   Delete,
   Body,
   Param,
@@ -12,12 +11,12 @@ import {
 import { SchoolsService } from './schools.service.js';
 import { CreateGradeDto } from './dto/create-grade.dto.js';
 import { CreateSchoolDto } from './dto/create-school.dto.js';
-import { UpdateGradeDto } from './dto/update-grade.dto.js';
-import { UpdateClassStudentsDto } from './dto/update-class-students.dto.js';
 import { AuthGuard } from '../auth/guards/auth.guard.js';
 import { BackofficeGuard } from '../auth/guards/backoffice.guard.js';
 import { User } from '../auth/auth.decorator.js';
 import type { AuthUser } from '@repo/shared';
+import type { SchoolYearOption } from '@repo/shared';
+import { UpdateClassDto } from './dto/update-grade.dto.js';
 
 @Controller()
 export class SchoolsController {
@@ -47,14 +46,22 @@ export class SchoolsController {
     return this.schoolsService.getSchoolUnits(user);
   }
 
+  @Get('school-years')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  findSchoolYears(): SchoolYearOption[] {
+    return this.schoolsService.getSchoolYears();
+  }
+
   @Post('classes')
   @UseGuards(AuthGuard, BackofficeGuard)
   createClass(@Body() body: CreateGradeDto, @User() user: AuthUser) {
     return this.schoolsService.createClass(
       body.name,
       body.students,
+      body.teacherName,
       user,
       body.unitId,
+      body.schoolYear,
     );
   }
 
@@ -62,10 +69,10 @@ export class SchoolsController {
   @UseGuards(AuthGuard, BackofficeGuard)
   updateClass(
     @Param('id') id: string,
-    @Body() body: UpdateGradeDto,
+    @Body() body: UpdateClassDto,
     @User() user: AuthUser,
   ) {
-    return this.schoolsService.updateClass(id, body.name, user);
+    return this.schoolsService.updateClass(id, body, user);
   }
 
   @Delete('classes/:id')
@@ -78,15 +85,5 @@ export class SchoolsController {
   @UseGuards(AuthGuard, BackofficeGuard)
   getClassStudents(@Param('id') id: string, @User() user: AuthUser) {
     return this.schoolsService.getClassStudents(id, user);
-  }
-
-  @Put('classes/:id/students')
-  @UseGuards(AuthGuard, BackofficeGuard)
-  updateClassStudents(
-    @Param('id') id: string,
-    @Body() body: UpdateClassStudentsDto,
-    @User() user: AuthUser,
-  ) {
-    return this.schoolsService.updateClassStudents(id, body.students, user);
   }
 }

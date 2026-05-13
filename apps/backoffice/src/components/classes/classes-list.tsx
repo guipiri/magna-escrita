@@ -1,0 +1,196 @@
+import { useMemo } from 'react';
+import {
+  BookOpen,
+  Edit,
+  Eye,
+  GraduationCap,
+  MoreHorizontal,
+  Trash2,
+  Users,
+} from 'lucide-react';
+import { Button } from '../ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
+import {
+  DataList,
+  DataListActions,
+  DataListContent,
+  DataListDescription,
+  DataListFooter,
+  DataListHeader,
+  DataListItem,
+  DataListMeta,
+  DataListTitle,
+} from '../ui/data-list';
+import { ClassesEmptyState } from './empty-state';
+
+export interface ClassData {
+  id: string;
+  name: string;
+  teacher: string;
+  studentCount: number;
+  bookCount: number;
+  booksCompleted: number;
+  schoolYear: string;
+  schoolName: string;
+}
+
+interface ClassesListProps {
+  classes: ClassData[];
+  onView?: (classId: string) => void;
+  onEdit?: (classId: string) => void;
+  onDelete?: (classId: string) => void;
+  onAddClass?: () => void;
+}
+
+function getProgressPercentage(classData: ClassData) {
+  if (classData.bookCount === 0) return 0;
+  return Math.round((classData.booksCompleted / classData.bookCount) * 100);
+}
+
+export function ClassesList({
+  classes,
+  onView,
+  onEdit,
+  onDelete,
+  onAddClass,
+}: ClassesListProps) {
+  const totalBooks = useMemo(
+    () => classes.reduce((sum, classItem) => sum + classItem.bookCount, 0),
+    [classes],
+  );
+
+  if (classes.length === 0) {
+    return <ClassesEmptyState onAddClass={onAddClass} />;
+  }
+
+  return (
+    <DataList>
+      {classes.map((classItem) => {
+        const progress = getProgressPercentage(classItem);
+
+        return (
+          <DataListItem key={classItem.id}>
+            <DataListHeader className='items-start flex mb-4'>
+              <div className=''>
+                <div className='flex flex-wrap items-center gap-2'>
+                  <DataListTitle className='truncate'>
+                    {classItem.name}
+                  </DataListTitle>
+                  <DataListDescription>
+                    {classItem.schoolName}
+                  </DataListDescription>
+                </div>
+              </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    className='h-fit'
+                    variant='ghost'
+                    size='icon'
+                    aria-label='Ações da turma'
+                  >
+                    <MoreHorizontal className='h-4 w-4' />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end'>
+                  <DropdownMenuItem onClick={() => onView?.(classItem.id)}>
+                    <Eye className='h-4 w-4' />
+                    Visualizar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onEdit?.(classItem.id)}>
+                    <Edit className='h-4 w-4' />
+                    Editar
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => onDelete?.(classItem.id)}
+                    className='text-destructive focus:text-destructive'
+                  >
+                    <Trash2 className='h-4 w-4' />
+                    Excluir
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </DataListHeader>
+
+            <DataListContent className='sm:grid-cols-3'>
+              <div className='rounded-xl border border-border/70 bg-muted/20 p-3'>
+                <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
+                  <Users className='h-4 w-4' />
+                  <span className='text-xs font-medium uppercase tracking-wide'>
+                    Alunos
+                  </span>
+                </div>
+                <p className='text-lg font-semibold text-foreground'>
+                  {classItem.studentCount}
+                </p>
+              </div>
+
+              <div className='rounded-xl border border-border/70 bg-muted/20 p-3'>
+                <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
+                  <BookOpen className='h-4 w-4' />
+                  <span className='text-xs font-medium uppercase tracking-wide'>
+                    Livros
+                  </span>
+                </div>
+                <p className='text-lg font-semibold text-foreground'>
+                  {classItem.bookCount}
+                </p>
+                <p className='text-xs text-muted-foreground'>
+                  {classItem.booksCompleted} concluídos de {totalBooks} livros
+                  no total
+                </p>
+              </div>
+
+              <div className='rounded-xl border border-border/70 bg-muted/20 p-3'>
+                <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
+                  <GraduationCap className='h-4 w-4' />
+                  <span className='text-xs font-medium uppercase tracking-wide'>
+                    Progresso
+                  </span>
+                </div>
+                <div className='mt-2 h-2 overflow-hidden rounded-full bg-background'>
+                  <div
+                    className='h-full rounded-full bg-linear-to-r from-emerald-500 to-green-500 transition-all duration-300'
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <p className='mt-2 text-xs font-medium text-muted-foreground'>
+                  {progress}% concluído
+                </p>
+              </div>
+            </DataListContent>
+
+            <DataListFooter>
+              <DataListMeta>
+                <span className='inline-flex items-center rounded-full border border-border/70 px-3 py-1 text-xs text-muted-foreground'>
+                  {classItem.schoolYear.replace('YEAR_', '')}
+                </span>
+                <span className='inline-flex items-center rounded-full border border-border/70 px-3 py-1 text-xs text-muted-foreground'>
+                  Professor {classItem.teacher}
+                </span>
+              </DataListMeta>
+
+              <DataListActions>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => onView?.(classItem.id)}
+                >
+                  Ver Livros
+                </Button>
+              </DataListActions>
+            </DataListFooter>
+          </DataListItem>
+        );
+      })}
+    </DataList>
+  );
+}

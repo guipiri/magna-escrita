@@ -7,8 +7,10 @@ import {
   CreateClassResponse,
   CreateSchoolRequest,
   UpdateClassRequest,
+  UpdateClassStudentItem,
   ClassStudentResponse,
   UpdateClassStudentsRequest,
+  SchoolYearOption,
 } from '@repo/shared';
 
 export const getSchoolsList = async (): Promise<GetSchoolsListResponse[]> => {
@@ -18,6 +20,11 @@ export const getSchoolsList = async (): Promise<GetSchoolsListResponse[]> => {
 
 export const getSchoolUnits = async (): Promise<GetSchoolsResponse[]> => {
   const response = await api.get<GetSchoolsResponse[]>('/units');
+  return response.data;
+};
+
+export const getSchoolYears = async (): Promise<SchoolYearOption[]> => {
+  const response = await api.get<SchoolYearOption[]>('/school-years');
   return response.data;
 };
 
@@ -35,12 +42,13 @@ export const createClass = async (
 
 export const updateClass = async (
   id: string,
-  data: UpdateClassRequest,
-): Promise<{ id: string; name: string }> => {
-  const response = await api.patch<{ id: string; name: string }>(
-    `/classes/${id}`,
-    data,
-  );
+  data: UpdateClassRequest & { students?: UpdateClassStudentItem[] },
+): Promise<{ id: string; name: string; teacherName: string }> => {
+  const response = await api.patch<{
+    id: string;
+    name: string;
+    teacherName: string;
+  }>(`/classes/${id}`, data);
   return response.data;
 };
 

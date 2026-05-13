@@ -1,5 +1,11 @@
-import { IsString, IsArray, ArrayMinSize, IsNotEmpty } from 'class-validator';
-import { CreateClassRequest } from '@repo/shared';
+import {
+  IsString,
+  IsArray,
+  ArrayMinSize,
+  IsNotEmpty,
+  IsEnum,
+} from 'class-validator';
+import { CreateClassRequest, SchoolYear } from '@repo/shared';
 
 export class CreateGradeDto implements CreateClassRequest {
   @IsString()
@@ -8,7 +14,14 @@ export class CreateGradeDto implements CreateClassRequest {
 
   @IsString()
   @IsNotEmpty()
+  teacherName!: string;
+
+  @IsString()
+  @IsNotEmpty()
   unitId!: string;
+
+  @IsEnum(SchoolYear)
+  schoolYear?: SchoolYear;
 
   @IsArray()
   @IsString({ each: true })

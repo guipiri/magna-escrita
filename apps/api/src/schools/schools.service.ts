@@ -7,6 +7,8 @@ import {
   GetSchoolsListResponse,
   ClassStudentResponse,
   UpdateClassStudentItem,
+  SchoolYear,
+  SchoolYearOption,
 } from '@repo/shared';
 import { UserRole } from '@repo/shared/dist/types/user.js';
 import {
@@ -17,7 +19,7 @@ import {
   UnauthorizedUserNoAccessToUnitException,
 } from './schools.errors.js';
 import { SchoolsMapper } from './schools.mapper.js';
-import { Prisma, SchoolYear } from '@prisma/client';
+import { Prisma, SchoolYear as PrismaSchoolYear } from '@prisma/client';
 import { UnauthorizedAccessToCreateSchoolException } from '../auth/auth.erros.js';
 import { CreateSchoolDto } from './dto/create-school.dto.js';
 
@@ -40,6 +42,7 @@ export class SchoolsService {
       select: {
         id: true,
         name: true,
+        teacherName: true,
         schoolYear: true,
         createdAt: true,
         units: {
@@ -58,6 +61,8 @@ export class SchoolsService {
           select: {
             bookEnrollments: {
               select: {
+                enrollmentId: true,
+                bookId: true,
                 book: {
                   select: {
                     id: true,
@@ -77,7 +82,7 @@ export class SchoolsService {
       orderBy: [{ createdAt: 'desc' }, { name: 'asc' }],
     });
 
-    const response: GetClassesResponse[] = classes.map((grade) => {
+    const response: GetClassesResponse[] = classes.map((_class) => {
       const bookStatusCount = {
         total: 0,
         draft: 0,
@@ -89,10 +94,10 @@ export class SchoolsService {
 
       // Count unique books by status
       const uniqueBooksByStatus = new Map<string, Set<string>>();
-      grade.enrollments.forEach((enrollment) => {
+      _class.enrollments.forEach((enrollment) => {
         enrollment.bookEnrollments.forEach((bookEnrollment) => {
-          const bookId = bookEnrollment.book.id;
-          const bookStatus = bookEnrollment.book.status;
+          const bookId = String(bookEnrollment.book.id);
+          const bookStatus = String(bookEnrollment.book.status);
 
           if (!uniqueBooksByStatus.has(bookStatus)) {
             uniqueBooksByStatus.set(bookStatus, new Set<string>());
@@ -123,20 +128,21 @@ export class SchoolsService {
       }
 
       return {
-        id: grade.id,
-        name: grade.name,
-        schoolYear: grade.schoolYear as GetClassesResponse['schoolYear'],
+        id: _class.id,
+        name: _class.name,
+        teacherName: _class.teacherName,
+        schoolYear: _class.schoolYear as GetClassesResponse['schoolYear'],
         school: {
-          id: grade.units.school.id,
-          name: grade.units.school.name,
+          id: _class.units.school.id,
+          name: _class.units.school.name,
         },
         unit: {
-          id: grade.units.id,
-          name: grade.units.name,
+          id: _class.units.id,
+          name: _class.units.name,
         },
-        studentsCount: grade._count.enrollments,
+        studentsCount: _class._count.enrollments,
         bookCount: bookStatusCount,
-        createdAt: grade.createdAt.toISOString(),
+        createdAt: _class.createdAt.toISOString(),
       };
     });
 
@@ -185,11 +191,14 @@ export class SchoolsService {
           include: {
             classes: {
               where: { schoolYear: SchoolYear.YEAR_2026 },
-              include: {
+              select: {
+                updatedAt: true,
                 enrollments: {
-                  include: {
+                  select: {
                     bookEnrollments: {
-                      include: {
+                      select: {
+                        enrollmentId: true,
+                        bookId: true,
                         book: { select: { id: true, status: true } },
                       },
                     },
@@ -254,6 +263,13 @@ export class SchoolsService {
     });
   }
 
+  getSchoolYears(): SchoolYearOption[] {
+    return Object.values(PrismaSchoolYear).map((schoolYear) => ({
+      value: schoolYear as SchoolYear,
+      label: schoolYear.replace('YEAR_', ''),
+    }));
+  }
+
   async createSchool({ name, unitNames }: CreateSchoolDto, user: AuthUser) {
     if (user.role !== UserRole.ADMIN)
       throw new UnauthorizedAccessToCreateSchoolException();
@@ -278,9 +294,10 @@ export class SchoolsService {
   async createClass(
     name: string,
     studentNames: string[],
+    teacherName: string,
     user: AuthUser,
     unitId?: string,
-    schoolYear?: string,
+    schoolYear?: SchoolYear,
   ) {
     const units = await this.prisma.userUnit.findMany({
       where: { userId: user.id, unitId },
@@ -321,8 +338,9 @@ export class SchoolsService {
     const createdClass = await this.prisma.class.create({
       data: {
         name,
+        teacherName,
         unitId: unitIdtoUse,
-        schoolYear: SchoolsMapper.schoolYearStringToPrisma(schoolYear),
+        schoolYear: SchoolsMapper.schoolYearDomainToPrisma(schoolYear),
       },
       select: {
         id: true,
@@ -359,7 +377,17 @@ export class SchoolsService {
     };
   }
 
-  async updateClass(id: string, name: string, user: AuthUser) {
+  async updateClass(
+    id: string,
+    payload: {
+      name: string;
+      teacherName: string;
+      students?: UpdateClassStudentItem[];
+    },
+    user: AuthUser,
+  ) {
+    const { name, teacherName, students } = payload;
+
     const existingClass = await this.prisma.class.findUnique({
       where: { id },
       include: { units: true },
@@ -384,10 +412,59 @@ export class SchoolsService {
 
     if (gradeNameExists) throw new BadRequestGradeNameAlreadyExistsException();
 
+    // Handle students update if provided
+    if (students) {
+      const currentEnrollments = await this.prisma.enrollment.findMany({
+        where: { classId: id },
+        select: { id: true, studentId: true },
+      });
+
+      const currentStudentIds = new Set(
+        currentEnrollments.map((e) => e.studentId),
+      );
+
+      const toDelete = currentEnrollments.filter(
+        (e) => !students.some((s) => s.id && s.id === e.studentId),
+      );
+
+      if (toDelete.length > 0) {
+        await this.prisma.bookEnrollment.deleteMany({
+          where: { enrollmentId: { in: toDelete.map((e) => e.id) } },
+        });
+        await this.prisma.enrollment.deleteMany({
+          where: { id: { in: toDelete.map((e) => e.id) } },
+        });
+      }
+
+      const toUpdate = students.filter(
+        (s) => s.id && currentStudentIds.has(s.id),
+      );
+      const toCreate = students.filter((s) => !s.id);
+
+      for (const item of toUpdate) {
+        await this.prisma.student.updateMany({
+          where: { id: item.id },
+          data: { name: item.name },
+        });
+      }
+
+      if (toCreate.length > 0) {
+        const createdStudents = await Promise.all(
+          toCreate.map((item) =>
+            this.prisma.student.create({ data: { name: item.name.trim() } }),
+          ),
+        );
+
+        await this.prisma.enrollment.createMany({
+          data: createdStudents.map((s) => ({ studentId: s.id, classId: id })),
+        });
+      }
+    }
+
     const updated = await this.prisma.class.update({
       where: { id },
-      data: { name },
-      select: { id: true, name: true },
+      data: { name, teacherName },
+      select: { id: true, name: true, teacherName: true },
     });
 
     return updated;

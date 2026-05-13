@@ -9,12 +9,21 @@ export interface GetSchoolsResponse {
 
 export interface UpdateClassRequest {
   name: string;
+  teacherName: string;
+  students?: UpdateClassStudentItem[];
 }
 
 export interface CreateClassRequest {
   name: string;
+  teacherName: string;
   unitId?: string;
+  schoolYear?: SchoolYear;
   students: string[];
+}
+
+export interface SchoolYearOption {
+  value: SchoolYear;
+  label: string;
 }
 
 export interface CreateClassResponse {
@@ -31,6 +40,7 @@ export interface CreateClassResponse {
 export interface GetClassesResponse {
   id: string;
   name: string;
+  teacherName: string;
   schoolYear: SchoolYear;
   school: {
     id: string;

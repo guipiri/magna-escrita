@@ -75,7 +75,7 @@ export class AuthService {
 
     const user = await this.prismaService.user.upsert({
       where: { email },
-      update: { email, name, picture },
+      update: { email, name, picture, googleId: sub },
       create: { googleId: sub, email, name, picture },
     });
 
