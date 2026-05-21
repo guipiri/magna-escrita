@@ -17,7 +17,7 @@ export interface CreateClassRequest {
   name: string;
   teacherName: string;
   unitId?: string;
-  schoolYear?: SchoolYear;
+  bookTemplateId: string;
   students: string[];
 }
 
@@ -41,6 +41,10 @@ export interface GetClassesResponse {
   id: string;
   name: string;
   teacherName: string;
+  bookTemplate: {
+    id: string;
+    name: string;
+  };
   schoolYear: SchoolYear;
   school: {
     id: string;

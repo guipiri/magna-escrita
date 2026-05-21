@@ -7,6 +7,7 @@ import {
   GetSchoolsListResponse,
   ClassStudentResponse,
   UpdateClassStudentItem,
+  getCurrentSchoolYear,
   SchoolYear,
   SchoolYearOption,
 } from '@repo/shared';
@@ -17,14 +18,13 @@ import {
   BadRequestNoValidUnitIdException,
   ConflictExistingBooksException,
   NotFoundClassException,
+  NotFoundBookTemplateException,
   UnauthorizedUserNoAccessToUnitException,
 } from './schools.errors.js';
 import { SchoolsMapper } from './schools.mapper.js';
 import { Prisma, SchoolYear as PrismaSchoolYear } from '@prisma/client';
 import { UnauthorizedAccessToCreateSchoolException } from '../auth/auth.erros.js';
 import { CreateSchoolDto } from './dto/create-school.dto.js';
-
-const DEFAULT_CLASS_BOOK_TEMPLATE_ID = 'book-template-default';
 
 @Injectable()
 export class SchoolsService {
@@ -47,6 +47,12 @@ export class SchoolsService {
         name: true,
         teacherName: true,
         schoolYear: true,
+        bookTemplate: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         createdAt: true,
         units: {
           select: {
@@ -79,7 +85,7 @@ export class SchoolsService {
       orderBy: [{ createdAt: 'desc' }, { name: 'asc' }],
     });
 
-    const response: GetClassesResponse[] = classes.map((_class) => {
+    const response = classes.map((_class) => {
       const bookStatusCount = {
         total: 0,
         draft: 0,
@@ -128,6 +134,7 @@ export class SchoolsService {
         id: _class.id,
         name: _class.name,
         teacherName: _class.teacherName,
+        bookTemplate: _class.bookTemplate,
         schoolYear: _class.schoolYear as GetClassesResponse['schoolYear'],
         school: {
           id: _class.units.school.id,
@@ -141,7 +148,7 @@ export class SchoolsService {
         bookCount: bookStatusCount,
         createdAt: _class.createdAt.toISOString(),
       };
-    });
+    }) satisfies GetClassesResponse[];
 
     return response;
   }
@@ -293,8 +300,8 @@ export class SchoolsService {
     studentNames: string[],
     teacherName: string,
     user: AuthUser,
+    bookTemplateId: string,
     unitId?: string,
-    schoolYear?: SchoolYear,
   ) {
     const units = await this.prisma.userUnit.findMany({
       where: { userId: user.id, unitId },
@@ -332,13 +339,22 @@ export class SchoolsService {
 
     if (gradeNameExists) throw new BadRequestGradeNameAlreadyExistsException();
 
+    const existingBookTemplate = await this.prisma.bookTemplate.findUnique({
+      where: { id: bookTemplateId },
+      select: { id: true },
+    });
+
+    if (!existingBookTemplate) throw new NotFoundBookTemplateException();
+
     const createdClass = await this.prisma.class.create({
       data: {
         name,
         teacherName,
         unitId: unitIdtoUse,
-        bookTemplateId: DEFAULT_CLASS_BOOK_TEMPLATE_ID,
-        schoolYear: SchoolsMapper.schoolYearDomainToPrisma(schoolYear),
+        bookTemplateId: existingBookTemplate.id,
+        schoolYear: SchoolsMapper.schoolYearDomainToPrisma(
+          getCurrentSchoolYear(),
+        ),
       },
       select: {
         id: true,

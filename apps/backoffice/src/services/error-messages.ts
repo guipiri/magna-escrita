@@ -22,6 +22,7 @@ export const errorMessages: Record<ErrorKeys, string> = {
   NOT_FOUND_ORDER: 'Pedido não encontrado.',
   NOT_FOUND_SCHOOL: 'Escola não encontrada.',
   NOT_FOUND_UNIT: 'Unidade não encontrada.',
+  NOT_FOUND_BOOK_TEMPLATE: 'Template de livro não encontrado.',
   NOT_FOUND_GRADE: 'Turma não encontrada.',
 
   BAD_REQUEST_GRADE_NAME: 'Nome da turma é obrigatório.',

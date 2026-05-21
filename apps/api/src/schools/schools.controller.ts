@@ -60,8 +60,8 @@ export class SchoolsController {
       body.students,
       body.teacherName,
       user,
+      body.bookTemplateId,
       body.unitId,
-      body.schoolYear,
     );
   }
 

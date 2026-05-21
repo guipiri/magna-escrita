@@ -39,6 +39,7 @@ export function ClassesPage() {
       id: _class.id,
       name: _class.name,
       teacher: _class.teacherName,
+      bookTemplateName: _class.bookTemplate.name,
       studentCount: _class.studentsCount,
       bookCount: _class.bookCount.total,
       booksCompleted: _class.bookCount.completed,

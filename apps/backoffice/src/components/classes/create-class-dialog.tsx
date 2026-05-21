@@ -1,12 +1,8 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { SubmitEvent, useEffect, useState } from 'react';
 import { useSnackbar } from 'notistack';
-import { SchoolYear } from '@repo/shared';
-import {
-  createClass,
-  getSchoolUnits,
-  getSchoolYears,
-} from '../../services/schools-service';
+import { createClass, getSchoolUnits } from '../../services/schools-service';
+import { getBookTemplates } from '../../services/book-templates-service';
 import { getErrorMessage } from '../../services/error-messages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { CreateClassButton } from './create-class-button';
@@ -23,7 +19,7 @@ export function CreateClassDialog({
   const [name, setName] = useState('');
   const [teacherName, setTeacherName] = useState('');
   const [unitId, setUnitId] = useState<string>();
-  const [schoolYear, setSchoolYear] = useState<SchoolYear | undefined>();
+  const [bookTemplateId, setBookTemplateId] = useState<string>('');
   const [studentsText, setStudentsText] = useState('');
 
   const { enqueueSnackbar } = useSnackbar();
@@ -37,16 +33,16 @@ export function CreateClassDialog({
     queryFn: getSchoolUnits,
   });
 
-  const { data: schoolYears, isLoading: schoolYearsLoading } = useQuery({
-    queryKey: ['school-years'],
-    queryFn: getSchoolYears,
+  const { data: bookTemplates, isLoading: bookTemplatesLoading } = useQuery({
+    queryKey: ['book-templates'],
+    queryFn: getBookTemplates,
   });
 
   useEffect(() => {
-    if (!schoolYear && schoolYears?.[0]) {
-      setSchoolYear(schoolYears[0].value);
+    if (!bookTemplateId && bookTemplates?.[0]) {
+      setBookTemplateId(bookTemplates[0].id);
     }
-  }, [schoolYear, schoolYears]);
+  }, [bookTemplateId, bookTemplates]);
 
   const createClassMutation = useMutation({
     mutationFn: createClass,
@@ -54,6 +50,7 @@ export function CreateClassDialog({
       setName('');
       setStudentsText('');
       setTeacherName('');
+      setBookTemplateId('');
       enqueueSnackbar(
         `Turma "${data.name}" criada com ${data.students.length} aluno(s)!`,
         { variant: 'success' },
@@ -74,7 +71,7 @@ export function CreateClassDialog({
       students,
       unitId,
       teacherName,
-      schoolYear: schoolYear ?? undefined,
+      bookTemplateId,
     });
   };
 
@@ -85,7 +82,7 @@ export function CreateClassDialog({
     })),
   );
 
-  if (schoolsLoading || schoolYearsLoading) {
+  if (schoolsLoading || bookTemplatesLoading) {
     return (
       <main className='px-4 py-12 text-center text-gray-500'>
         Carregando...
@@ -143,40 +140,45 @@ export function CreateClassDialog({
               </div>
             )}
 
-            <div className='flex gap-2 items-center'>
-              <div className='flex-8'>
-                <label className='block text-sm font-medium mb-1'>
-                  Nome da Turma
-                </label>
-                <input
-                  type='text'
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className='w-full border border-gray-300 rounded px-3 py-2'
-                  placeholder='Ex: 3º Ano A'
-                  required
-                />
-              </div>
-
-              <div className='flex-2'>
-                <label className='block text-sm font-medium mb-1'>
-                  Ano Letivo
-                </label>
-                <select
-                  value={schoolYear ?? ''}
-                  onChange={(e) => setSchoolYear(e.target.value as SchoolYear)}
-                  className='w-full border border-gray-300 rounded px-3 py-2'
-                  required
-                >
-                  <option value=''>Selecione um ano letivo</option>
-                  {schoolYears?.map((year) => (
-                    <option key={year.value} value={year.value}>
-                      {year.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label className='block text-sm font-medium mb-1'>
+                Nome da Turma
+              </label>
+              <input
+                type='text'
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className='w-full border border-gray-300 rounded px-3 py-2'
+                placeholder='Ex: 3º Ano A'
+                required
+              />
             </div>
+
+            <div className='flex-2'>
+              <label className='block text-sm font-medium mb-1'>
+                Template de Livro
+              </label>
+              <select
+                value={bookTemplateId}
+                onChange={(e) => setBookTemplateId(e.target.value)}
+                className='w-full border border-gray-300 rounded px-3 py-2'
+                required
+              >
+                <option value=''>Selecione um template</option>
+                {bookTemplates?.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {bookTemplates && bookTemplates.length === 0 && (
+              <p className='text-sm text-red-600'>
+                Nenhum template de livro encontrado. Crie um template antes de
+                cadastrar turmas.
+              </p>
+            )}
 
             <div>
               <label className='block text-sm font-medium mt-4 mb-1'>
@@ -207,7 +209,11 @@ export function CreateClassDialog({
 
             <CreateClassButton
               type='submit'
-              disabled={createClassMutation.isPending}
+              disabled={
+                createClassMutation.isPending ||
+                !bookTemplateId ||
+                (bookTemplates?.length ?? 0) === 0
+              }
             >
               {createClassMutation.isPending ? 'Criando...' : 'Criar Turma'}
             </CreateClassButton>

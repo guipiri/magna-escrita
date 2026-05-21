@@ -60,6 +60,15 @@ export class NotFoundClassException extends NotFoundException {
   }
 }
 
+export class NotFoundBookTemplateException extends NotFoundException {
+  constructor() {
+    super({
+      key: ErrorKeys.NOT_FOUND_BOOK_TEMPLATE,
+      message: 'Book template not found',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
 export class BadRequestGradeNameAlreadyExistsException extends BadRequestException {
   constructor() {
     super({

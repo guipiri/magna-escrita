@@ -33,6 +33,7 @@ export interface ClassData {
   id: string;
   name: string;
   teacher: string;
+  bookTemplateName: string;
   studentCount: number;
   bookCount: number;
   booksCompleted: number;
@@ -174,7 +175,10 @@ export function ClassesList({
                   {classItem.schoolYear.replace('YEAR_', '')}
                 </span>
                 <span className='inline-flex items-center rounded-full border border-border/70 px-3 py-1 text-xs text-muted-foreground'>
-                  Professor {classItem.teacher}
+                  Profª {classItem.teacher}
+                </span>
+                <span className='inline-flex items-center rounded-full border border-border/70 px-3 py-1 text-xs text-muted-foreground'>
+                  Modelo: {classItem.bookTemplateName}
                 </span>
               </DataListMeta>
 
