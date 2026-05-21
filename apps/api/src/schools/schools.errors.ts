@@ -87,3 +87,12 @@ export class BadRequestNoValidUnitIdException extends BadRequestException {
     } satisfies HttpExceptionConstructor);
   }
 }
+
+export class ConflictExistingBooksException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.CONFLICT_EXISTING_BOOKS,
+      message: 'Cannot delete student with existing books',
+    } satisfies HttpExceptionConstructor);
+  }
+}

@@ -3,6 +3,8 @@ import {
   Building2,
   Users,
   BookOpen,
+  CalendarDays,
+  LayoutTemplate,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -23,7 +25,9 @@ export function Sidebar({ hasMultipleUnits = true }: SidebarProps) {
       ? [{ icon: Building2, label: 'Unidades Escolares', path: '/' }]
       : []),
     { icon: Users, label: 'Turmas', path: '/turmas' },
+    { icon: CalendarDays, label: 'Eventos', path: '/eventos' },
     { icon: BookOpen, label: 'Livros', path: '/livros' },
+    { icon: LayoutTemplate, label: 'Book Templates', path: '/book-templates' },
   ];
 
   return (

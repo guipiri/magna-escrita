@@ -6,8 +6,10 @@ import { OrdersModule } from './orders/orders.module.js';
 import { DbModule } from './db/db.module.js';
 import { validationSchema } from './config/validation.js';
 import { BooksModule } from './books/books.module.js';
+import { BookTemplatesModule } from './book-templates/book-templates.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { SchoolsModule } from './schools/schools.module.js';
+import { EventsModule } from './events/events.module.js';
 
 @Module({
   imports: [
@@ -21,9 +23,11 @@ import { SchoolsModule } from './schools/schools.module.js';
     }),
     DbModule,
     BooksModule,
+    BookTemplatesModule,
     OrdersModule,
     AuthModule,
     SchoolsModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

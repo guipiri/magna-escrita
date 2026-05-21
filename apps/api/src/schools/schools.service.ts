@@ -15,6 +15,7 @@ import {
   BadRequestGradeNameAlreadyExistsException,
   BadRequestMultipleUnitsAccessException,
   BadRequestNoValidUnitIdException,
+  ConflictExistingBooksException,
   NotFoundClassException,
   UnauthorizedUserNoAccessToUnitException,
 } from './schools.errors.js';
@@ -22,6 +23,8 @@ import { SchoolsMapper } from './schools.mapper.js';
 import { Prisma, SchoolYear as PrismaSchoolYear } from '@prisma/client';
 import { UnauthorizedAccessToCreateSchoolException } from '../auth/auth.erros.js';
 import { CreateSchoolDto } from './dto/create-school.dto.js';
+
+const DEFAULT_CLASS_BOOK_TEMPLATE_ID = 'book-template-default';
 
 @Injectable()
 export class SchoolsService {
@@ -59,16 +62,10 @@ export class SchoolsService {
         },
         enrollments: {
           select: {
-            bookEnrollments: {
+            books: {
               select: {
-                enrollmentId: true,
-                bookId: true,
-                book: {
-                  select: {
-                    id: true,
-                    status: true,
-                  },
-                },
+                id: true,
+                status: true,
               },
             },
           },
@@ -95,9 +92,9 @@ export class SchoolsService {
       // Count unique books by status
       const uniqueBooksByStatus = new Map<string, Set<string>>();
       _class.enrollments.forEach((enrollment) => {
-        enrollment.bookEnrollments.forEach((bookEnrollment) => {
-          const bookId = String(bookEnrollment.book.id);
-          const bookStatus = String(bookEnrollment.book.status);
+        enrollment.books.forEach((book) => {
+          const bookId = String(book.id);
+          const bookStatus = String(book.status);
 
           if (!uniqueBooksByStatus.has(bookStatus)) {
             uniqueBooksByStatus.set(bookStatus, new Set<string>());
@@ -195,11 +192,11 @@ export class SchoolsService {
                 updatedAt: true,
                 enrollments: {
                   select: {
-                    bookEnrollments: {
+                    id: true,
+                    books: {
                       select: {
-                        enrollmentId: true,
-                        bookId: true,
-                        book: { select: { id: true, status: true } },
+                        id: true,
+                        status: true,
                       },
                     },
                   },
@@ -228,15 +225,15 @@ export class SchoolsService {
           if (cls.updatedAt > lastActivity) lastActivity = cls.updatedAt;
 
           for (const enrollment of cls.enrollments) {
-            for (const be of enrollment.bookEnrollments) {
-              allBookIds.add(be.book.id);
+            for (const be of enrollment.books) {
+              allBookIds.add(be.id);
 
               const isCompleted =
                 user.role === UserRole.ADMIN
-                  ? be.book.status === 'READY'
-                  : be.book.status === 'FOR_REVIEW';
+                  ? be.status === 'READY'
+                  : be.status === 'FOR_REVIEW';
 
-              if (isCompleted) completedBookIds.add(be.book.id);
+              if (isCompleted) completedBookIds.add(be.id);
             }
           }
         }
@@ -340,6 +337,7 @@ export class SchoolsService {
         name,
         teacherName,
         unitId: unitIdtoUse,
+        bookTemplateId: DEFAULT_CLASS_BOOK_TEMPLATE_ID,
         schoolYear: SchoolsMapper.schoolYearDomainToPrisma(schoolYear),
       },
       select: {
@@ -428,9 +426,11 @@ export class SchoolsService {
       );
 
       if (toDelete.length > 0) {
-        await this.prisma.bookEnrollment.deleteMany({
+        const existingBooks = await this.prisma.book.count({
           where: { enrollmentId: { in: toDelete.map((e) => e.id) } },
         });
+        if (existingBooks > 0) throw new ConflictExistingBooksException();
+
         await this.prisma.enrollment.deleteMany({
           where: { id: { in: toDelete.map((e) => e.id) } },
         });
@@ -565,9 +565,14 @@ export class SchoolsService {
     );
 
     if (toDelete.length > 0) {
-      await this.prisma.bookEnrollment.deleteMany({
+      const hasExistingBooks = await this.prisma.book.findMany({
         where: { enrollmentId: { in: toDelete.map((e) => e.id) } },
       });
+
+      if (hasExistingBooks.length > 0) {
+        throw new ConflictExistingBooksException();
+      }
+
       await this.prisma.enrollment.deleteMany({
         where: { id: { in: toDelete.map((e) => e.id) } },
       });

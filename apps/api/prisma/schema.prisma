@@ -61,16 +61,19 @@ enum BookStatus {
 }
 
 model Book {
-  id              String           @id @default(cuid())
-  magnificCode    String           @unique
-  title           String
-  author          String
-  synopsis        String?
-  pages           Page[]
-  priceId         String
-  price           Price            @relation(fields: [priceId], references: [id])
-  bookEnrollments BookEnrollment[]
-  orderItems      OrderItem[]
+  id           String  @id @default(cuid())
+  magnificCode String  @unique
+  title        String?
+  author       String?
+  synopsis     String?
+  pages        Page[]
+  priceId      String
+  price        Price   @relation(fields: [priceId], references: [id])
+
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+  enrollmentId String
+
+  orderItems OrderItem[]
 
   authographsEvent   AuthographsEvent? @relation(fields: [authographsEventId], references: [id])
   authographsEventId String?
@@ -79,6 +82,31 @@ model Book {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model BookTemplate {
+  id   String @id @default(cuid())
+  name String
+
+  bookTemplatePages BookTemplatePage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  classes Class[]
+}
+
+model BookTemplatePage {
+  pageNumber Int
+  pageType   PageType
+
+  bookTemplateId String
+  bookTemplate   BookTemplate @relation(fields: [bookTemplateId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([bookTemplateId, pageNumber])
 }
 
 model OrderItem {
@@ -107,16 +135,18 @@ enum PageType {
 }
 
 model Page {
-  number       Int      @id
+  number       Int
   type         PageType
   textContent  String?
   drawImageUrl String?
   imageUrl     String?
-  book         Book?    @relation(fields: [bookId], references: [id])
-  bookId       String?
+  book         Book     @relation(fields: [bookId], references: [id])
+  bookId       String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@id([bookId, number])
 }
 
 model UserUnit {
@@ -141,28 +171,17 @@ model Student {
 }
 
 model Enrollment {
-  id              String           @id @default(cuid())
-  studentId       String
-  student         Student          @relation(fields: [studentId], references: [id])
-  bookEnrollments BookEnrollment[]
-  classId         String
-  class           Class            @relation(fields: [classId], references: [id])
-  age             Int?
+  id        String  @id @default(cuid())
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
+
+  classId String
+  class   Class  @relation(fields: [classId], references: [id])
+  age     Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model BookEnrollment {
-  enrollmentId String
-  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-  bookId       String
-  book         Book       @relation(fields: [bookId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([enrollmentId, bookId])
+  books     Book[]
 }
 
 enum SchoolYear {
@@ -180,6 +199,9 @@ model Class {
 
   schoolYear SchoolYear
 
+  bookTemplateId String
+  bookTemplate   BookTemplate @relation(fields: [bookTemplateId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -195,30 +217,44 @@ model AuthographsEventTimeline {
   updatedAt DateTime @updatedAt
 }
 
+enum AuthographsEventStatus {
+  PLANNED
+  ONGOING
+  COMPLETED
+  CANCELED
+}
+
 model AuthographsEvent {
   id         String     @id @default(cuid())
   name       String
   date       DateTime
   schoolYear SchoolYear
 
+  status AuthographsEventStatus @default(PLANNED)
+
   timeline AuthographsEventTimeline[]
-  unitId   String
-  unit     Unit                       @relation(fields: [unitId], references: [id])
+  books    Book[]
+
+  unit   Unit?   @relation(fields: [unitId], references: [id])
+  unitId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  books     Book[]
 }
 
 model Unit {
-  id                String             @id @default(cuid())
-  name              String?
-  logoUrl           String?
-  schoolId          String
-  school            School             @relation(fields: [schoolId], references: [id])
-  classes           Class[]
+  id      String  @id @default(cuid())
+  name    String?
+  logoUrl String?
+
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
+
+  classes Class[]
+
+  userUnits UserUnit[]
+
   authographsEvents AuthographsEvent[]
-  userUnits         UserUnit[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

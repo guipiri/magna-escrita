@@ -18,6 +18,8 @@ import { JSX } from 'react';
 import { UserRole } from '@repo/shared';
 import { MainLayout } from './components/layouts/main-layout';
 import Home from './pages/home';
+import { BookTemplatesPage } from './pages/book-templates';
+import { EventsPage } from './pages/events';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
@@ -70,6 +72,22 @@ const AppRoutes = () => (
           element={
             <RequireAuth>
               <ClassesPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path='/book-templates'
+          element={
+            <RequireAuth>
+              <BookTemplatesPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path='/eventos'
+          element={
+            <RequireAuth>
+              <EventsPage />
             </RequireAuth>
           }
         />

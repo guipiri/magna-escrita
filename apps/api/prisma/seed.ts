@@ -1,13 +1,14 @@
 import 'dotenv/config';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PageType, PrismaClient } from '@prisma/client';
+import { AuthographsEventStatus, PageType, PrismaClient } from '@prisma/client';
 
 const connectionString = `${process.env.DATABASE_URL}`;
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 const MOCK_SOFIA_MAGNIFIC_CODE = 'SOFIA-MAGICA-001';
+const DEFAULT_CLASS_BOOK_TEMPLATE_ID = 'book-template-default';
 
 const mockBookPages = [
   { number: 0, type: PageType.COVER, imageUrl: '/cover.png' },
@@ -83,140 +84,72 @@ async function main() {
 
   console.log(`✅ ${prices.length} preços criados/atualizados`);
 
-  // Criar/atualizar livros
-  const books = await Promise.all([
-    prisma.book.upsert({
-      where: { id: 'book-001' },
+  console.log('📑 Criando modelo padrão de turma...');
+  const defaultClassBookTemplate = await prisma.bookTemplate.upsert({
+    where: { id: DEFAULT_CLASS_BOOK_TEMPLATE_ID },
+    update: {
+      name: 'Modelo padrão de turma',
+    },
+    create: {
+      id: DEFAULT_CLASS_BOOK_TEMPLATE_ID,
+      name: 'Modelo padrão de turma',
+    },
+  });
+
+  await Promise.all([
+    prisma.bookTemplatePage.upsert({
+      where: {
+        bookTemplateId_pageNumber: {
+          bookTemplateId: defaultClassBookTemplate.id,
+          pageNumber: 0,
+        },
+      },
       update: {
-        id: 'book-001',
-        title: 'A Cidade das Palavras',
-        magnificCode: generateMagnificCode(),
-        author: 'Lia Monteiro',
-        synopsis:
-          'Um romance sobre memória, linguagem e os encontros improváveis que mudam uma vida.',
-        priceId: 'price-001',
+        pageType: PageType.COVER,
       },
       create: {
-        id: 'book-001',
-        title: 'A Cidade das Palavras',
-        magnificCode: generateMagnificCode(),
-        author: 'Lia Monteiro',
-        synopsis:
-          'Um romance sobre memória, linguagem e os encontros improváveis que mudam uma vida.',
-        priceId: 'price-001',
+        bookTemplateId: defaultClassBookTemplate.id,
+        pageNumber: 0,
+        pageType: PageType.COVER,
       },
     }),
-    prisma.book.upsert({
-      where: { id: 'book-002' },
+    prisma.bookTemplatePage.upsert({
+      where: {
+        bookTemplateId_pageNumber: {
+          bookTemplateId: defaultClassBookTemplate.id,
+          pageNumber: 1,
+        },
+      },
       update: {
-        id: 'book-002',
-        title: 'Código em Movimento',
-        magnificCode: generateMagnificCode(),
-        author: 'Rafael Cordeiro',
-        synopsis:
-          'Ensaios curtos sobre produto, software e a disciplina de construir coisas que duram.',
-        priceId: 'price-002',
+        pageType: PageType.TEXT,
       },
       create: {
-        id: 'book-002',
-        title: 'Código em Movimento',
-        magnificCode: generateMagnificCode(),
-        author: 'Rafael Cordeiro',
-        synopsis:
-          'Ensaios curtos sobre produto, software e a disciplina de construir coisas que duram.',
-        priceId: 'price-002',
+        bookTemplateId: defaultClassBookTemplate.id,
+        pageNumber: 1,
+        pageType: PageType.TEXT,
       },
     }),
-    prisma.book.upsert({
-      where: { id: 'book-003' },
+    prisma.bookTemplatePage.upsert({
+      where: {
+        bookTemplateId_pageNumber: {
+          bookTemplateId: defaultClassBookTemplate.id,
+          pageNumber: 2,
+        },
+      },
       update: {
-        id: 'book-003',
-        title: 'Mar de Tinta',
-        magnificCode: generateMagnificCode(),
-        author: 'Helena Vieira',
-        synopsis:
-          'Crônicas poéticas para leitura lenta, com capítulos que alternam mar, rua e silêncio.',
-        priceId: 'price-003',
+        pageType: PageType.BACK_COVER,
       },
       create: {
-        id: 'book-003',
-        title: 'Mar de Tinta',
-        magnificCode: generateMagnificCode(),
-        author: 'Helena Vieira',
-        synopsis:
-          'Crônicas poéticas para leitura lenta, com capítulos que alternam mar, rua e silêncio.',
-        priceId: 'price-003',
-      },
-    }),
-    prisma.book.upsert({
-      where: { id: 'book-004' },
-      update: {
-        id: 'book-004',
-        title: 'Atlas de Pequenas Revoluções',
-        magnificCode: generateMagnificCode(),
-        author: 'Nuno Azevedo',
-        synopsis:
-          'Uma coleção de histórias sobre mudanças discretas que alteram o curso de uma cidade.',
-        priceId: 'price-004',
-      },
-      create: {
-        id: 'book-004',
-        title: 'Atlas de Pequenas Revoluções',
-        magnificCode: generateMagnificCode(),
-        author: 'Nuno Azevedo',
-        synopsis:
-          'Uma coleção de histórias sobre mudanças discretas que alteram o curso de uma cidade.',
-        priceId: 'price-004',
-      },
-    }),
-    prisma.book.upsert({
-      where: { id: 'book-mock-sofia' },
-      update: {
-        title: 'As Aventuras Mágicas de Sofia',
-        magnificCode: MOCK_SOFIA_MAGNIFIC_CODE,
-        author: 'Sofia Maria, 7 anos',
-        synopsis:
-          'Uma história encantadora sobre uma menina que descobre um mundo mágico cheio de cores, amizade e aventuras incríveis. Escrito e ilustrado com todo o carinho por uma jovem autora.',
-        priceId: 'price-mock-sofia',
-      },
-      create: {
-        id: 'book-mock-sofia',
-        title: 'As Aventuras Mágicas de Sofia',
-        magnificCode: MOCK_SOFIA_MAGNIFIC_CODE,
-        author: 'Sofia Maria, 7 anos',
-        synopsis:
-          'Uma história encantadora sobre uma menina que descobre um mundo mágico cheio de cores, amizade e aventuras incríveis. Escrito e ilustrado com todo o carinho por uma jovem autora.',
-        priceId: 'price-mock-sofia',
+        bookTemplateId: defaultClassBookTemplate.id,
+        pageNumber: 2,
+        pageType: PageType.BACK_COVER,
       },
     }),
   ]);
 
-  console.log(`✅ ${books.length} livros criados/atualizados`);
+  console.log('✅ Modelo padrão de turma criado/atualizado');
 
-  await Promise.all(
-    mockBookPages.map((page) =>
-      prisma.page.upsert({
-        where: { number: page.number },
-        update: {
-          type: page.type,
-          imageUrl: page.imageUrl,
-          bookId: 'book-mock-sofia',
-        },
-        create: {
-          number: page.number,
-          type: page.type,
-          imageUrl: page.imageUrl,
-          bookId: 'book-mock-sofia',
-        },
-      }),
-    ),
-  );
-
-  console.log(`✅ ${mockBookPages.length} páginas mock criadas/atualizadas`);
-  console.log('📚 Livros no banco:');
-  books.forEach((book) => {
-    console.log(`  - ${book.title} (${book.author}) - R$ ${book.id}`);
-  });
+  // livros will be created after classes and enrollments are available
 
   // Criar/atualizar escolas
   console.log('\n🏫 Iniciando seed de escolas...');
@@ -292,6 +225,187 @@ async function main() {
 
   console.log(`✅ ${units.length} unidades criadas/atualizadas`);
 
+  // Criar classe, aluno e matrícula (enrollment) necessários para os livros
+  const klass = await prisma.class.upsert({
+    where: { id: 'class-001' },
+    update: {},
+    create: {
+      id: 'class-001',
+      name: 'Turma A',
+      teacherName: 'Prof. Exemplo',
+      unitId: 'unit-001',
+      bookTemplateId: DEFAULT_CLASS_BOOK_TEMPLATE_ID,
+      schoolYear: 'YEAR_2026',
+    },
+  });
+
+  const student = await prisma.student.upsert({
+    where: { id: 'student-001' },
+    update: { name: 'Sofia Maria' },
+    create: { id: 'student-001', name: 'Sofia Maria' },
+  });
+
+  const enrollment = await prisma.enrollment.upsert({
+    where: { id: 'enrollment-001' },
+    update: {},
+    create: {
+      id: 'enrollment-001',
+      studentId: student.id,
+      classId: klass.id,
+      age: 7,
+    },
+  });
+
+  // Criar/atualizar livros (agora que enrollment/class/unit existem)
+  const books = await Promise.all([
+    prisma.book.upsert({
+      where: { id: 'book-001' },
+      update: {
+        id: 'book-001',
+        title: 'A Cidade das Palavras',
+        enrollmentId: enrollment.id,
+        magnificCode: generateMagnificCode(),
+        author: 'Lia Monteiro',
+        synopsis:
+          'Um romance sobre memória, linguagem e os encontros improváveis que mudam uma vida.',
+        priceId: 'price-001',
+      },
+      create: {
+        id: 'book-001',
+        title: 'A Cidade das Palavras',
+        enrollmentId: enrollment.id,
+        magnificCode: generateMagnificCode(),
+        author: 'Lia Monteiro',
+        synopsis:
+          'Um romance sobre memória, linguagem e os encontros improváveis que mudam uma vida.',
+        priceId: 'price-001',
+      },
+    }),
+    prisma.book.upsert({
+      where: { id: 'book-002' },
+      update: {
+        id: 'book-002',
+        title: 'Código em Movimento',
+        enrollmentId: enrollment.id,
+        magnificCode: generateMagnificCode(),
+        author: 'Rafael Cordeiro',
+        synopsis:
+          'Ensaios curtos sobre produto, software e a disciplina de construir coisas que duram.',
+        priceId: 'price-002',
+      },
+      create: {
+        id: 'book-002',
+        title: 'Código em Movimento',
+        enrollmentId: enrollment.id,
+        magnificCode: generateMagnificCode(),
+        author: 'Rafael Cordeiro',
+        synopsis:
+          'Ensaios curtos sobre produto, software e a disciplina de construir coisas que duram.',
+        priceId: 'price-002',
+      },
+    }),
+    prisma.book.upsert({
+      where: { id: 'book-003' },
+      update: {
+        id: 'book-003',
+        title: 'Mar de Tinta',
+        enrollmentId: enrollment.id,
+        magnificCode: generateMagnificCode(),
+        author: 'Helena Vieira',
+        synopsis:
+          'Crônicas poéticas para leitura lenta, com capítulos que alternam mar, rua e silêncio.',
+        priceId: 'price-003',
+      },
+      create: {
+        id: 'book-003',
+        title: 'Mar de Tinta',
+        enrollmentId: enrollment.id,
+        magnificCode: generateMagnificCode(),
+        author: 'Helena Vieira',
+        synopsis:
+          'Crônicas poéticas para leitura lenta, com capítulos que alternam mar, rua e silêncio.',
+        priceId: 'price-003',
+      },
+    }),
+    prisma.book.upsert({
+      where: { id: 'book-004' },
+      update: {
+        id: 'book-004',
+        title: 'Atlas de Pequenas Revoluções',
+        enrollmentId: enrollment.id,
+        magnificCode: generateMagnificCode(),
+        author: 'Nuno Azevedo',
+        synopsis:
+          'Uma coleção de histórias sobre mudanças discretas que alteram o curso de uma cidade.',
+        priceId: 'price-004',
+      },
+      create: {
+        id: 'book-004',
+        title: 'Atlas de Pequenas Revoluções',
+        enrollmentId: enrollment.id,
+        magnificCode: generateMagnificCode(),
+        author: 'Nuno Azevedo',
+        synopsis:
+          'Uma coleção de histórias sobre mudanças discretas que alteram o curso de uma cidade.',
+        priceId: 'price-004',
+      },
+    }),
+    prisma.book.upsert({
+      where: { id: 'book-mock-sofia' },
+      update: {
+        title: 'As Aventuras Mágicas de Sofia',
+        magnificCode: MOCK_SOFIA_MAGNIFIC_CODE,
+        enrollmentId: enrollment.id,
+        author: 'Sofia Maria, 7 anos',
+        synopsis:
+          'Uma história encantadora sobre uma menina que descobre um mundo mágico cheio de cores, amizade e aventuras incríveis. Escrito e ilustrado com todo o carinho por uma jovem autora.',
+        priceId: 'price-mock-sofia',
+      },
+      create: {
+        id: 'book-mock-sofia',
+        title: 'As Aventuras Mágicas de Sofia',
+        magnificCode: MOCK_SOFIA_MAGNIFIC_CODE,
+        enrollmentId: enrollment.id,
+        author: 'Sofia Maria, 7 anos',
+        synopsis:
+          'Uma história encantadora sobre uma menina que descobre um mundo mágico cheio de cores, amizade e aventuras incríveis. Escrito e ilustrado com todo o carinho por uma jovem autora.',
+        priceId: 'price-mock-sofia',
+      },
+    }),
+  ]);
+
+  console.log(`✅ ${books.length} livros criados/atualizados`);
+
+  await Promise.all(
+    mockBookPages.map((page) =>
+      prisma.page.upsert({
+        where: {
+          bookId_number: {
+            bookId: 'book-mock-sofia',
+            number: page.number,
+          },
+        },
+        update: {
+          type: page.type,
+          imageUrl: page.imageUrl,
+          bookId: 'book-mock-sofia',
+        },
+        create: {
+          number: page.number,
+          type: page.type,
+          imageUrl: page.imageUrl,
+          bookId: 'book-mock-sofia',
+        },
+      }),
+    ),
+  );
+
+  console.log(`✅ ${mockBookPages.length} páginas mock criadas/atualizadas`);
+  console.log('📚 Livros no banco:');
+  books.forEach((book) => {
+    console.log(`  - ${book.title} (${book.author}) - ${book.magnificCode}`);
+  });
+
   // Upsert do usuário
   console.log('👤 Criando/atualizando usuário...');
   const user = await prisma.user.upsert({
@@ -359,9 +473,88 @@ async function main() {
   console.log(
     `✅ ${userUnits.length} associações de usuário-unidade criadas/atualizadas`,
   );
+
+  console.log('\n🎫 Criando/atualizando eventos...');
+  const events = await Promise.all([
+    prisma.authographsEvent.upsert({
+      where: { id: 'event-001' },
+      update: {
+        name: 'Sessão de autógrafos - Unidade Centro',
+        date: new Date('2026-05-28T14:00:00.000Z'),
+        schoolYear: 'YEAR_2026',
+        status: AuthographsEventStatus.PLANNED,
+        unitId: 'unit-001',
+      },
+      create: {
+        id: 'event-001',
+        name: 'Sessão de autógrafos - Unidade Centro',
+        date: new Date('2026-05-28T14:00:00.000Z'),
+        schoolYear: 'YEAR_2026',
+        status: AuthographsEventStatus.PLANNED,
+        unitId: 'unit-001',
+      },
+    }),
+    prisma.authographsEvent.upsert({
+      where: { id: 'event-002' },
+      update: {
+        name: 'Evento em andamento - Unidade Zona Oeste',
+        date: new Date('2026-05-21T13:00:00.000Z'),
+        schoolYear: 'YEAR_2026',
+        status: AuthographsEventStatus.ONGOING,
+        unitId: 'unit-002',
+      },
+      create: {
+        id: 'event-002',
+        name: 'Evento em andamento - Unidade Zona Oeste',
+        date: new Date('2026-05-21T13:00:00.000Z'),
+        schoolYear: 'YEAR_2026',
+        status: AuthographsEventStatus.ONGOING,
+        unitId: 'unit-002',
+      },
+    }),
+    prisma.authographsEvent.upsert({
+      where: { id: 'event-003' },
+      update: {
+        name: 'Evento concluído - Unidade Centro',
+        date: new Date('2026-04-18T10:00:00.000Z'),
+        schoolYear: 'YEAR_2026',
+        status: AuthographsEventStatus.COMPLETED,
+        unitId: 'unit-003',
+      },
+      create: {
+        id: 'event-003',
+        name: 'Evento concluído - Unidade Centro',
+        date: new Date('2026-04-18T10:00:00.000Z'),
+        schoolYear: 'YEAR_2026',
+        status: AuthographsEventStatus.COMPLETED,
+        unitId: 'unit-003',
+      },
+    }),
+    prisma.authographsEvent.upsert({
+      where: { id: 'event-004' },
+      update: {
+        name: 'Evento cancelado - Unidade Saúde',
+        date: new Date('2026-03-10T09:00:00.000Z'),
+        schoolYear: 'YEAR_2026',
+        status: AuthographsEventStatus.CANCELED,
+        unitId: 'unit-004',
+      },
+      create: {
+        id: 'event-004',
+        name: 'Evento cancelado - Unidade Saúde',
+        date: new Date('2026-03-10T09:00:00.000Z'),
+        schoolYear: 'YEAR_2026',
+        status: AuthographsEventStatus.CANCELED,
+        unitId: 'unit-004',
+      },
+    }),
+  ]);
+
+  console.log(`✅ ${events.length} eventos criados/atualizados`);
   console.log(`\n📋 Resumo do seed:`);
   console.log(`  Escolas: ${schools.length}`);
   console.log(`  Unidades: ${units.length}`);
+  console.log(`  Eventos: ${events.length}`);
   console.log(`  Usuário: ${user.email} (${user.role})`);
   console.log(`  Unidades do usuário: ${userUnits.length}`);
 }

@@ -29,11 +29,15 @@ export const errorMessages: Record<ErrorKeys, string> = {
   BAD_REQUEST_MULTIPLE_UNITS_ACCESS:
     'Usuário tem acesso a múltiplas unidades. Selecione uma unidade para continuar.',
   BAD_REQUEST_NO_VALID_UNIT_ID: 'Nenhuma unidade válida encontrada.',
+  CONFLICT_EVENT_ALREADY_ACTIVE:
+    'Já existe um evento planejado ou em andamento para esta unidade.',
 
   UNAUTHORIZED_USER_NO_ACCESS_TO_UNIT:
     'Usuário não tem acesso à unidade selecionada.',
   BAD_REQUEST_GRADE_NAME_ALREADY_EXISTS:
     'Já existe uma turma com esse nome nesta unidade.',
+
+  CONFLICT_EXISTING_BOOKS: 'Já existem livros associados ao registro.',
 
   CREATE_PIX_ORDER_FAILED: 'Falha ao criar pedido PIX.',
   CREATE_CARD_ORDER_FAILED: 'Falha ao criar pedido com cartão de crédito.',

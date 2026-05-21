@@ -1,9 +1,20 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Header } from './header';
 import { Sidebar } from './sidebar';
 import { Breadcrumb } from './breadcrumb';
 
 export function MainLayout() {
+  const { pathname } = useLocation();
+
+  const breadcrumbItems = [
+    { label: 'Início', href: '/' },
+    ...(pathname === '/turmas'
+      ? [{ label: 'Turmas' }]
+      : pathname === '/eventos'
+        ? [{ label: 'Eventos' }]
+        : []),
+  ];
+
   return (
     <div className='flex h-screen bg-background'>
       {/* Sidebar */}
@@ -19,7 +30,7 @@ export function MainLayout() {
         />
 
         {/* Breadcrumb */}
-        <Breadcrumb items={[{ label: 'Início', href: '/' }]} />
+        <Breadcrumb items={breadcrumbItems} />
         <Outlet />
       </div>
     </div>

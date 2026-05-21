@@ -13,6 +13,9 @@ CREATE TYPE "PageType" AS ENUM ('COVER', 'TEXT', 'DRAW', 'DRAW_TEXT', 'BLANK', '
 -- CreateEnum
 CREATE TYPE "SchoolYear" AS ENUM ('2026', '2027');
 
+-- CreateEnum
+CREATE TYPE "AuthographsEventStatus" AS ENUM ('PLANNED', 'ONGOING', 'COMPLETED', 'CANCELED');
+
 -- CreateTable
 CREATE TABLE "Order" (
     "id" TEXT NOT NULL,
@@ -48,16 +51,38 @@ CREATE TABLE "Price" (
 CREATE TABLE "Book" (
     "id" TEXT NOT NULL,
     "magnificCode" TEXT NOT NULL,
-    "title" TEXT NOT NULL,
-    "author" TEXT NOT NULL,
+    "title" TEXT,
+    "author" TEXT,
     "synopsis" TEXT,
     "priceId" TEXT NOT NULL,
+    "enrollmentId" TEXT NOT NULL,
     "authographsEventId" TEXT,
     "status" "BookStatus" NOT NULL DEFAULT 'DRAFT',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Book_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "BookTemplate" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "BookTemplate_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "BookTemplatePage" (
+    "pageNumber" INTEGER NOT NULL,
+    "pageType" "PageType" NOT NULL,
+    "bookTemplateId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "BookTemplatePage_pkey" PRIMARY KEY ("bookTemplateId","pageNumber")
 );
 
 -- CreateTable
@@ -77,11 +102,11 @@ CREATE TABLE "Page" (
     "textContent" TEXT,
     "drawImageUrl" TEXT,
     "imageUrl" TEXT,
-    "bookId" TEXT,
+    "bookId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Page_pkey" PRIMARY KEY ("number")
+    CONSTRAINT "Page_pkey" PRIMARY KEY ("bookId","number")
 );
 
 -- CreateTable
@@ -117,20 +142,13 @@ CREATE TABLE "Enrollment" (
 );
 
 -- CreateTable
-CREATE TABLE "BookEnrollment" (
-    "enrollmentId" TEXT NOT NULL,
-    "bookId" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL
-);
-
--- CreateTable
 CREATE TABLE "Class" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "teacherName" TEXT NOT NULL,
     "unitId" TEXT NOT NULL,
     "schoolYear" "SchoolYear" NOT NULL,
+    "bookTemplateId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -155,7 +173,8 @@ CREATE TABLE "AuthographsEvent" (
     "name" TEXT NOT NULL,
     "date" TIMESTAMP(3) NOT NULL,
     "schoolYear" "SchoolYear" NOT NULL,
-    "unitId" TEXT NOT NULL,
+    "status" "AuthographsEventStatus" NOT NULL DEFAULT 'PLANNED',
+    "unitId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -211,9 +230,6 @@ CREATE UNIQUE INDEX "OrderItem_orderId_bookId_key" ON "OrderItem"("orderId", "bo
 CREATE UNIQUE INDEX "UserUnit_userId_unitId_key" ON "UserUnit"("userId", "unitId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "BookEnrollment_enrollmentId_bookId_key" ON "BookEnrollment"("enrollmentId", "bookId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "User_googleId_key" ON "User"("googleId");
 
 -- CreateIndex
@@ -226,7 +242,13 @@ ALTER TABLE "Order" ADD CONSTRAINT "Order_userId_fkey" FOREIGN KEY ("userId") RE
 ALTER TABLE "Book" ADD CONSTRAINT "Book_priceId_fkey" FOREIGN KEY ("priceId") REFERENCES "Price"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Book" ADD CONSTRAINT "Book_enrollmentId_fkey" FOREIGN KEY ("enrollmentId") REFERENCES "Enrollment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Book" ADD CONSTRAINT "Book_authographsEventId_fkey" FOREIGN KEY ("authographsEventId") REFERENCES "AuthographsEvent"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "BookTemplatePage" ADD CONSTRAINT "BookTemplatePage_bookTemplateId_fkey" FOREIGN KEY ("bookTemplateId") REFERENCES "BookTemplate"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -235,7 +257,7 @@ ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_orderId_fkey" FOREIGN KEY ("or
 ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_bookId_fkey" FOREIGN KEY ("bookId") REFERENCES "Book"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Page" ADD CONSTRAINT "Page_bookId_fkey" FOREIGN KEY ("bookId") REFERENCES "Book"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Page" ADD CONSTRAINT "Page_bookId_fkey" FOREIGN KEY ("bookId") REFERENCES "Book"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "UserUnit" ADD CONSTRAINT "UserUnit_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -250,19 +272,16 @@ ALTER TABLE "Enrollment" ADD CONSTRAINT "Enrollment_studentId_fkey" FOREIGN KEY 
 ALTER TABLE "Enrollment" ADD CONSTRAINT "Enrollment_classId_fkey" FOREIGN KEY ("classId") REFERENCES "Class"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "BookEnrollment" ADD CONSTRAINT "BookEnrollment_enrollmentId_fkey" FOREIGN KEY ("enrollmentId") REFERENCES "Enrollment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "BookEnrollment" ADD CONSTRAINT "BookEnrollment_bookId_fkey" FOREIGN KEY ("bookId") REFERENCES "Book"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Class" ADD CONSTRAINT "Class_unitId_fkey" FOREIGN KEY ("unitId") REFERENCES "Unit"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Class" ADD CONSTRAINT "Class_bookTemplateId_fkey" FOREIGN KEY ("bookTemplateId") REFERENCES "BookTemplate"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "AuthographsEventTimeline" ADD CONSTRAINT "AuthographsEventTimeline_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "AuthographsEvent"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AuthographsEvent" ADD CONSTRAINT "AuthographsEvent_unitId_fkey" FOREIGN KEY ("unitId") REFERENCES "Unit"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "AuthographsEvent" ADD CONSTRAINT "AuthographsEvent_unitId_fkey" FOREIGN KEY ("unitId") REFERENCES "Unit"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Unit" ADD CONSTRAINT "Unit_schoolId_fkey" FOREIGN KEY ("schoolId") REFERENCES "School"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
