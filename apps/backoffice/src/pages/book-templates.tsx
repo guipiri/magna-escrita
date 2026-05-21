@@ -19,7 +19,7 @@ import { BOOK_PAGE_TYPES } from '@repo/shared';
 import {
   createBookTemplate,
   getBookTemplates,
-} from '../services/book-template-service';
+} from '../services/book-templates-service';
 
 const PAGE_TYPE_LABELS: Record<string, string> = {
   COVER: 'Capa',
@@ -54,7 +54,7 @@ function TemplateCard({ template }: { template: BookTemplateResponse }) {
         className='w-full text-left px-5 py-4 flex items-center justify-between gap-4 hover:bg-accent/50 transition-colors'
       >
         <div className='flex items-center gap-3 min-w-0'>
-          <span className='flex-shrink-0 w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center'>
+          <span className='shrink-0 w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center'>
             <BookOpen className='w-4 h-4 text-violet-600' />
           </span>
           <div className='min-w-0'>
@@ -68,9 +68,9 @@ function TemplateCard({ template }: { template: BookTemplateResponse }) {
           </div>
         </div>
         {expanded ? (
-          <ChevronUp className='w-4 h-4 text-muted-foreground flex-shrink-0' />
+          <ChevronUp className='w-4 h-4 text-muted-foreground shrink-0' />
         ) : (
-          <ChevronDown className='w-4 h-4 text-muted-foreground flex-shrink-0' />
+          <ChevronDown className='w-4 h-4 text-muted-foreground shrink-0' />
         )}
       </button>
 
@@ -157,8 +157,7 @@ function CreateTemplatePanel({
   });
 
   const addPage = () => {
-    const next =
-      pages.length > 0 ? pages[pages.length - 1].pageNumber + 1 : 1;
+    const next = pages.length > 0 ? pages[pages.length - 1].pageNumber + 1 : 1;
     setPages((prev) => [...prev, { pageNumber: next, pageType: 'TEXT' }]);
   };
 
@@ -274,7 +273,7 @@ function CreateTemplatePanel({
                         key={idx}
                         className='flex items-center gap-2 p-2 rounded-lg border border-border bg-muted/30'
                       >
-                        <span className='w-7 text-center text-xs font-mono text-muted-foreground flex-shrink-0'>
+                        <span className='w-7 text-center text-xs font-mono text-muted-foreground shrink-0'>
                           {page.pageNumber}
                         </span>
                         <select
@@ -305,7 +304,7 @@ function CreateTemplatePanel({
 
                 {formError && (
                   <div className='flex items-center gap-2 text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2'>
-                    <AlertCircle className='w-4 h-4 flex-shrink-0' />
+                    <AlertCircle className='w-4 h-4 shrink-0' />
                     {formError}
                   </div>
                 )}
@@ -360,7 +359,7 @@ export function BookTemplatesPage() {
             <button
               type='button'
               onClick={() => setPanelOpen(true)}
-              className='inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium shadow-sm hover:opacity-90 transition-opacity flex-shrink-0'
+              className='inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium shadow-sm hover:opacity-90 transition-opacity shrink-0'
             >
               <Plus className='w-4 h-4' />
               Novo Template

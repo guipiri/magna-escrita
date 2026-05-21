@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getClasses } from '../services/schools-service';
+import { getClasses } from '../services/classes-service';
 import { ClassesList, ClassData } from '../components/classes/classes-list';
 import { CreateClassDialog } from '../components/classes/create-class-dialog';
 import { CreateClassButton } from '../components/classes/create-class-button';

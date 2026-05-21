@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useSnackbar } from 'notistack';
-import { updateClass, getClassStudents } from '../../services/schools-service';
+import { updateClass, getClassStudents } from '../../services/classes-service';
 import { getErrorMessage } from '../../services/error-messages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';

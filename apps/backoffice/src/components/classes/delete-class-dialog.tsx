@@ -10,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../ui/alert-dialog';
-import { deleteClass } from '../../services/schools-service';
+import { deleteClass } from '../../services/classes-service';
 
 export function DeleteClassDialog({
   deletingClass,

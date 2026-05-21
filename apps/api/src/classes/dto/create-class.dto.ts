@@ -1,7 +1,7 @@
 import { IsString, IsArray, ArrayMinSize, IsNotEmpty } from 'class-validator';
 import { CreateClassRequest } from '@repo/shared';
 
-export class CreateGradeDto implements CreateClassRequest {
+export class CreateClassDto implements CreateClassRequest {
   @IsString()
   @IsNotEmpty()
   name!: string;

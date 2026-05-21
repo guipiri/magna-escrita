@@ -9,6 +9,7 @@ import { BooksModule } from './books/books.module.js';
 import { BookTemplatesModule } from './book-templates/book-templates.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { SchoolsModule } from './schools/schools.module.js';
+import { ClassesModule } from './classes/classes.module.js';
 import { EventsModule } from './events/events.module.js';
 
 @Module({
@@ -27,6 +28,7 @@ import { EventsModule } from './events/events.module.js';
     OrdersModule,
     AuthModule,
     SchoolsModule,
+    ClassesModule,
     EventsModule,
   ],
   controllers: [AppController],

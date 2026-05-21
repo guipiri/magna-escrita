@@ -1,11 +1,12 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { SubmitEvent, useEffect, useState } from 'react';
 import { useSnackbar } from 'notistack';
-import { createClass, getSchoolUnits } from '../../services/schools-service';
+import { getSchoolUnits } from '../../services/schools-service';
 import { getBookTemplates } from '../../services/book-templates-service';
 import { getErrorMessage } from '../../services/error-messages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { CreateClassButton } from './create-class-button';
+import { createClass } from '../../services/classes-service';
 
 export function CreateClassDialog({
   onClose,
