@@ -43,6 +43,13 @@ export const errorMessages: Record<ErrorKeys, string> = {
   CREATE_PIX_ORDER_FAILED: 'Falha ao criar pedido PIX.',
   CREATE_CARD_ORDER_FAILED: 'Falha ao criar pedido com cartão de crédito.',
 
+  NOT_FOUND_PDF_CLASS: 'Turma não encontrada.',
+  NOT_FOUND_PDF_NO_ELIGIBLE_PAGES:
+    'O template desta turma não possui páginas elegíveis para o PDF (DRAW, DRAW_TEXT ou TEXT).',
+  NOT_FOUND_PDF_NO_ENROLLMENTS: 'Esta turma não possui alunos matriculados.',
+  NOT_FOUND_PDF_NO_ACTIVE_EVENT:
+    'Não há evento ativo para a unidade desta turma no ano letivo vigente.',
+
   UNKNOWN_ERROR: 'Ocorreu um erro desconhecido. Tente novamente mais tarde.',
 };
 

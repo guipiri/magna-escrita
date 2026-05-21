@@ -241,10 +241,10 @@ export class ClassesService {
 
   async updateClass(
     id: string,
-    payload: { name: string; teacherName: string; students?: UpdateClassStudentItem[] },
+    payload: { name: string; teacherName: string; bookTemplateId?: string; students?: UpdateClassStudentItem[] },
     user: AuthUser,
   ) {
-    const { name, teacherName, students } = payload;
+    const { name, teacherName, bookTemplateId, students } = payload;
 
     const existingClass = await this.prisma.class.findUnique({
       where: { id },
@@ -313,8 +313,12 @@ export class ClassesService {
 
     const updated = await this.prisma.class.update({
       where: { id },
-      data: { name, teacherName },
-      select: { id: true, name: true, teacherName: true },
+      data: {
+        name,
+        teacherName,
+        ...(bookTemplateId ? { bookTemplateId } : {}),
+      },
+      select: { id: true, name: true, teacherName: true, bookTemplateId: true },
     });
 
     return updated;

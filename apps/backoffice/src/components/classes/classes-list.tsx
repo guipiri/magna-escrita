@@ -1,9 +1,12 @@
 import { useMemo } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import {
   BookOpen,
   Edit,
   Eye,
+  FileDown,
   GraduationCap,
+  Loader2,
   MoreHorizontal,
   Trash2,
   Users,
@@ -28,12 +31,16 @@ import {
   DataListTitle,
 } from '../ui/data-list';
 import { ClassesEmptyState } from './empty-state';
+import { downloadClassPdf } from '../../services/classes-service';
+import { useSnackbar } from 'notistack';
+import { getErrorMessage } from '../../services/error-messages';
 
 export interface ClassData {
   id: string;
   name: string;
   teacher: string;
   bookTemplateName: string;
+  bookTemplateId: string;
   studentCount: number;
   bookCount: number;
   booksCompleted: number;
@@ -61,6 +68,21 @@ export function ClassesList({
   onDelete,
   onAddClass,
 }: ClassesListProps) {
+  const { enqueueSnackbar } = useSnackbar();
+
+  const pdfMutation = useMutation({
+    mutationFn: downloadClassPdf,
+    onError: (error) => {
+      const message = getErrorMessage(error);
+      console.log(message);
+
+      enqueueSnackbar(message, { variant: 'error' });
+    },
+    onSuccess: () => {
+      enqueueSnackbar('PDF gerado com sucesso!', { variant: 'success' });
+    },
+  });
+
   const totalBooks = useMemo(
     () => classes.reduce((sum, classItem) => sum + classItem.bookCount, 0),
     [classes],
@@ -183,6 +205,24 @@ export function ClassesList({
               </DataListMeta>
 
               <DataListActions>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  disabled={pdfMutation.isPending}
+                  onClick={() => pdfMutation.mutate(classItem.id)}
+                  aria-label={`Baixar PDF da turma ${classItem.name}`}
+                >
+                  {pdfMutation.isPending &&
+                  pdfMutation.variables === classItem.id ? (
+                    <Loader2 className='h-4 w-4 animate-spin' />
+                  ) : (
+                    <FileDown className='h-4 w-4' />
+                  )}
+                  {pdfMutation.isPending &&
+                  pdfMutation.variables === classItem.id
+                    ? 'Gerando...'
+                    : 'Baixar PDF'}
+                </Button>
                 <Button
                   variant='outline'
                   size='sm'

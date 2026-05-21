@@ -56,3 +56,18 @@ export const updateClassStudents = async (
   );
   return response.data;
 };
+
+export const downloadClassPdf = async (classId: string): Promise<void> => {
+  const response = await api.get<Blob>(`/pdf/class/${classId}`, {
+    responseType: 'blob',
+  });
+
+  const url = URL.createObjectURL(response.data);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'autografos.pdf';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};

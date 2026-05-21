@@ -64,6 +64,9 @@ export class EventsService {
     body: CreateEventRequest,
     user: AuthUser,
   ): Promise<EventResponse> {
+    if (user.role !== UserRole.ADMIN)
+      throw new UnauthorizedUserNoAccessToUnitException();
+
     const unit = await this.prisma.unit.findUnique({
       where: { id: body.unitId },
       select: {
@@ -78,9 +81,7 @@ export class EventsService {
       },
     });
 
-    if (!unit) {
-      throw new NotFoundUnitException();
-    }
+    if (!unit) throw new NotFoundUnitException();
 
     if (user.role !== UserRole.ADMIN) {
       const access = await this.prisma.userUnit.findFirst({
@@ -91,9 +92,7 @@ export class EventsService {
         select: { id: true },
       });
 
-      if (!access) {
-        throw new UnauthorizedUserNoAccessToUnitException();
-      }
+      if (!access) throw new UnauthorizedUserNoAccessToUnitException();
     }
 
     const activeEvent = await this.prisma.authographsEvent.findFirst({
@@ -106,9 +105,7 @@ export class EventsService {
       select: { id: true },
     });
 
-    if (activeEvent) {
-      throw new ConflictEventAlreadyActiveException(unit.name);
-    }
+    if (activeEvent) throw new ConflictEventAlreadyActiveException(unit.name);
 
     const event = await this.prisma.authographsEvent.create({
       data: {

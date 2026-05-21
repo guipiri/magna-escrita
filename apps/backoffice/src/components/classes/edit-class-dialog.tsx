@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useSnackbar } from 'notistack';
 import { updateClass, getClassStudents } from '../../services/classes-service';
+import { getBookTemplates } from '../../services/book-templates-service';
 import { getErrorMessage } from '../../services/error-messages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
@@ -22,15 +23,19 @@ export function EditClassDialog({
   classId,
   className: initialName,
   teacherName: initialTeacherName,
+  bookTemplateId: initialBookTemplateId,
 }: {
   onClose?: () => void;
   isOpen: boolean;
   classId: string;
   className: string;
   teacherName: string;
+  bookTemplateId: string;
+  bookTemplateName: string;
 }) {
   const [name, setName] = useState(initialName);
   const [teacherName, setTeacherName] = useState(initialTeacherName);
+  const [bookTemplateId, setBookTemplateId] = useState(initialBookTemplateId);
   const [students, setStudents] = useState<StudentInput[]>([]);
   const queryClient = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
@@ -41,10 +46,17 @@ export function EditClassDialog({
     enabled: isOpen && !!classId,
   });
 
+  const { data: bookTemplates } = useQuery({
+    queryKey: ['book-templates'],
+    queryFn: getBookTemplates,
+    enabled: isOpen,
+  });
+
   useEffect(() => {
     if (fetchedStudents) {
       setName(initialName);
       setTeacherName(initialTeacherName);
+      setBookTemplateId(initialBookTemplateId);
       setStudents(
         fetchedStudents.map((s) => ({
           tempId: nextTempId(),
@@ -53,12 +65,13 @@ export function EditClassDialog({
         })),
       );
     }
-  }, [fetchedStudents, initialName, initialTeacherName]);
+  }, [fetchedStudents, initialName, initialTeacherName, initialBookTemplateId]);
 
   const updateMutation = useMutation({
     mutationFn: (data: {
       name: string;
       teacherName: string;
+      bookTemplateId?: string;
       students: Array<{ id?: string; name: string }>;
     }) => updateClass(classId, data),
     onSuccess: () => {
@@ -102,7 +115,7 @@ export function EditClassDialog({
         name: s.name.trim(),
       }));
 
-    updateMutation.mutate({ name, teacherName, students: studentsPayload });
+    updateMutation.mutate({ name, teacherName, bookTemplateId, students: studentsPayload });
   };
 
   const allSaved = updateMutation.isSuccess;
@@ -147,6 +160,25 @@ export function EditClassDialog({
                   placeholder='Ex: 3º Ano A'
                   required
                 />
+              </div>
+
+              <div>
+                <label className='block text-sm font-medium mb-1'>
+                  Template de Livro
+                </label>
+                <select
+                  value={bookTemplateId}
+                  onChange={(e) => setBookTemplateId(e.target.value)}
+                  className='w-full border border-gray-300 rounded px-3 py-2'
+                  required
+                >
+                  <option value=''>Selecione um template</option>
+                  {bookTemplates?.map((template) => (
+                    <option key={template.id} value={template.id}>
+                      {template.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

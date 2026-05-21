@@ -10,6 +10,7 @@ export interface GetSchoolsResponse {
 export interface UpdateClassRequest {
   name: string;
   teacherName: string;
+  bookTemplateId?: string;
   students?: UpdateClassStudentItem[];
 }
 

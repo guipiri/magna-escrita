@@ -10,6 +10,10 @@ export class UpdateClassDto implements UpdateClassRequest {
   @IsNotEmpty()
   teacherName!: string;
 
+  @IsString()
+  @IsOptional()
+  bookTemplateId?: string;
+
   @IsArray()
   @IsOptional()
   students?: UpdateClassStudentItem[];
