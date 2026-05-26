@@ -367,22 +367,16 @@ export function BookTemplatesPage() {
           </div>
         </section>
 
-        {/* Loading */}
-        {isLoading && (
+        {/* Loading / Error / Content */}
+        {isLoading ? (
           <div className='rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground shadow-sm'>
             Carregando templates...
           </div>
-        )}
-
-        {/* Error */}
-        {!isLoading && error && (
+        ) : error ? (
           <div className='rounded-xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-600 shadow-sm'>
             Não foi possível carregar os templates agora.
           </div>
-        )}
-
-        {/* Empty */}
-        {!isLoading && !error && templates.length === 0 && (
+        ) : templates.length === 0 ? (
           <div className='rounded-xl border border-border bg-card p-10 text-center shadow-sm'>
             <BookOpen className='w-9 h-9 text-muted-foreground mx-auto mb-3' />
             <p className='text-sm text-muted-foreground'>
@@ -397,10 +391,7 @@ export function BookTemplatesPage() {
               Criar primeiro template
             </button>
           </div>
-        )}
-
-        {/* List */}
-        {!isLoading && !error && templates.length > 0 && (
+        ) : (
           <div className='space-y-3'>
             {templates.map((template) => (
               <TemplateCard key={template.id} template={template} />

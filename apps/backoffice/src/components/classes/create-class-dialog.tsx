@@ -39,11 +39,12 @@ export function CreateClassDialog({
     queryFn: getBookTemplates,
   });
 
+  const firstTemplateId = bookTemplates?.[0]?.id;
   useEffect(() => {
-    if (!bookTemplateId && bookTemplates?.[0]) {
-      setBookTemplateId(bookTemplates[0].id);
+    if (!bookTemplateId && firstTemplateId) {
+      setBookTemplateId(firstTemplateId);
     }
-  }, [bookTemplateId, bookTemplates]);
+  }, [bookTemplateId, firstTemplateId]);
 
   const createClassMutation = useMutation({
     mutationFn: createClass,

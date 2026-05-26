@@ -99,13 +99,19 @@ export function EventsPage() {
     });
   }, [events, search]);
 
-  const ongoingOrPlanned = events.filter(
-    (event) => event.status === 'ONGOING' || event.status === 'PLANNED',
-  ).length;
-  const completedEvents = events.filter(
-    (event) => event.status === 'COMPLETED',
-  ).length;
-  const uniqueUnits = new Set(events.map((event) => event.unit.id)).size;
+  const { ongoingOrPlanned, completedEvents, uniqueUnits } = events.reduce(
+    (acc, event) => {
+      if (event.status === 'ONGOING' || event.status === 'PLANNED') {
+        acc.ongoingOrPlanned++;
+      } else if (event.status === 'COMPLETED') {
+        acc.completedEvents++;
+      }
+      acc.uniqueUnits.add(event.unit.id);
+      return acc;
+    },
+    { ongoingOrPlanned: 0, completedEvents: 0, uniqueUnits: new Set<string>() },
+  );
+  const uniqueUnitsCount = uniqueUnits.size;
 
   if (isLoading) {
     return (
@@ -154,7 +160,7 @@ export function EventsPage() {
                   Eventos
                 </h1>
                 <p className='mt-2 text-sm text-muted-foreground'>
-                  {events.length} eventos • {uniqueUnits} unidades •{' '}
+                  {events.length} eventos • {uniqueUnitsCount} unidades •{' '}
                   {ongoingOrPlanned} ativos
                 </p>
               </div>

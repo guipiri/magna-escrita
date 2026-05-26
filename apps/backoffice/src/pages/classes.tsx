@@ -70,6 +70,12 @@ export function ClassesPage() {
   const totalStudents = classesData.reduce((sum, c) => sum + c.studentCount, 0);
   const schoolsCount = new Set(classesData.map((c) => c.schoolName)).size;
 
+  // O(1) lookup map — avoids two O(n) .find() calls in onEdit and onDelete
+  const classesMap = useMemo(
+    () => new Map(classesData.map((c) => [c.id, c])),
+    [classesData],
+  );
+
   if (isLoading) {
     return (
       <main className='flex-1 overflow-auto'>
@@ -150,7 +156,7 @@ export function ClassesPage() {
             classes={filteredClasses}
             onAddClass={() => setCreateClassModalOpen(true)}
             onEdit={(id) => {
-              const classItem = classesData.find((c) => c.id === id);
+              const classItem = classesMap.get(id);
               if (classItem) {
                 setEditingClass({
                   id: classItem.id,
@@ -162,7 +168,7 @@ export function ClassesPage() {
               }
             }}
             onDelete={(id) => {
-              const classItem = classesData.find((c) => c.id === id);
+              const classItem = classesMap.get(id);
               if (classItem) {
                 setDeletingClass({ id: classItem.id, name: classItem.name });
               }
