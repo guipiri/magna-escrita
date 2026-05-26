@@ -16,6 +16,7 @@ import type { ReadQrCodeService } from './providers/read-qr-code.service.js';
 import {
   generateMagnificCode,
   getOriginalPageUploadBucketPath,
+  getProcessedPageUploadBucketPath,
 } from './books.utils.js';
 import { AuthographsEventStatus, PageType } from '@prisma/client';
 
@@ -201,10 +202,19 @@ export class BooksScanService {
     const pageType = templatePage.pageType;
 
     if (pageType === PageType.DRAW || pageType === PageType.DRAW_TEXT) {
+      const processedDrawKey = `${getProcessedPageUploadBucketPath({
+        unitId: enrollment.class.unitId,
+        eventId: activeEvent.id,
+        enrollmentId: enrollment.id,
+        bookId: book.id,
+        pageNumber: qrData.page,
+      })}.${this.getExtension(file.mimetype)}`;
+
       drawImageUrl = await this.processDrawPage(
         file,
         enrollment.id,
         qrData.page,
+        processedDrawKey,
       );
     }
 
@@ -264,12 +274,12 @@ export class BooksScanService {
     file: Express.Multer.File,
     enrollmentId: string,
     pageNumber: number,
+    key: string,
   ): Promise<string> {
     const processedDrawFile = await this.processDrawOpenCV.execute(file);
     const processedDrawBuffer = Buffer.from(
       await processedDrawFile.arrayBuffer(),
     );
-    const key = `draws/${enrollmentId}/page-${pageNumber}-${Date.now()}.${this.getExtension(file.mimetype)}`;
 
     const url = await this.r2.upload({
       key,
