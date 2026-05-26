@@ -6,6 +6,7 @@ import { OrdersModule } from './orders/orders.module.js';
 import { DbModule } from './db/db.module.js';
 import { validationSchema } from './config/validation.js';
 import { BooksModule } from './books/books.module.js';
+import { BooksScanModule } from './books/books-scan.module.js';
 import { BookTemplatesModule } from './book-templates/book-templates.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { SchoolsModule } from './schools/schools.module.js';
@@ -25,6 +26,7 @@ import { PdfModule } from './pdf/pdf.module.js';
     }),
     DbModule,
     BooksModule,
+    BooksScanModule,
     BookTemplatesModule,
     OrdersModule,
     AuthModule,

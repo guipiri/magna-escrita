@@ -38,3 +38,13 @@ export class NotFoundPdfNoActiveEventException extends NotFoundException {
     } satisfies HttpExceptionConstructor);
   }
 }
+
+export class ConflictMoreThanOneActiveEventException extends NotFoundException {
+  constructor() {
+    super({
+      key: ErrorKeys.CONFLICT_MORE_THAN_ONE_ACTIVE_EVENT,
+      message:
+        'More than one active event found for this class unit and school year',
+    } satisfies HttpExceptionConstructor);
+  }
+}

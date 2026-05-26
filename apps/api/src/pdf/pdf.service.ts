@@ -5,6 +5,7 @@ import { AuthographsEventStatus, PageType } from '@prisma/client';
 import * as QRCode from 'qrcode';
 import PDFDocument from 'pdfkit';
 import {
+  ConflictMoreThanOneActiveEventException,
   NotFoundPdfClassException,
   NotFoundPdfNoActiveEventException,
   NotFoundPdfNoEligiblePagesException,
@@ -85,7 +86,7 @@ export class PdfService {
 
     // 2. Filter eligible template pages
     const eligiblePages = classRecord.bookTemplate.bookTemplatePages.filter(
-      (p) => ELIGIBLE_PAGE_TYPES.includes(p.pageType as PageType),
+      (p) => ELIGIBLE_PAGE_TYPES.includes(p.pageType),
     );
 
     if (eligiblePages.length === 0)
@@ -104,7 +105,7 @@ export class PdfService {
     if (enrollments.length === 0) throw new NotFoundPdfNoEnrollmentsException();
 
     // 4. Fetch the active event for the unit with the same school year
-    const activeEvent = await this.prisma.authographsEvent.findFirst({
+    const activeEvent = await this.prisma.authographsEvent.findMany({
       where: {
         unitId: classRecord.unitId,
         schoolYear: classRecord.schoolYear,
@@ -116,14 +117,18 @@ export class PdfService {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (!activeEvent) throw new NotFoundPdfNoActiveEventException();
+    if (!activeEvent[0]) throw new NotFoundPdfNoActiveEventException();
+
+    if (activeEvent.length > 1)
+      throw new ConflictMoreThanOneActiveEventException();
 
     // 5. Build PDF in memory
     return this.buildPdf({
       className: classRecord.name,
       unitName: classRecord.units.name,
       schoolName: classRecord.units.school.name,
-      eventName: activeEvent.name,
+      eventName: activeEvent[0].name,
+      templateId: classRecord.bookTemplate.id,
       enrollments,
       eligiblePages,
     });
@@ -134,6 +139,7 @@ export class PdfService {
     unitName: string | null;
     schoolName: string;
     eventName: string;
+    templateId: string;
     enrollments: Array<{ id: string; student: { name: string } }>;
     eligiblePages: Array<{ pageNumber: number; pageType: PageType }>;
   }): Promise<Buffer> {
@@ -142,6 +148,7 @@ export class PdfService {
       unitName,
       schoolName,
       eventName,
+      templateId,
       enrollments,
       eligiblePages,
     } = params;
@@ -174,6 +181,7 @@ export class PdfService {
             // Generate QR code for this page
             const qrData = JSON.stringify({
               enrollmentId: enrollment.id,
+              templateId,
               page: templatePage!.pageNumber,
             });
             const qrBuffer = await QRCode.toBuffer(qrData, {
@@ -367,7 +375,10 @@ export class PdfService {
 
     for (let i = 1; i <= count; i++) {
       const y = startY + i * WRITING_LINE_HEIGHT;
-      doc.moveTo(x, y).lineTo(x + width, y).stroke();
+      doc
+        .moveTo(x, y)
+        .lineTo(x + width, y)
+        .stroke();
     }
 
     doc.restore();
