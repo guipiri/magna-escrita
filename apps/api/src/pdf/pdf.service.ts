@@ -239,13 +239,13 @@ export class PdfService {
     // Header background
     doc
       .save()
-      .rect(
-        PDF_MARGIN / 2,
-        PDF_MARGIN / 2,
-        doc.page.width - PDF_MARGIN,
-        HEADER_HEIGHT,
-      )
-      .fillAndStroke('#f9fafb', '#e5e7eb')
+      // .rect(
+      //   PDF_MARGIN / 2,
+      //   PDF_MARGIN / 2,
+      //   doc.page.width - PDF_MARGIN,
+      //   HEADER_HEIGHT,
+      // )
+      // .fillAndStroke('#f9fafb', '#e5e7eb')
       .restore();
 
     // QR Code image
@@ -288,21 +288,25 @@ export class PdfService {
       );
 
     // Separator line below header
-    const separatorY = PDF_MARGIN / 2 + HEADER_HEIGHT + 12;
-    doc
-      .save()
-      .moveTo(PDF_MARGIN / 2, separatorY)
-      .lineTo(doc.page.width - PDF_MARGIN / 2, separatorY)
-      .strokeColor('#e5e7eb')
-      .stroke()
-      .restore();
+    // const separatorY = PDF_MARGIN / 2 + HEADER_HEIGHT + 12;
+    // doc
+    //   .save()
+    //   .moveTo(PDF_MARGIN / 2, separatorY)
+    //   .lineTo(doc.page.width - PDF_MARGIN / 2, separatorY)
+    //   .strokeColor('#e5e7eb')
+    //   .stroke()
+    //   .restore();
   }
 
   /**
    * Draws the editable area below the header depending on the page type:
-   *   DRAW      → full-width square frame (max area)
-   *   DRAW_TEXT → smaller square + writing lines below
+   *   DRAW      → single horizontal line; the area below (a square) is the drawing space
+   *   DRAW_TEXT → single horizontal line + writing lines below
    *   TEXT      → writing lines only
+   *
+   * For DRAW and DRAW_TEXT the line is drawn at CONTENT_TOP + squareSize so
+   * that the region above it (height === squareSize === contentWidth) forms a
+   * perfect square filling the full page width.
    */
   private drawPageContent(
     doc: InstanceType<typeof PDFDocument>,
@@ -318,8 +322,9 @@ export class PdfService {
       let squareSize: number;
 
       if (pageType === PageType.DRAW) {
-        // Largest square that fits the content area.
-        squareSize = Math.min(contentWidth, contentHeight);
+        // The square occupies the full content width, so its height equals the
+        // content width (making it a perfect square).
+        squareSize = contentWidth;
       } else {
         // DRAW_TEXT: reserve space for writing lines below the square.
         const linesBlockHeight = TEXT_LINES_COUNT * WRITING_LINE_HEIGHT;
@@ -327,20 +332,33 @@ export class PdfService {
         squareSize = Math.min(contentWidth, squareMaxHeight);
       }
 
-      // Centre the square horizontally.
-      const squareX = contentLeft + (contentWidth - squareSize) / 2;
-      const squareY = CONTENT_TOP;
+      // Draw only the bottom boundary of the square as a horizontal line that
+      // spans the full content width. The space above this line (from
+      // CONTENT_TOP down squareSize px) forms the drawing square.
+      const lineY = CONTENT_TOP + squareSize;
 
       doc
         .save()
-        .rect(squareX, squareY, squareSize, squareSize)
+        .moveTo(0, doc.page.height - doc.page.width)
+        .lineTo(doc.page.width, doc.page.height - doc.page.width)
         .strokeColor('#9ca3af')
         .lineWidth(1)
         .stroke()
         .restore();
 
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(9)
+        .fillColor('#374151')
+        .text(
+          `DESENHE APENAS ABAIXO DESTA LINHA`,
+          0,
+          doc.page.height - doc.page.width - 20,
+          { lineBreak: false, align: 'center', width: doc.page.width },
+        );
+
       if (pageType === PageType.DRAW_TEXT) {
-        const linesStartY = squareY + squareSize + 24;
+        const linesStartY = lineY + 24;
         this.drawWritingLines(
           doc,
           contentLeft,

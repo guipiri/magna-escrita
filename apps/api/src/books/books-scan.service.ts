@@ -2,8 +2,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../db/db.service.js';
 import { CloudflareR2Service } from '../common/cloudflare-r2.service.js';
+import type { ExtractDrawService } from './providers/extract-page-draw.service.js';
+import type { ReadQrCodeService } from './providers/read-qr-code.service.js';
 import { GoogleGenerativeAI, Part } from '@google/generative-ai';
-import { ProcessDrawOpenCV } from './providers/process-draw-page.service.js';
 import {
   BadRequestBookTemplateMismatchException,
   BadRequestQrCodeNotReadableException,
@@ -12,7 +13,6 @@ import {
   NotFoundBookTemplatePageException,
   NotFoundEnrollmentException,
 } from './books-scan.errors.js';
-import type { ReadQrCodeService } from './providers/read-qr-code.service.js';
 import {
   generateMagnificCode,
   getOriginalPageUploadBucketPath,
@@ -49,7 +49,8 @@ export class BooksScanService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly r2: CloudflareR2Service,
-    private readonly processDrawOpenCV: ProcessDrawOpenCV,
+    @Inject('ExtractDrawService')
+    private readonly processDrawService: ExtractDrawService,
     @Inject('ReadQrCodeService')
     private readonly readQrCodeService: ReadQrCodeService,
   ) {
@@ -95,6 +96,7 @@ export class BooksScanService {
     const qrStringData = await this.readQrCodeService.execute(file);
     if (!qrStringData) throw new BadRequestQrCodeNotReadableException();
     const qrData = this.parseQrPayload(qrStringData);
+    console.debug('QR code data extracted:', qrStringData);
 
     // 2. Fetch enrollment → class → current template
     const enrollment = await this.prisma.enrollment.findUnique({
@@ -179,6 +181,7 @@ export class BooksScanService {
       update: {},
       select: { id: true },
     });
+    console.debug('Book upserted:', book.id);
 
     // 7. Save the file to R2 before any processing to ensure we have the original image available in case of errors.
     const originalFileBucketPath = getOriginalPageUploadBucketPath({
@@ -195,6 +198,8 @@ export class BooksScanService {
       contentType: file.mimetype,
     });
 
+    console.debug('Original image uploaded:', originalFileBucketPath);
+
     // 8. Process page content based on type
     let textContent: string | undefined;
     let drawImageUrl: string | undefined;
@@ -202,6 +207,8 @@ export class BooksScanService {
     const pageType = templatePage.pageType;
 
     if (pageType === PageType.DRAW || pageType === PageType.DRAW_TEXT) {
+      console.debug('Processing page type:', pageType);
+
       const processedDrawKey = `${getProcessedPageUploadBucketPath({
         unitId: enrollment.class.unitId,
         eventId: activeEvent.id,
@@ -210,12 +217,17 @@ export class BooksScanService {
         pageNumber: qrData.page,
       })}.${this.getExtension(file.mimetype)}`;
 
-      drawImageUrl = await this.processDrawPage(
-        file,
-        enrollment.id,
-        qrData.page,
-        processedDrawKey,
+      const processedDrawFile = await this.processDrawService.execute(file);
+      const processedDrawBuffer = Buffer.from(
+        await processedDrawFile.arrayBuffer(),
       );
+
+      drawImageUrl = await this.r2.upload({
+        key: processedDrawKey,
+        body: processedDrawBuffer,
+        contentType: processedDrawFile.type || file.mimetype,
+      });
+      console.debug('Processed draw image uploaded:', processedDrawKey);
     }
 
     if (pageType === PageType.TEXT || pageType === PageType.DRAW_TEXT) {
@@ -270,29 +282,9 @@ export class BooksScanService {
     return parsed;
   }
 
-  private async processDrawPage(
-    file: Express.Multer.File,
-    enrollmentId: string,
-    pageNumber: number,
-    key: string,
-  ): Promise<string> {
-    const processedDrawFile = await this.processDrawOpenCV.execute(file);
-    const processedDrawBuffer = Buffer.from(
-      await processedDrawFile.arrayBuffer(),
-    );
-
-    const url = await this.r2.upload({
-      key,
-      body: processedDrawBuffer,
-      contentType: processedDrawFile.type || file.mimetype,
-    });
-
-    return url;
-  }
-
   private async processTextPage(file: Express.Multer.File): Promise<string> {
     const model = this.gemini.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-3.5-flash',
     });
 
     const imagePart: Part = {

@@ -4,7 +4,7 @@ import { AuthModule } from '../auth/auth.module.js';
 import { CloudflareR2Service } from '../common/cloudflare-r2.service.js';
 import { BooksScanController } from './books-scan.controller.js';
 import { BooksScanService } from './books-scan.service.js';
-import { ProcessDrawOpenCV } from './providers/process-draw-page.service.js';
+import { ExtractDrawOpenCV } from './providers/extract-page-draw.service.js';
 import { ReadQrCodeWithJsQR } from './providers/read-qr-code.service.js';
 
 @Module({
@@ -13,7 +13,7 @@ import { ReadQrCodeWithJsQR } from './providers/read-qr-code.service.js';
   providers: [
     BooksScanService,
     CloudflareR2Service,
-    ProcessDrawOpenCV,
+    { provide: 'ExtractDrawService', useClass: ExtractDrawOpenCV },
     { provide: 'ReadQrCodeService', useClass: ReadQrCodeWithJsQR },
   ],
 })

@@ -1,4 +1,4 @@
-import cvModule from '@techstark/opencv-js';
+import cv from '@techstark/opencv-js';
 import jsQR from 'jsqr';
 
 import { Bitmap, Jimp } from 'jimp';
@@ -39,12 +39,15 @@ export class ReadQrCodeWithJsQR implements ReadQrCodeService {
 
     // 2) Try preprocessing: upscale, contrast, invert, rotations
     try {
-      const scaled = image.clone().resize({
+      const resized = image.clone().resize({
         w: Math.floor(bitmap.width * 2),
         h: Math.floor(bitmap.height * 2),
       });
+      code = runJsQrAgainstBitmap(resized.bitmap);
+      if (code?.data) return code.data;
+
+      const scaled = image.clone().scale(1.5);
       code = runJsQrAgainstBitmap(scaled.bitmap);
-      console.log('upscaled', code?.data);
       if (code?.data) return code.data;
 
       const enhanced = image.clone().greyscale().contrast(0.6).normalize();
@@ -58,7 +61,6 @@ export class ReadQrCodeWithJsQR implements ReadQrCodeService {
       for (const angle of [90, 180, 270]) {
         const r = image.clone().rotate(angle);
         code = runJsQrAgainstBitmap(r.bitmap);
-        console.log(`rotated ${angle}°`, code?.data);
         if (code?.data) return code.data;
       }
     } catch (e) {
@@ -67,12 +69,6 @@ export class ReadQrCodeWithJsQR implements ReadQrCodeService {
 
     // 3) Fallback: try OpenCV.js (using matFromArray; avoid ImageData which isn't available in Node)
     try {
-      const factory =
-        cvModule && (cvModule as any).default
-          ? (cvModule as any).default
-          : cvModule;
-      const cv = await factory();
-
       if (cv) {
         const rows = bitmap.height;
         const cols = bitmap.width;
@@ -83,9 +79,9 @@ export class ReadQrCodeWithJsQR implements ReadQrCodeService {
           try {
             const detector = new cv.QRCodeDetector();
             const decoded = detector.detectAndDecode(src);
-            detector.delete?.();
-            src.delete?.();
-            if (decoded) return decoded;
+            // detector.delete?.();
+            // src.delete?.();
+            if (decoded) return decoded.toString();
           } catch (e) {
             console.warn('OpenCV QRCodeDetector failed:', e);
           }
@@ -101,9 +97,9 @@ export class ReadQrCodeWithJsQR implements ReadQrCodeService {
           for (let i = 0; i < rows * cols; i++) {
             const v = grayData[i];
             const j = i * 4;
-            rgba[j] = v;
-            rgba[j + 1] = v;
-            rgba[j + 2] = v;
+            rgba[j] = v as number;
+            rgba[j + 1] = v as number;
+            rgba[j + 2] = v as number;
             rgba[j + 3] = 255;
           }
 
