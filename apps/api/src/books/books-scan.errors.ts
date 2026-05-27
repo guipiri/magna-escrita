@@ -62,6 +62,15 @@ export class InternalGeminiRecognitionFailedException extends InternalServerErro
   }
 }
 
+export class InternalGoogleCloudVisionRecognitionFailedException extends InternalServerErrorException {
+  constructor(detail?: string) {
+    super({
+      key: ErrorKeys.INTERNAL_GOOGLE_CLOUD_VISION_RECOGNITION_FAILED,
+      message: `Falha no reconhecimento via Google Cloud Vision${detail ? ': ' + detail : '.'}`,
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
 export class InternalQrCodeRecognitionFailedException extends InternalServerErrorException {
   constructor(detail?: string) {
     super({

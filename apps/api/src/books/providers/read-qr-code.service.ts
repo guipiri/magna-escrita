@@ -9,7 +9,7 @@ export interface ReadQrCodeService {
 }
 
 @Injectable()
-export class ReadQrCodeWithJsQR implements ReadQrCodeService {
+export class JsqrQrCodeReader implements ReadQrCodeService {
   async execute(file: Express.Multer.File): Promise<string | null> {
     let image;
     try {

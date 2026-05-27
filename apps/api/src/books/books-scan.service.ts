@@ -1,14 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../db/db.service.js';
 import { CloudflareR2Service } from '../common/cloudflare-r2.service.js';
-import type { ExtractDrawService } from './providers/extract-page-draw.service.js';
+import type { ExtractDrawService } from './providers/extract-draw.service.js';
+import type { ExtractTextService } from './providers/extract-text.service.js';
 import type { ReadQrCodeService } from './providers/read-qr-code.service.js';
-import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 import {
   BadRequestBookTemplateMismatchException,
   BadRequestQrCodeNotReadableException,
-  InternalGeminiRecognitionFailedException,
   NotFoundActiveEventForEnrollmentException,
   NotFoundBookTemplatePageException,
   NotFoundEnrollmentException,
@@ -43,20 +41,16 @@ export interface ScanBooksResult {
 
 @Injectable()
 export class BooksScanService {
-  private readonly gemini: GoogleGenerativeAI;
-
   constructor(
     private readonly prisma: PrismaService,
-    private readonly configService: ConfigService,
     private readonly r2: CloudflareR2Service,
     @Inject('ExtractDrawService')
     private readonly processDrawService: ExtractDrawService,
+    @Inject('ExtractTextService')
+    private readonly extractTextService: ExtractTextService,
     @Inject('ReadQrCodeService')
     private readonly readQrCodeService: ReadQrCodeService,
-  ) {
-    const apiKey = this.configService.getOrThrow<string>('GEMINI_API_KEY');
-    this.gemini = new GoogleGenerativeAI(apiKey);
-  }
+  ) {}
 
   async scanImages(files: Express.Multer.File[]): Promise<ScanBooksResult> {
     const results: any[] = [];
@@ -230,9 +224,8 @@ export class BooksScanService {
       console.debug('Processed draw image uploaded:', processedDrawKey);
     }
 
-    if (pageType === PageType.TEXT || pageType === PageType.DRAW_TEXT) {
-      textContent = await this.processTextPage(file);
-    }
+    if (pageType === PageType.TEXT || pageType === PageType.DRAW_TEXT)
+      textContent = await this.extractTextService.execute(file);
 
     // 9. Upsert the Page
     await this.prisma.page.upsert({
@@ -280,41 +273,6 @@ export class BooksScanService {
       throw new BadRequestQrCodeNotReadableException();
 
     return parsed;
-  }
-
-  private async processTextPage(file: Express.Multer.File): Promise<string> {
-    const model = this.gemini.getGenerativeModel({
-      model: 'gemini-3.5-flash',
-    });
-
-    const imagePart: Part = {
-      inlineData: {
-        mimeType: file.mimetype,
-        data: file.buffer.toString('base64'),
-      },
-    };
-
-    let text: string;
-    try {
-      const result = await model.generateContent([
-        imagePart,
-        {
-          text: `Esta imagem é uma página de livro escrita por uma criança.
-Abaixo do cabeçalho há linhas horizontais onde a criança escreveu um texto.
-Por favor, transcreva apenas o texto escrito nas linhas, ignorando o cabeçalho (QR Code, nome do aluno, turma, escola, etc.).
-Retorne apenas o texto transcrito, sem explicações adicionais.
-Se não houver texto escrito, retorne uma string vazia.`,
-        },
-      ]);
-      text = result.response.text().trim();
-    } catch (err) {
-      console.error('Gemini OCR failed:', err);
-      throw new InternalGeminiRecognitionFailedException(
-        'reconhecimento de texto (OCR)',
-      );
-    }
-
-    return text;
   }
 
   private async getDefaultPriceId(): Promise<string> {

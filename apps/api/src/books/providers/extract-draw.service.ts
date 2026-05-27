@@ -11,13 +11,13 @@ export interface ExtractDrawService {
 }
 
 @Injectable()
-export class ExtractDrawOpenCV implements ExtractDrawService {
+export class OpenCVDrawExtractor implements ExtractDrawService {
   private static cv: any;
   private static cvReadyPromise: Promise<void> | undefined;
 
   async execute(file: Express.Multer.File): Promise<File> {
     await this.waitForCv();
-    const cv = ExtractDrawOpenCV.cv;
+    const cv = OpenCVDrawExtractor.cv;
     const image = await Jimp.read(file.buffer);
     const { width, height } = image.bitmap;
 
@@ -149,21 +149,21 @@ export class ExtractDrawOpenCV implements ExtractDrawService {
   }
 
   private waitForCv(): Promise<void> {
-    if (!ExtractDrawOpenCV.cvReadyPromise) {
-      ExtractDrawOpenCV.cvReadyPromise = new Promise<void>((resolve) => {
+    if (!OpenCVDrawExtractor.cvReadyPromise) {
+      OpenCVDrawExtractor.cvReadyPromise = new Promise<void>((resolve) => {
         (cvModule as any).then((cv: any) => {
-          ExtractDrawOpenCV.cv = cv;
+          OpenCVDrawExtractor.cv = cv;
           resolve();
         });
       });
     }
 
-    return ExtractDrawOpenCV.cvReadyPromise;
+    return OpenCVDrawExtractor.cvReadyPromise;
   }
 }
 
 @Injectable()
-export class ExtractDrawGemini implements ExtractDrawService {
+export class GeminiDrawExtractor implements ExtractDrawService {
   private readonly gemini: GoogleGenerativeAI;
 
   constructor(private readonly configService: ConfigService) {

@@ -22,5 +22,8 @@
   },
   "editor.codeActionsOnSave": {
     "source.removeUnusedImports": "explicit"
+  },
+  "chat.tools.terminal.autoApprove": {
+    "yarn workspace": true
   }
 }
