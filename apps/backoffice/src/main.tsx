@@ -20,6 +20,7 @@ import { MainLayout } from './components/layouts/main-layout';
 import Home from './pages/home';
 import { BookTemplatesPage } from './pages/book-templates';
 import { EventsPage } from './pages/events';
+import { BooksPage } from './pages/books';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
@@ -88,6 +89,14 @@ const AppRoutes = () => (
           element={
             <RequireAuth>
               <EventsPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path='/livros'
+          element={
+            <RequireAuth>
+              <BooksPage />
             </RequireAuth>
           }
         />

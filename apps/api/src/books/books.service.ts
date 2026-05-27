@@ -1,10 +1,82 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
 import { NotFoundBookException } from './books.errors.js';
+import type { GetBooksListResponse } from '@repo/shared';
+import type { AuthUser } from '@repo/shared';
+import { UserRole } from '@repo/shared/dist/types/user.js';
 
 @Injectable()
 export class BooksService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getAll(user: AuthUser): Promise<GetBooksListResponse[]> {
+    const books = await this.prisma.book.findMany({
+      where:
+        user.role === UserRole.ADMIN
+          ? undefined
+          : {
+              enrollment: {
+                class: {
+                  units: {
+                    userUnits: { some: { userId: user.id } },
+                  },
+                },
+              },
+            },
+      select: {
+        id: true,
+        magnificCode: true,
+        title: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        enrollment: {
+          select: {
+            id: true,
+            student: { select: { name: true } },
+            class: {
+              select: {
+                id: true,
+                name: true,
+                schoolYear: true,
+                units: {
+                  select: {
+                    id: true,
+                    name: true,
+                    school: { select: { name: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ createdAt: 'desc' }],
+    });
+
+    return books.map((book) => ({
+      id: book.id,
+      magnificCode: book.magnificCode,
+      title: book.title,
+      status: book.status as GetBooksListResponse['status'],
+      enrollment: {
+        id: book.enrollment.id,
+        studentName: book.enrollment.student.name,
+      },
+      class: {
+        id: book.enrollment.class.id,
+        name: book.enrollment.class.name,
+        schoolYear: book.enrollment.class.schoolYear,
+      },
+      unit: {
+        id: book.enrollment.class.units.id,
+        name: book.enrollment.class.units.name,
+        schoolName: book.enrollment.class.units.school.name,
+      },
+      createdAt: book.createdAt.toISOString(),
+      updatedAt: book.updatedAt.toISOString(),
+    })) satisfies GetBooksListResponse[];
+  }
 
   async findByIds(ids: string[]) {
     const uniqueIds = Array.from(new Set(ids.filter(Boolean)));

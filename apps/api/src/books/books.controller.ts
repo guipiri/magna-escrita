@@ -1,9 +1,19 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { BooksService } from './books.service.js';
+import { AuthGuard } from '../auth/guards/auth.guard.js';
+import { BackofficeGuard } from '../auth/guards/backoffice.guard.js';
+import { User } from '../auth/auth.decorator.js';
+import type { AuthUser } from '@repo/shared';
 
 @Controller('books')
 export class BooksController {
   constructor(private readonly booksService: BooksService) {}
+
+  @Get('backoffice')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  getAll(@User() user: AuthUser) {
+    return this.booksService.getAll(user);
+  }
 
   @Get()
   findByIds(@Query('ids') ids?: string | string[]) {
