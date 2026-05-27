@@ -8,6 +8,7 @@ import {
   GraduationCap,
   School,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import {
   DataList,
   DataListActions,
@@ -69,6 +70,8 @@ function BooksEmptyState() {
 }
 
 export function BooksList({ books }: BooksListProps) {
+  const navigate = useNavigate();
+
   if (books.length === 0) {
     return <BooksEmptyState />;
   }
@@ -159,7 +162,11 @@ export function BooksList({ books }: BooksListProps) {
               </DataListMeta>
 
               <DataListActions>
-                <Button variant='outline' size='sm' disabled>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => navigate(`/livros/${book.id}`)}
+                >
                   <Eye className='h-4 w-4' />
                   Ver livro
                 </Button>

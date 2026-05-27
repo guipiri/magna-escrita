@@ -12,7 +12,11 @@ export function MainLayout() {
       ? [{ label: 'Turmas' }]
       : pathname === '/eventos'
         ? [{ label: 'Eventos' }]
-        : []),
+        : pathname === '/livros'
+          ? [{ label: 'Livros' }]
+          : pathname.startsWith('/livros/')
+            ? [{ label: 'Livros', href: '/livros' }, { label: 'Detalhe do livro' }]
+            : []),
   ];
 
   return (

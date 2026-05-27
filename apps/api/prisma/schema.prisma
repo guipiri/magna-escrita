@@ -137,13 +137,14 @@ enum PageType {
 }
 
 model Page {
-  number       Int
-  type         PageType
-  textContent  String?
-  drawImageUrl String?
-  imageUrl     String?
-  book         Book     @relation(fields: [bookId], references: [id])
-  bookId       String
+  number           Int
+  type             PageType
+  textContent      String?
+  drawImageUrl     String?
+  originalImageUrl String?
+  imageUrl         String?
+  book             Book     @relation(fields: [bookId], references: [id])
+  bookId           String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

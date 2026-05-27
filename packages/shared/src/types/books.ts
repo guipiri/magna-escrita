@@ -68,3 +68,41 @@ export interface ScanBooksResult {
   failed: number;
   results: ScanPageResult[];
 }
+
+export interface BookDetailPage {
+  number: number;
+  type: BookPageType;
+  textContent: string | null;
+  drawImageUrl: string | null;
+  imageUrl: string | null;
+}
+
+export interface GetBookDetailResponse {
+  id: string;
+  magnificCode: string;
+  title: string | null;
+  author: string | null;
+  synopsis: string | null;
+  status: BookStatus;
+  enrollment: {
+    id: string;
+    studentName: string;
+  };
+  class: {
+    id: string;
+    name: string;
+    schoolYear: string;
+  };
+  unit: {
+    id: string;
+    name: string | null;
+    schoolName: string;
+  };
+  pages: BookDetailPage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdatePageRequest {
+  textContent?: string | null;
+}

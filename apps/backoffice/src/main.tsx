@@ -21,6 +21,7 @@ import Home from './pages/home';
 import { BookTemplatesPage } from './pages/book-templates';
 import { EventsPage } from './pages/events';
 import { BooksPage } from './pages/books';
+import { BookDetailPage } from './pages/book-detail';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
@@ -97,6 +98,14 @@ const AppRoutes = () => (
           element={
             <RequireAuth>
               <BooksPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path='/livros/:id'
+          element={
+            <RequireAuth>
+              <BookDetailPage />
             </RequireAuth>
           }
         />
