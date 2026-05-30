@@ -177,7 +177,7 @@ export class BooksScanService {
     });
     console.debug('Book upserted:', book.id);
 
-    // 7. Save the file to R2 before any processing to ensure we have the original image available in case of errors.
+    // 6. Save the file to R2 before any processing to ensure we have the original image available in case of errors.
     const originalFileBucketPath = getOriginalPageUploadBucketPath({
       unitId: enrollment.class.unitId,
       eventId: activeEvent.id,
@@ -186,13 +186,13 @@ export class BooksScanService {
       pageNumber: qrData.page,
     });
     const originalImageKey = `${originalFileBucketPath}.${this.getExtension(file.mimetype)}`;
-    await this.r2.upload({
+    const originalImageUrl = await this.r2.upload({
       key: originalImageKey,
       body: file.buffer,
       contentType: file.mimetype,
     });
 
-    console.debug('Original image uploaded:', originalFileBucketPath);
+    console.debug('Original image uploaded:', originalImageUrl);
 
     // 8. Process page content based on type
     let textContent: string | undefined;
@@ -221,7 +221,7 @@ export class BooksScanService {
         body: processedDrawBuffer,
         contentType: processedDrawFile.type || file.mimetype,
       });
-      console.debug('Processed draw image uploaded:', processedDrawKey);
+      console.debug('Processed draw image uploaded:', drawImageUrl);
     }
 
     if (pageType === PageType.TEXT || pageType === PageType.DRAW_TEXT)
@@ -241,11 +241,15 @@ export class BooksScanService {
         type: pageType,
         textContent: textContent ?? null,
         drawImageUrl: drawImageUrl ?? null,
+        originalImageUrl,
         imageUrl: null,
       },
       update: {
+        type: pageType,
         textContent: textContent ?? null,
         drawImageUrl: drawImageUrl ?? null,
+        originalImageUrl,
+        imageUrl: null,
       },
     });
 

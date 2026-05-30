@@ -106,6 +106,8 @@ function PageCard({ page, bookId, isActive }: PageCardProps) {
   const { enqueueSnackbar } = useSnackbar();
   const drawSourceUrl = page.drawImageUrl || '';
 
+  console.log('Rendering PageCard', { page });
+
   // Keep draft in sync when page data changes (after refetch)
   useEffect(() => {
     if (!isEditing) setDraft(page.textContent ?? '');
@@ -289,7 +291,7 @@ function PageCard({ page, bookId, isActive }: PageCardProps) {
         <BookImageEditorDialog
           open={isImageEditorOpen}
           onOpenChange={setIsImageEditorOpen}
-          sourceUrl={drawSourceUrl}
+          sourceUrl={page.originalImageUrl || ''}
           pageNumber={page.number}
           onSave={async (file) => {
             await saveDrawMutation.mutateAsync(file);

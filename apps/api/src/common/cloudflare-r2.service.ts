@@ -65,6 +65,9 @@ export class CloudflareR2Service {
     }
 
     const cleanBase = this.publicUrl.replace(/\/$/, '');
+    console.log(
+      `File uploaded to R2 with key: ${key}, accessible at: ${cleanBase}`,
+    );
     return `${cleanBase}/${key}`;
   }
 }

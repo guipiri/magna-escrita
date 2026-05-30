@@ -75,6 +75,7 @@ export interface BookDetailPage {
   textContent: string | null;
   drawImageUrl: string | null;
   imageUrl: string | null;
+  originalImageUrl: string | null;
 }
 
 export interface GetBookDetailResponse {

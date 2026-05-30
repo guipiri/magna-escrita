@@ -63,7 +63,7 @@ export class BooksService {
       id: book.id,
       magnificCode: book.magnificCode,
       title: book.title,
-      status: book.status as GetBooksListResponse['status'],
+      status: book.status,
       enrollment: {
         id: book.enrollment.id,
         studentName: book.enrollment.student.name,
@@ -103,6 +103,7 @@ export class BooksService {
             textContent: true,
             drawImageUrl: true,
             imageUrl: true,
+            originalImageUrl: true,
           },
         },
         enrollment: {
@@ -146,7 +147,7 @@ export class BooksService {
       title: book.title,
       author: book.author,
       synopsis: book.synopsis,
-      status: book.status as GetBookDetailResponse['status'],
+      status: book.status,
       enrollment: {
         id: book.enrollment.id,
         studentName: book.enrollment.student.name,
@@ -163,10 +164,11 @@ export class BooksService {
       },
       pages: book.pages.map((p) => ({
         number: p.number,
-        type: p.type as GetBookDetailResponse['pages'][number]['type'],
+        type: p.type,
         textContent: p.textContent,
         drawImageUrl: p.drawImageUrl,
         imageUrl: p.imageUrl,
+        originalImageUrl: p.originalImageUrl,
       })),
       createdAt: book.createdAt.toISOString(),
       updatedAt: book.updatedAt.toISOString(),
