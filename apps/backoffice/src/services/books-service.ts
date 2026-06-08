@@ -28,15 +28,26 @@ export const updateBookPage = async (
   await api.patch(`/books/backoffice/${bookId}/pages/${pageNumber}`, data);
 };
 
+export const updateBook = async (
+  bookId: string,
+  data: { title?: string | null },
+): Promise<void> => {
+  await api.patch(`/books/backoffice/${bookId}`, data);
+};
+
 export const updateBookPageDraw = async (
   bookId: string,
   pageNumber: number,
   image: File,
-): Promise<{ drawImageUrl: string }> => {
+  originalImage?: File,
+): Promise<{ drawImageUrl: string; originalImageUrl?: string }> => {
   const formData = new FormData();
   formData.append('image', image);
+  if (originalImage) {
+    formData.append('originalImage', originalImage);
+  }
 
-  const response = await api.patch<{ drawImageUrl: string }>(
+  const response = await api.patch<{ drawImageUrl: string; originalImageUrl?: string }>(
     `/books/backoffice/${bookId}/pages/${pageNumber}/draw`,
     formData,
   );

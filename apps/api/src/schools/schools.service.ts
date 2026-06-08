@@ -11,10 +11,14 @@ import { UserRole } from '@repo/shared/dist/types/user.js';
 import { UnauthorizedAccessToCreateSchoolException } from '../auth/auth.erros.js';
 import { BookStatus, SchoolYear as PrismaSchoolYear } from '@prisma/client';
 import { CreateSchoolDto } from './dto/create-school.dto.js';
+import { CloudflareR2Service } from '../common/cloudflare-r2.service.js';
 
 @Injectable()
 export class SchoolsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly r2: CloudflareR2Service,
+  ) {}
 
   async getSchoolUnits(user: AuthUser): Promise<GetSchoolsResponse[]> {
     if (user.role === UserRole.ADMIN) {
@@ -156,5 +160,25 @@ export class SchoolsService {
     });
 
     return school;
+  }
+
+  async uploadUnitLogo(unitId: string, logo: Express.Multer.File, user: AuthUser) {
+    if (user.role !== UserRole.ADMIN) {
+      const hasAccess = await this.prisma.userUnit.findFirst({
+        where: { userId: user.id, unitId },
+      });
+      if (!hasAccess) throw new Error('Unauthorized');
+    }
+
+    const ext = logo.mimetype === 'image/png' ? 'png' : logo.mimetype === 'image/webp' ? 'webp' : 'jpg';
+    const key = `units/${unitId}/logo.${ext}`;
+    const logoUrl = await this.r2.upload({ key, body: logo.buffer, contentType: logo.mimetype });
+
+    await this.prisma.unit.update({
+      where: { id: unitId },
+      data: { logoUrl },
+    });
+
+    return { logoUrl };
   }
 }

@@ -4,14 +4,16 @@ export function getOriginalPageUploadBucketPath({
   enrollmentId,
   bookId,
   pageNumber,
+  ext,
 }: {
   unitId: string;
   eventId: string;
   enrollmentId: string;
   bookId: string;
   pageNumber: number;
+  ext?: string;
 }) {
-  return `units/${unitId}/events/${eventId}/enrollments/${enrollmentId}/originals/${bookId}-${pageNumber}`;
+  return `units/${unitId}/events/${eventId}/enrollments/${enrollmentId}/originals/${bookId}-${pageNumber}${ext ? `.${ext}` : ''}`;
 }
 
 export function getProcessedPageUploadBucketPath({
@@ -20,14 +22,16 @@ export function getProcessedPageUploadBucketPath({
   enrollmentId,
   bookId,
   pageNumber,
+  ext,
 }: {
   unitId: string;
   eventId: string;
   enrollmentId: string;
   bookId: string;
   pageNumber: number;
+  ext?: string;
 }) {
-  return `units/${unitId}/events/${eventId}/enrollments/${enrollmentId}/processed/${bookId}-${pageNumber}`;
+  return `units/${unitId}/events/${eventId}/enrollments/${enrollmentId}/processed/${bookId}-${pageNumber}${ext ? `.${ext}` : ''}`;
 }
 
 export function generateMagnificCode(): string {

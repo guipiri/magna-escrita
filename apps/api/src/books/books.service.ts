@@ -5,7 +5,10 @@ import type { GetBookDetailResponse, GetBooksListResponse } from '@repo/shared';
 import type { AuthUser } from '@repo/shared';
 import { UserRole } from '@repo/shared/dist/types/user.js';
 import { CloudflareR2Service } from '../common/cloudflare-r2.service.js';
-import { getProcessedPageUploadBucketPath } from './books.utils.js';
+import {
+  getOriginalPageUploadBucketPath,
+  getProcessedPageUploadBucketPath,
+} from './books.utils.js';
 
 @Injectable()
 export class BooksService {
@@ -119,6 +122,7 @@ export class BooksService {
                   select: {
                     id: true,
                     name: true,
+                    logoUrl: true,
                     school: { select: { name: true } },
                   },
                 },
@@ -161,6 +165,7 @@ export class BooksService {
         id: book.enrollment.class.units.id,
         name: book.enrollment.class.units.name,
         schoolName: book.enrollment.class.units.school.name,
+        logoUrl: book.enrollment.class.units.logoUrl,
       },
       pages: book.pages.map((p) => ({
         number: p.number,
@@ -190,13 +195,26 @@ export class BooksService {
     });
   }
 
+  async updateBook(
+    bookId: string,
+    data: { title?: string | null },
+    user: AuthUser,
+  ): Promise<void> {
+    await this.getById(bookId, user); // Ensure user has access
+
+    await this.prisma.book.update({
+      where: { id: bookId },
+      data,
+    });
+  }
+
   async updatePageDraw(
     bookId: string,
     pageNumber: number,
-    imageBuffer: Buffer,
-    mimeType: string,
+    image: Express.Multer.File,
+    originalImage: Express.Multer.File | undefined,
     user: AuthUser,
-  ): Promise<{ drawImageUrl: string }> {
+  ): Promise<{ drawImageUrl: string; originalImageUrl?: string }> {
     const book = await this.getById(bookId, user);
 
     // Resolve enrollment → class → unit → active event
@@ -224,33 +242,58 @@ export class BooksService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const ext =
+    if (!activeEvent) throw new Error('Active event not found');
+
+    const getExt = (mimeType: string) =>
       mimeType === 'image/png'
         ? 'png'
         : mimeType === 'image/webp'
           ? 'webp'
           : 'jpg';
-    const basePath = getProcessedPageUploadBucketPath({
+
+    const ext = getExt(image.mimetype);
+    const key = getProcessedPageUploadBucketPath({
       unitId: enrollment.class.unitId,
-      eventId: activeEvent?.id ?? 'manual',
+      eventId: activeEvent.id,
       enrollmentId: book.enrollment.id,
       bookId,
       pageNumber,
+      ext,
     });
-    const key = `${basePath}-edited.${ext}`;
 
     const drawImageUrl = await this.r2.upload({
       key,
-      body: imageBuffer,
-      contentType: mimeType,
+      body: image.buffer,
+      contentType: image.mimetype,
     });
+
+    let originalImageUrl: string | undefined = undefined;
+    if (originalImage) {
+      const origExt = getExt(originalImage.mimetype);
+      const origKey = getOriginalPageUploadBucketPath({
+        unitId: enrollment.class.unitId,
+        enrollmentId: book.enrollment.id,
+        pageNumber,
+        bookId,
+        eventId: activeEvent.id,
+        ext: origExt,
+      });
+      originalImageUrl = await this.r2.upload({
+        key: origKey,
+        body: originalImage.buffer,
+        contentType: originalImage.mimetype,
+      });
+    }
 
     await this.prisma.page.update({
       where: { bookId_number: { bookId, number: pageNumber } },
-      data: { drawImageUrl },
+      data: {
+        drawImageUrl,
+        ...(originalImageUrl ? { originalImageUrl } : {}),
+      },
     });
 
-    return { drawImageUrl };
+    return { drawImageUrl, originalImageUrl };
   }
 
   async findByIds(ids: string[]) {

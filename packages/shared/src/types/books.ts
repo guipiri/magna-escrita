@@ -98,6 +98,7 @@ export interface GetBookDetailResponse {
     id: string;
     name: string | null;
     schoolName: string;
+    logoUrl: string | null;
   };
   pages: BookDetailPage[];
   createdAt: string;

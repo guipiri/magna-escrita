@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Patch, Param, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { SchoolsService } from './schools.service.js';
 import { CreateSchoolDto } from './dto/create-school.dto.js';
 import { AuthGuard } from '../auth/guards/auth.guard.js';
@@ -27,6 +28,18 @@ export class SchoolsController {
   @UseGuards(AuthGuard, BackofficeGuard)
   findSchools(@User() user: AuthUser) {
     return this.schoolsService.getSchoolUnits(user);
+  }
+
+  @Patch('units/:id/logo')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  @UseInterceptors(FileInterceptor('logo'))
+  uploadUnitLogo(
+    @Param('id') id: string,
+    @UploadedFile() logo: Express.Multer.File,
+    @User() user: AuthUser,
+  ) {
+    if (!logo) throw new Error('Logo is required');
+    return this.schoolsService.uploadUnitLogo(id, logo, user);
   }
 
   @Get('school-years')

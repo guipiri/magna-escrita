@@ -6,10 +6,11 @@ import {
   Patch,
   Query,
   UploadedFile,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { BooksService } from './books.service.js';
 import { AuthGuard } from '../auth/guards/auth.guard.js';
 import { BackofficeGuard } from '../auth/guards/backoffice.guard.js';
@@ -48,20 +49,46 @@ export class BooksController {
     );
   }
 
+  @Patch('backoffice/:id')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  updateBook(
+    @Param('id') id: string,
+    @Body() body: { title?: string | null },
+    @User() user: AuthUser,
+  ) {
+    return this.booksService.updateBook(id, body, user);
+  }
+
   @Patch('backoffice/:id/pages/:pageNumber/draw')
   @UseGuards(AuthGuard, BackofficeGuard)
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'image', maxCount: 1 },
+      { name: 'originalImage', maxCount: 1 },
+    ]),
+  )
   updatePageDraw(
     @Param('id') id: string,
     @Param('pageNumber') pageNumber: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles()
+    files: {
+      image?: Express.Multer.File[];
+      originalImage?: Express.Multer.File[];
+    },
     @User() user: AuthUser,
   ) {
+    const image = files.image?.[0];
+    const originalImage = files.originalImage?.[0];
+    
+    if (!image) {
+      throw new Error('Image file is required');
+    }
+
     return this.booksService.updatePageDraw(
       id,
       Number(pageNumber),
-      file.buffer,
-      file.mimetype,
+      image,
+      originalImage,
       user,
     );
   }

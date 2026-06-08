@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'motion/react';
@@ -12,20 +12,27 @@ import {
   FileImage,
   FileText,
   GraduationCap,
-  ImageOff,
   Layers,
   Loader2,
   Pencil,
   Save,
   School,
+  UploadCloud,
   X,
 } from 'lucide-react';
-import type { BookDetailPage, BookPageType } from '@repo/shared';
+import type {
+  BookDetailPage,
+  BookPageType,
+  BookStatus,
+  GetBookDetailResponse,
+} from '@repo/shared';
 import {
   getBookById,
   updateBookPage,
   updateBookPageDraw,
+  updateBook,
 } from '../services/books-service';
+import { uploadUnitLogo } from '../services/schools-service';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -40,14 +47,12 @@ function formatSchoolYear(s: string) {
   return s.replace('YEAR_', '');
 }
 
-type BookStatus = 'DRAFT' | 'FOR_REVIEW' | 'READY' | 'ARCHIVED';
-
 function bookStatusConfig(status: BookStatus) {
   switch (status) {
     case 'READY':
       return { label: 'Pronto', variant: 'default' as const };
-    case 'FOR_REVIEW':
-      return { label: 'Em revisão', variant: 'secondary' as const };
+    case 'REVISED_BY_SCHOOL':
+      return { label: 'Revisado pela escola', variant: 'secondary' as const };
     case 'ARCHIVED':
       return { label: 'Arquivado', variant: 'outline' as const };
     default:
@@ -87,53 +92,86 @@ function hasText(type: BookPageType) {
 }
 
 function hasDraw(type: BookPageType) {
-  return type === 'DRAW' || type === 'DRAW_TEXT';
+  return type === 'DRAW' || type === 'DRAW_TEXT' || type === 'COVER';
 }
 
 /* ─── page card ─────────────────────────────────────────── */
 
 interface PageCardProps {
   page: BookDetailPage;
-  bookId: string;
+  book: GetBookDetailResponse;
   isActive: boolean;
 }
 
-function PageCard({ page, bookId, isActive }: PageCardProps) {
+function PageCard({ page, book, isActive }: PageCardProps) {
+  const bookId = book.id;
   const [isEditing, setIsEditing] = useState(false);
   const [isImageEditorOpen, setIsImageEditorOpen] = useState(false);
   const [draft, setDraft] = useState(page.textContent ?? '');
+  const [titleDraft, setTitleDraft] = useState(book.title ?? '');
+  const [droppedFile, setDroppedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
   const drawSourceUrl = page.drawImageUrl || '';
 
-  console.log('Rendering PageCard', { page });
-
   // Keep draft in sync when page data changes (after refetch)
   useEffect(() => {
-    if (!isEditing) setDraft(page.textContent ?? '');
-  }, [page.textContent, isEditing]);
+    if (!isEditing) {
+      setDraft(page.textContent ?? '');
+      setTitleDraft(book.title ?? '');
+    }
+  }, [page.textContent, book.title, isEditing]);
 
   const saveMutation = useMutation({
-    mutationFn: () =>
-      updateBookPage(bookId, page.number, { textContent: draft || null }),
+    mutationFn: () => {
+      if (page.type === 'COVER') {
+        return updateBook(bookId, { title: titleDraft || null });
+      }
+      return updateBookPage(bookId, page.number, {
+        textContent: draft || null,
+      });
+    },
     onSuccess: () => {
-      enqueueSnackbar('Página salva com sucesso!', { variant: 'success' });
+      enqueueSnackbar(
+        page.type === 'COVER'
+          ? 'Capa salva com sucesso!'
+          : 'Página salva com sucesso!',
+        { variant: 'success' },
+      );
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
       setIsEditing(false);
     },
     onError: () => {
-      enqueueSnackbar('Erro ao salvar página. Tente novamente.', {
+      enqueueSnackbar('Erro ao salvar. Tente novamente.', {
+        variant: 'error',
+      });
+    },
+  });
+
+  const uploadLogoMutation = useMutation({
+    mutationFn: (file: File) => uploadUnitLogo(book.unit.id, file),
+    onSuccess: () => {
+      enqueueSnackbar('Logo da escola atualizado!', { variant: 'success' });
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+    },
+    onError: () => {
+      enqueueSnackbar('Erro ao atualizar logo. Tente novamente.', {
         variant: 'error',
       });
     },
   });
 
   const saveDrawMutation = useMutation({
-    mutationFn: (file: File) => updateBookPageDraw(bookId, page.number, file),
+    mutationFn: ({ file, originalFile }: { file: File; originalFile?: File }) =>
+      updateBookPageDraw(bookId, page.number, file, originalFile),
     onSuccess: () => {
       enqueueSnackbar('Imagem salva com sucesso!', { variant: 'success' });
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
       setIsImageEditorOpen(false);
+      setDroppedFile(null);
     },
     onError: () => {
       enqueueSnackbar('Erro ao salvar imagem. Tente novamente.', {
@@ -142,9 +180,60 @@ function PageCard({ page, bookId, isActive }: PageCardProps) {
     },
   });
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file?.type.startsWith('image/')) {
+        setDroppedFile(file);
+        setIsImageEditorOpen(true);
+      } else {
+        enqueueSnackbar('Por favor, envie um arquivo de imagem.', {
+          variant: 'error',
+        });
+      }
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      if (file?.type.startsWith('image/')) {
+        setDroppedFile(file);
+        setIsImageEditorOpen(true);
+      } else {
+        enqueueSnackbar('Por favor, envie um arquivo de imagem.', {
+          variant: 'error',
+        });
+      }
+      e.target.value = '';
+    }
+  };
+
+  const editorSourceUrl = droppedFile
+    ? URL.createObjectURL(droppedFile)
+    : page.originalImageUrl || '';
+
   const TypeIcon = PAGE_TYPE_ICONS[page.type] ?? Layers;
   const showText = hasText(page.type);
   const showDraw = hasDraw(page.type);
+  const isCover = page.type === 'COVER';
+  const canEditText = showText || isCover;
 
   return (
     <motion.div
@@ -169,60 +258,6 @@ function PageCard({ page, bookId, isActive }: PageCardProps) {
               </p>
             </div>
           </div>
-
-          <div className='flex items-center gap-1'>
-            {showDraw && drawSourceUrl && !isImageEditorOpen && (
-              <Button
-                variant='ghost'
-                size='sm'
-                onClick={() => setIsImageEditorOpen(true)}
-                aria-label='Editar imagem'
-              >
-                <Crop className='size-3.5' />
-                Editar imagem
-              </Button>
-            )}
-
-            {showText && !isEditing && (
-              <Button
-                variant='ghost'
-                size='sm'
-                onClick={() => setIsEditing(true)}
-                aria-label='Editar conteúdo'
-              >
-                <Pencil className='size-3.5' />
-                Editar
-              </Button>
-            )}
-          </div>
-
-          {showText && isEditing && (
-            <div className='flex items-center gap-1'>
-              <Button
-                variant='ghost'
-                size='sm'
-                onClick={() => {
-                  setDraft(page.textContent ?? '');
-                  setIsEditing(false);
-                }}
-              >
-                <X className='size-3.5' />
-                Cancelar
-              </Button>
-              <Button
-                size='sm'
-                disabled={saveMutation.isPending}
-                onClick={() => saveMutation.mutate()}
-              >
-                {saveMutation.isPending ? (
-                  <Loader2 className='size-3.5 animate-spin' />
-                ) : (
-                  <Save className='size-3.5' />
-                )}
-                Salvar
-              </Button>
-            </div>
-          )}
         </div>
 
         {/* card body */}
@@ -230,9 +265,33 @@ function PageCard({ page, bookId, isActive }: PageCardProps) {
           {/* draw image */}
           {showDraw && (
             <div className='relative'>
-              <p className='mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground'>
-                Desenho
-              </p>
+              <div className='flex items-center justify-between mb-2'>
+                <p className='mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground'>
+                  Desenho
+                </p>
+                {showDraw && drawSourceUrl && !isImageEditorOpen && (
+                  <div>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      onClick={() => setIsImageEditorOpen(true)}
+                      aria-label='Editar imagem'
+                    >
+                      <Crop className='size-3.5' />
+                      Editar imagem
+                    </Button>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      onClick={() => fileInputRef.current?.click()}
+                      aria-label='Trocar imagem'
+                    >
+                      <FileImage className='size-3.5' />
+                      Trocar imagem
+                    </Button>
+                  </div>
+                )}
+              </div>
               {drawSourceUrl ? (
                 <div className='overflow-hidden rounded-xl border border-border/70 bg-muted/20'>
                   <img
@@ -243,9 +302,46 @@ function PageCard({ page, bookId, isActive }: PageCardProps) {
                   />
                 </div>
               ) : (
-                <div className='flex min-h-32 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/20 text-muted-foreground'>
-                  <ImageOff className='size-6' />
-                  <p className='text-xs'>Nenhuma imagem enviada</p>
+                <div
+                  className={cn(
+                    'relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+                    isDragging
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:bg-muted/50',
+                  )}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  role='button'
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      fileInputRef.current?.click();
+                    }
+                  }}
+                >
+                  <div
+                    className={cn(
+                      'flex size-12 items-center justify-center rounded-xl transition-colors duration-200',
+                      isDragging
+                        ? 'bg-primary/10 text-primary'
+                        : 'bg-muted text-muted-foreground',
+                    )}
+                  >
+                    <UploadCloud className='size-6' />
+                  </div>
+                  <div>
+                    <p className='text-sm font-medium text-foreground'>
+                      {isDragging
+                        ? 'Solte a imagem aqui'
+                        : 'Arraste uma imagem ou clique para selecionar'}
+                    </p>
+                    <p className='mt-1 text-xs text-muted-foreground'>
+                      PNG, JPG, WEBP
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -254,9 +350,50 @@ function PageCard({ page, bookId, isActive }: PageCardProps) {
           {/* text content */}
           {showText && (
             <div className='flex flex-1 flex-col gap-2'>
-              <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
-                Conteúdo de texto
-              </p>
+              <div className='flex items-center justify-between'>
+                <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
+                  Conteúdo de texto
+                </p>
+                {canEditText && !isEditing && (
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    onClick={() => setIsEditing(true)}
+                    aria-label='Editar conteúdo'
+                  >
+                    <Pencil className='size-3.5' />
+                    Editar texto
+                  </Button>
+                )}
+                {canEditText && isEditing && (
+                  <div className='flex items-center gap-1'>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      onClick={() => {
+                        setDraft(page.textContent ?? '');
+                        setTitleDraft(book.title ?? '');
+                        setIsEditing(false);
+                      }}
+                    >
+                      <X className='size-3.5' />
+                      Cancelar
+                    </Button>
+                    <Button
+                      size='sm'
+                      disabled={saveMutation.isPending}
+                      onClick={() => saveMutation.mutate()}
+                    >
+                      {saveMutation.isPending ? (
+                        <Loader2 className='size-3.5 animate-spin' />
+                      ) : (
+                        <Save className='size-3.5' />
+                      )}
+                      Salvar
+                    </Button>
+                  </div>
+                )}
+              </div>
               {isEditing ? (
                 <Textarea
                   value={draft}
@@ -278,8 +415,130 @@ function PageCard({ page, bookId, isActive }: PageCardProps) {
             </div>
           )}
 
+          {/* cover special fields */}
+          {isCover && (
+            <div className='flex flex-1 flex-col gap-6'>
+              {/* Title */}
+              <div className='flex flex-col gap-2'>
+                <div className='flex items-center justify-between'>
+                  <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
+                    Título do Livro
+                  </p>
+                  {canEditText && !isEditing && (
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      onClick={() => setIsEditing(true)}
+                      aria-label='Editar conteúdo'
+                    >
+                      <Pencil className='size-3.5' />
+                      Editar título
+                    </Button>
+                  )}
+                  {canEditText && isEditing && (
+                    <div className='flex items-center gap-1'>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => {
+                          setDraft(page.textContent ?? '');
+                          setTitleDraft(book.title ?? '');
+                          setIsEditing(false);
+                        }}
+                      >
+                        <X className='size-3.5' />
+                        Cancelar
+                      </Button>
+                      <Button
+                        size='sm'
+                        disabled={saveMutation.isPending}
+                        onClick={() => saveMutation.mutate()}
+                      >
+                        {saveMutation.isPending ? (
+                          <Loader2 className='size-3.5 animate-spin' />
+                        ) : (
+                          <Save className='size-3.5' />
+                        )}
+                        Salvar
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {isEditing ? (
+                  <Textarea
+                    value={titleDraft}
+                    onChange={(e) => setTitleDraft(e.target.value)}
+                    placeholder='Digite o título do livro...'
+                    className='min-h-20 resize-none text-sm'
+                    autoFocus
+                  />
+                ) : book.title ? (
+                  <p className='whitespace-pre-wrap rounded-xl border border-border/70 bg-muted/20 p-4 text-sm font-semibold text-foreground'>
+                    {book.title}
+                  </p>
+                ) : (
+                  <div className='flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/20 text-muted-foreground'>
+                    <FileText className='size-5' />
+                    <p className='text-xs'>Sem título definido</p>
+                  </div>
+                )}
+              </div>
+
+              {/* School Logo */}
+              <div className='flex flex-col gap-2'>
+                <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
+                  Logo da Escola
+                </p>
+                <div className='flex items-center gap-4 rounded-xl border border-border/70 bg-muted/20 p-4'>
+                  <div className='flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/50 bg-background'>
+                    {book.unit.logoUrl ? (
+                      <img
+                        src={book.unit.logoUrl}
+                        alt='Logo da escola'
+                        className='h-full w-full object-contain'
+                      />
+                    ) : (
+                      <School className='size-6 text-muted-foreground' />
+                    )}
+                  </div>
+                  <div className='flex flex-col gap-2 items-start'>
+                    <p className='text-sm text-muted-foreground'>
+                      {book.unit.logoUrl
+                        ? 'Logo atual da escola.'
+                        : 'Nenhum logo cadastrado.'}
+                    </p>
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      onClick={() => logoInputRef.current?.click()}
+                      disabled={uploadLogoMutation.isPending}
+                    >
+                      {uploadLogoMutation.isPending ? (
+                        <Loader2 className='size-3.5 animate-spin mr-2' />
+                      ) : (
+                        <UploadCloud className='size-3.5 mr-2' />
+                      )}
+                      {book.unit.logoUrl ? 'Trocar Logo' : 'Enviar Logo'}
+                    </Button>
+                    <input
+                      type='file'
+                      ref={logoInputRef}
+                      className='hidden'
+                      accept='image/*'
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) uploadLogoMutation.mutate(file);
+                        e.target.value = '';
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* blank / cover / etc. */}
-          {!showText && !showDraw && (
+          {!showText && !showDraw && !isCover && (
             <div className='flex flex-1 items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/20 text-muted-foreground'>
               <p className='text-xs'>
                 {PAGE_TYPE_LABELS[page.type]} — sem conteúdo
@@ -288,13 +547,29 @@ function PageCard({ page, bookId, isActive }: PageCardProps) {
           )}
         </div>
 
+        <input
+          type='file'
+          ref={fileInputRef}
+          className='hidden'
+          accept='image/*'
+          onChange={handleFileChange}
+        />
+
         <BookImageEditorDialog
           open={isImageEditorOpen}
-          onOpenChange={setIsImageEditorOpen}
-          sourceUrl={page.originalImageUrl || ''}
+          onOpenChange={(open) => {
+            setIsImageEditorOpen(open);
+            if (!open) {
+              setDroppedFile(null);
+            }
+          }}
+          sourceUrl={editorSourceUrl}
           pageNumber={page.number}
           onSave={async (file) => {
-            await saveDrawMutation.mutateAsync(file);
+            await saveDrawMutation.mutateAsync({
+              file,
+              originalFile: droppedFile || undefined,
+            });
           }}
         />
       </div>
@@ -503,7 +778,7 @@ export function BookDetailPage() {
                   <PageCard
                     key={currentPage.number}
                     page={currentPage}
-                    bookId={book.id}
+                    book={book}
                     isActive
                   />
                 </div>

@@ -30,3 +30,17 @@ export const createSchool = async (
   );
   return response.data;
 };
+
+export const uploadUnitLogo = async (
+  unitId: string,
+  logo: File,
+): Promise<{ logoUrl: string }> => {
+  const formData = new FormData();
+  formData.append('logo', logo);
+
+  const response = await api.patch<{ logoUrl: string }>(
+    `/units/${unitId}/logo`,
+    formData,
+  );
+  return response.data;
+};
