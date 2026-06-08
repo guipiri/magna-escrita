@@ -9,7 +9,7 @@ import {
 } from '@repo/shared';
 import { UserRole } from '@repo/shared/dist/types/user.js';
 import { UnauthorizedAccessToCreateSchoolException } from '../auth/auth.erros.js';
-import { SchoolYear as PrismaSchoolYear } from '@prisma/client';
+import { BookStatus, SchoolYear as PrismaSchoolYear } from '@prisma/client';
 import { CreateSchoolDto } from './dto/create-school.dto.js';
 
 @Injectable()
@@ -100,8 +100,8 @@ export class SchoolsService {
 
               const isCompleted =
                 user.role === UserRole.ADMIN
-                  ? be.status === 'READY'
-                  : be.status === 'FOR_REVIEW';
+                  ? be.status === BookStatus.READY
+                  : be.status === BookStatus.REVISED_BY_SCHOOL;
 
               if (isCompleted) completedBookIds.add(be.id);
             }

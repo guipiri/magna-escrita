@@ -11,7 +11,7 @@ export const BOOK_PAGE_TYPES = [
 
 export type BookPageType = (typeof BOOK_PAGE_TYPES)[number];
 
-export type BookStatus = 'DRAFT' | 'FOR_REVIEW' | 'READY' | 'ARCHIVED';
+export type BookStatus = 'DRAFT' | 'REVISED_BY_SCHOOL' | 'READY' | 'ARCHIVED';
 
 export interface BookPageData {
   id: string;

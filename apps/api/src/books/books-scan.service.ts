@@ -119,17 +119,22 @@ export class BooksScanService {
     }
 
     // 4. Fetch the template page to determine page type
-    const templatePage = await this.prisma.bookTemplatePage.findUnique({
+    const template = await this.prisma.bookTemplate.findUnique({
       where: {
-        bookTemplateId_pageNumber: {
-          bookTemplateId: qrData.templateId,
-          pageNumber: qrData.page,
+        id: qrData.templateId,
+      },
+      select: {
+        bookTemplatePages: {
+          select: { pageNumber: true, pageType: true },
         },
       },
-      select: { pageType: true },
     });
+    const templatePage = template?.bookTemplatePages.find(
+      (p) => p.pageNumber === qrData.page,
+    );
 
-    if (!templatePage) throw new NotFoundBookTemplatePageException();
+    if (!template || !templatePage)
+      throw new NotFoundBookTemplatePageException();
 
     // // 5. Fetch active event for this unit + school year
     const activeEvent = await this.prisma.authographsEvent.findFirst({
@@ -173,7 +178,24 @@ export class BooksScanService {
         priceId: await this.getDefaultPriceId(),
       },
       update: {},
-      select: { id: true },
+      select: { id: true, pages: { select: { number: true } } },
+    });
+
+    template.bookTemplatePages.forEach(async (p) => {
+      await this.prisma.page.upsert({
+        where: {
+          bookId_number: {
+            bookId: book.id,
+            number: p.pageNumber,
+          },
+        },
+        create: {
+          bookId: book.id,
+          number: p.pageNumber,
+          type: p.pageType,
+        },
+        update: {},
+      });
     });
     console.debug('Book upserted:', book.id);
 

@@ -55,7 +55,7 @@ model Price {
 
 enum BookStatus {
   DRAFT
-  FOR_REVIEW
+  REVISED_BY_SCHOOL // REVISED BY SCHOOL AND READY TO BE REVISED BY MAGNA
   READY // READY FOR SALE AND PRINT
   ARCHIVED // NOT FOR SALE
 }
@@ -136,14 +136,21 @@ enum PageType {
   BACK_COVER
 }
 
+enum PageStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  REVISED_BY_SCHOOL
+}
+
 model Page {
   number           Int
   type             PageType
+  status           PageStatus @default(NOT_STARTED)
   textContent      String?
   drawImageUrl     String?
   originalImageUrl String?
   imageUrl         String?
-  book             Book     @relation(fields: [bookId], references: [id])
+  book             Book       @relation(fields: [bookId], references: [id])
   bookId           String
 
   createdAt DateTime @default(now())
