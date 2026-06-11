@@ -46,9 +46,21 @@ export const errorMessages: Record<ErrorKeys, string> = {
   NOT_FOUND_PDF_CLASS: 'Turma não encontrada.',
   NOT_FOUND_PDF_NO_ELIGIBLE_PAGES:
     'O template desta turma não possui páginas elegíveis para o PDF (DRAW, DRAW_TEXT ou TEXT).',
-  NOT_FOUND_PDF_NO_ENROLLMENTS: 'Esta turma não possui alunos matriculados.',
+  NOT_FOUND_PDF_NO_STUDENTS: 'Esta turma não possui alunos matriculados.',
   NOT_FOUND_PDF_NO_ACTIVE_EVENT:
     'Não há evento ativo para a unidade desta turma no ano letivo vigente.',
+
+  CONFLICT_MORE_THAN_ONE_ACTIVE_EVENT: 'Mais de um evento ativo encontrado.',
+  BAD_REQUEST_QR_CODE_NOT_READABLE: 'O QR Code da imagem não pode ser lido.',
+  BAD_REQUEST_DRAW_SQUARE_NOT_FOUND: 'O espaço para desenho não foi encontrado.',
+  BAD_REQUEST_BOOK_TEMPLATE_MISMATCH: 'Template de livro incorreto.',
+  NOT_FOUND_STUDENT: 'Matrícula não encontrada.',
+  NOT_FOUND_BOOK_TEMPLATE_PAGE: 'Página do template não encontrada.',
+  NOT_FOUND_ACTIVE_EVENT_FOR_STUDENT: 'Nenhum evento ativo para a matrícula.',
+  INTERNAL_CLOUDFLARE_UPLOAD_FAILED: 'Erro ao fazer upload.',
+  INTERNAL_GEMINI_RECOGNITION_FAILED: 'Erro no reconhecimento de imagem.',
+  INTERNAL_GOOGLE_CLOUD_VISION_RECOGNITION_FAILED: 'Erro no Google Vision.',
+  INTERNAL_QR_CODE_RECOGNITION_FAILED: 'Erro na leitura do QR Code.',
 
   UNKNOWN_ERROR: 'Ocorreu um erro desconhecido. Tente novamente mais tarde.',
 };

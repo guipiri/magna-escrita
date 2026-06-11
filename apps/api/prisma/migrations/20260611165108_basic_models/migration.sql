@@ -5,10 +5,13 @@ CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'APPROVED', 'CANCELED', 'REFUNDED'
 CREATE TYPE "Role" AS ENUM ('ADMIN', 'SCHOOL', 'CUSTOMER');
 
 -- CreateEnum
-CREATE TYPE "BookStatus" AS ENUM ('DRAFT', 'FOR_REVIEW', 'READY', 'ARCHIVED');
+CREATE TYPE "BookStatus" AS ENUM ('DRAFT', 'REVISED_BY_SCHOOL', 'READY', 'ARCHIVED');
 
 -- CreateEnum
 CREATE TYPE "PageType" AS ENUM ('COVER', 'TEXT', 'DRAW', 'DRAW_TEXT', 'BLANK', 'PREFACE', 'THANKS', 'BACK_COVER');
+
+-- CreateEnum
+CREATE TYPE "PageStatus" AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'REVISED_BY_SCHOOL');
 
 -- CreateEnum
 CREATE TYPE "SchoolYear" AS ENUM ('2026', '2027');
@@ -55,7 +58,7 @@ CREATE TABLE "Book" (
     "author" TEXT,
     "synopsis" TEXT,
     "priceId" TEXT NOT NULL,
-    "enrollmentId" TEXT NOT NULL,
+    "studentId" TEXT,
     "authographsEventId" TEXT,
     "status" "BookStatus" NOT NULL DEFAULT 'DRAFT',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -99,8 +102,10 @@ CREATE TABLE "OrderItem" (
 CREATE TABLE "Page" (
     "number" INTEGER NOT NULL,
     "type" "PageType" NOT NULL,
+    "status" "PageStatus" NOT NULL DEFAULT 'NOT_STARTED',
     "textContent" TEXT,
     "drawImageUrl" TEXT,
+    "originalImageUrl" TEXT,
     "imageUrl" TEXT,
     "bookId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -123,22 +128,12 @@ CREATE TABLE "UserUnit" (
 CREATE TABLE "Student" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "Student_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Enrollment" (
-    "id" TEXT NOT NULL,
-    "studentId" TEXT NOT NULL,
-    "classId" TEXT NOT NULL,
     "age" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "classId" TEXT NOT NULL,
 
-    CONSTRAINT "Enrollment_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Student_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -224,6 +219,9 @@ CREATE UNIQUE INDEX "Order_mpId_key" ON "Order"("mpId");
 CREATE UNIQUE INDEX "Book_magnificCode_key" ON "Book"("magnificCode");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Book_studentId_authographsEventId_key" ON "Book"("studentId", "authographsEventId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "OrderItem_orderId_bookId_key" ON "OrderItem"("orderId", "bookId");
 
 -- CreateIndex
@@ -242,7 +240,7 @@ ALTER TABLE "Order" ADD CONSTRAINT "Order_userId_fkey" FOREIGN KEY ("userId") RE
 ALTER TABLE "Book" ADD CONSTRAINT "Book_priceId_fkey" FOREIGN KEY ("priceId") REFERENCES "Price"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Book" ADD CONSTRAINT "Book_enrollmentId_fkey" FOREIGN KEY ("enrollmentId") REFERENCES "Enrollment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Book" ADD CONSTRAINT "Book_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Book" ADD CONSTRAINT "Book_authographsEventId_fkey" FOREIGN KEY ("authographsEventId") REFERENCES "AuthographsEvent"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -257,7 +255,7 @@ ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_orderId_fkey" FOREIGN KEY ("or
 ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_bookId_fkey" FOREIGN KEY ("bookId") REFERENCES "Book"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Page" ADD CONSTRAINT "Page_bookId_fkey" FOREIGN KEY ("bookId") REFERENCES "Book"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Page" ADD CONSTRAINT "Page_bookId_fkey" FOREIGN KEY ("bookId") REFERENCES "Book"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "UserUnit" ADD CONSTRAINT "UserUnit_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -266,10 +264,7 @@ ALTER TABLE "UserUnit" ADD CONSTRAINT "UserUnit_userId_fkey" FOREIGN KEY ("userI
 ALTER TABLE "UserUnit" ADD CONSTRAINT "UserUnit_unitId_fkey" FOREIGN KEY ("unitId") REFERENCES "Unit"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Enrollment" ADD CONSTRAINT "Enrollment_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Enrollment" ADD CONSTRAINT "Enrollment_classId_fkey" FOREIGN KEY ("classId") REFERENCES "Class"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Student" ADD CONSTRAINT "Student_classId_fkey" FOREIGN KEY ("classId") REFERENCES "Class"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Class" ADD CONSTRAINT "Class_unitId_fkey" FOREIGN KEY ("unitId") REFERENCES "Unit"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

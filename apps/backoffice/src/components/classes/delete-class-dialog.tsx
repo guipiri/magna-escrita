@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from '../ui/alert-dialog';
 import { deleteClass } from '../../services/classes-service';
+import { enqueueSnackbar } from 'notistack';
 
 export function DeleteClassDialog({
   deletingClass,
@@ -32,6 +33,13 @@ export function DeleteClassDialog({
       queryClient.invalidateQueries({ queryKey: ['classes'] });
       onSuccess?.();
     },
+    onError: (error) => {
+      console.log(error);
+      enqueueSnackbar(getErrorMessage(error), {
+        variant: 'error',
+      });
+      onClose?.();
+    },
   });
   return (
     <AlertDialog open={!!deletingClass} onOpenChange={onClose}>
@@ -40,15 +48,15 @@ export function DeleteClassDialog({
           <AlertDialogTitle>Excluir Turma</AlertDialogTitle>
           <AlertDialogDescription>
             Tem certeza que deseja excluir a turma "{deletingClass?.name}"? Esta
-            ação não pode ser desfeita.
+            ação vai excluir também os livros da turma e não pode ser desfeita.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        {deleteMutation.isError && (
+        {/* {deleteMutation.isError && (
           <div className='p-3 bg-red-100 text-red-700 rounded text-sm'>
             {getErrorMessage(deleteMutation.error) ||
               'Erro ao excluir turma. Tente novamente.'}
           </div>
-        )}
+        )} */}
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onCancel}>Cancelar</AlertDialogCancel>
           <AlertDialogAction

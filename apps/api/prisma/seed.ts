@@ -149,7 +149,7 @@ async function main() {
 
   console.log('✅ Modelo padrão de turma criado/atualizado');
 
-  // livros will be created after classes and enrollments are available
+  // livros will be created after classes and students are available
 
   // Criar/atualizar escolas
   console.log('\n🏫 Iniciando seed de escolas...');
@@ -225,7 +225,7 @@ async function main() {
 
   console.log(`✅ ${units.length} unidades criadas/atualizadas`);
 
-  // Criar classe, aluno e matrícula (enrollment) necessários para os livros
+  // Criar classe e aluno necessários para os livros
   const klass = await prisma.class.upsert({
     where: { id: 'class-001' },
     update: {},
@@ -241,29 +241,23 @@ async function main() {
 
   const student = await prisma.student.upsert({
     where: { id: 'student-001' },
-    update: { name: 'Sofia Maria' },
-    create: { id: 'student-001', name: 'Sofia Maria' },
-  });
-
-  const enrollment = await prisma.enrollment.upsert({
-    where: { id: 'enrollment-001' },
-    update: {},
+    update: { name: 'Sofia Maria', age: 7, classId: klass.id },
     create: {
-      id: 'enrollment-001',
-      studentId: student.id,
-      classId: klass.id,
+      id: 'student-001',
+      name: 'Sofia Maria',
       age: 7,
+      classId: klass.id,
     },
   });
 
-  // Criar/atualizar livros (agora que enrollment/class/unit existem)
+  // Criar/atualizar livros (agora que student/class/unit existem)
   const books = await Promise.all([
     prisma.book.upsert({
       where: { id: 'book-001' },
       update: {
         id: 'book-001',
         title: 'A Cidade das Palavras',
-        enrollmentId: enrollment.id,
+        studentId: student.id,
         magnificCode: generateMagnificCode(),
         author: 'Lia Monteiro',
         synopsis:
@@ -273,7 +267,7 @@ async function main() {
       create: {
         id: 'book-001',
         title: 'A Cidade das Palavras',
-        enrollmentId: enrollment.id,
+        studentId: student.id,
         magnificCode: generateMagnificCode(),
         author: 'Lia Monteiro',
         synopsis:
@@ -286,7 +280,7 @@ async function main() {
       update: {
         id: 'book-002',
         title: 'Código em Movimento',
-        enrollmentId: enrollment.id,
+        studentId: student.id,
         magnificCode: generateMagnificCode(),
         author: 'Rafael Cordeiro',
         synopsis:
@@ -296,7 +290,7 @@ async function main() {
       create: {
         id: 'book-002',
         title: 'Código em Movimento',
-        enrollmentId: enrollment.id,
+        studentId: student.id,
         magnificCode: generateMagnificCode(),
         author: 'Rafael Cordeiro',
         synopsis:
@@ -309,7 +303,7 @@ async function main() {
       update: {
         id: 'book-003',
         title: 'Mar de Tinta',
-        enrollmentId: enrollment.id,
+        studentId: student.id,
         magnificCode: generateMagnificCode(),
         author: 'Helena Vieira',
         synopsis:
@@ -319,7 +313,7 @@ async function main() {
       create: {
         id: 'book-003',
         title: 'Mar de Tinta',
-        enrollmentId: enrollment.id,
+        studentId: student.id,
         magnificCode: generateMagnificCode(),
         author: 'Helena Vieira',
         synopsis:
@@ -332,7 +326,7 @@ async function main() {
       update: {
         id: 'book-004',
         title: 'Atlas de Pequenas Revoluções',
-        enrollmentId: enrollment.id,
+        studentId: student.id,
         magnificCode: generateMagnificCode(),
         author: 'Nuno Azevedo',
         synopsis:
@@ -342,7 +336,7 @@ async function main() {
       create: {
         id: 'book-004',
         title: 'Atlas de Pequenas Revoluções',
-        enrollmentId: enrollment.id,
+        studentId: student.id,
         magnificCode: generateMagnificCode(),
         author: 'Nuno Azevedo',
         synopsis:
@@ -355,7 +349,7 @@ async function main() {
       update: {
         title: 'As Aventuras Mágicas de Sofia',
         magnificCode: MOCK_SOFIA_MAGNIFIC_CODE,
-        enrollmentId: enrollment.id,
+        studentId: student.id,
         author: 'Sofia Maria, 7 anos',
         synopsis:
           'Uma história encantadora sobre uma menina que descobre um mundo mágico cheio de cores, amizade e aventuras incríveis. Escrito e ilustrado com todo o carinho por uma jovem autora.',
@@ -365,7 +359,7 @@ async function main() {
         id: 'book-mock-sofia',
         title: 'As Aventuras Mágicas de Sofia',
         magnificCode: MOCK_SOFIA_MAGNIFIC_CODE,
-        enrollmentId: enrollment.id,
+        studentId: student.id,
         author: 'Sofia Maria, 7 anos',
         synopsis:
           'Uma história encantadora sobre uma menina que descobre um mundo mágico cheio de cores, amizade e aventuras incríveis. Escrito e ilustrado com todo o carinho por uma jovem autora.',

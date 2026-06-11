@@ -21,10 +21,10 @@ export class NotFoundPdfNoEligiblePagesException extends NotFoundException {
   }
 }
 
-export class NotFoundPdfNoEnrollmentsException extends NotFoundException {
+export class NotFoundPdfNoStudentsException extends NotFoundException {
   constructor() {
     super({
-      key: ErrorKeys.NOT_FOUND_PDF_NO_ENROLLMENTS,
+      key: ErrorKeys.NOT_FOUND_PDF_NO_STUDENTS,
       message: 'This class has no enrolled students',
     } satisfies HttpExceptionConstructor);
   }

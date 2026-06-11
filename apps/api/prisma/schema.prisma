@@ -70,8 +70,8 @@ model Book {
   priceId      String
   price        Price   @relation(fields: [priceId], references: [id])
 
-  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
-  enrollmentId String
+  student   Student? @relation(fields: [studentId], references: [id])
+  studentId String?
 
   orderItems OrderItem[]
 
@@ -83,7 +83,7 @@ model Book {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([enrollmentId, authographsEventId])
+  @@unique([studentId, authographsEventId])
 }
 
 model BookTemplate {
@@ -150,7 +150,7 @@ model Page {
   drawImageUrl     String?
   originalImageUrl String?
   imageUrl         String?
-  book             Book       @relation(fields: [bookId], references: [id])
+  book             Book       @relation(fields: [bookId], references: [id], onDelete: Cascade)
   bookId           String
 
   createdAt DateTime @default(now())
@@ -172,26 +172,16 @@ model UserUnit {
 }
 
 model Student {
-  id          String       @id @default(cuid())
-  name        String
-  enrollments Enrollment[]
+  id   String @id @default(cuid())
+  name String
+  age  Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
 
-model Enrollment {
-  id        String  @id @default(cuid())
-  studentId String
-  student   Student @relation(fields: [studentId], references: [id])
-
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
   classId String
-  class   Class  @relation(fields: [classId], references: [id])
-  age     Int?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  books     Book[]
+  books   Book[]
 }
 
 enum SchoolYear {
@@ -200,12 +190,12 @@ enum SchoolYear {
 }
 
 model Class {
-  id          String       @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
   teacherName String
-  units       Unit         @relation(fields: [unitId], references: [id])
+  units       Unit      @relation(fields: [unitId], references: [id])
   unitId      String
-  enrollments Enrollment[]
+  students    Student[]
 
   schoolYear SchoolYear
 

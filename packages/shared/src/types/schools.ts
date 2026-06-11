@@ -70,7 +70,7 @@ export interface GetClassesResponse {
 export interface ClassStudentResponse {
   id: string;
   name: string;
-  enrollmentId: string;
+  studentId: string;
 }
 
 export interface UpdateClassStudentItem {

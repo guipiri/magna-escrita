@@ -23,7 +23,7 @@ export class BooksService {
         user.role === UserRole.ADMIN
           ? undefined
           : {
-              enrollment: {
+              student: {
                 class: {
                   units: {
                     userUnits: { some: { userId: user.id } },
@@ -38,10 +38,10 @@ export class BooksService {
         status: true,
         createdAt: true,
         updatedAt: true,
-        enrollment: {
+        student: {
           select: {
             id: true,
-            student: { select: { name: true } },
+            name: true,
             class: {
               select: {
                 id: true,
@@ -67,19 +67,19 @@ export class BooksService {
       magnificCode: book.magnificCode,
       title: book.title,
       status: book.status,
-      enrollment: {
-        id: book.enrollment.id,
-        studentName: book.enrollment.student.name,
+      student: {
+        id: book.student!.id,
+        name: book.student!.name,
       },
       class: {
-        id: book.enrollment.class.id,
-        name: book.enrollment.class.name,
-        schoolYear: book.enrollment.class.schoolYear,
+        id: book.student!.class.id,
+        name: book.student!.class.name,
+        schoolYear: book.student!.class.schoolYear,
       },
       unit: {
-        id: book.enrollment.class.units.id,
-        name: book.enrollment.class.units.name,
-        schoolName: book.enrollment.class.units.school.name,
+        id: book.student!.class.units.id,
+        name: book.student!.class.units.name,
+        schoolName: book.student!.class.units.school.name,
       },
       createdAt: book.createdAt.toISOString(),
       updatedAt: book.updatedAt.toISOString(),
@@ -109,10 +109,10 @@ export class BooksService {
             originalImageUrl: true,
           },
         },
-        enrollment: {
+        student: {
           select: {
             id: true,
-            student: { select: { name: true } },
+            name: true,
             class: {
               select: {
                 id: true,
@@ -139,7 +139,7 @@ export class BooksService {
       const hasAccess = await this.prisma.userUnit.findFirst({
         where: {
           userId: user.id,
-          unitId: book.enrollment.class.units.id,
+          unitId: book.student!.class.units.id,
         },
       });
       if (!hasAccess) throw new NotFoundBookException();
@@ -152,20 +152,20 @@ export class BooksService {
       author: book.author,
       synopsis: book.synopsis,
       status: book.status,
-      enrollment: {
-        id: book.enrollment.id,
-        studentName: book.enrollment.student.name,
+      student: {
+        id: book.student!.id,
+        name: book.student!.name,
       },
       class: {
-        id: book.enrollment.class.id,
-        name: book.enrollment.class.name,
-        schoolYear: book.enrollment.class.schoolYear,
+        id: book.student!.class.id,
+        name: book.student!.class.name,
+        schoolYear: book.student!.class.schoolYear,
       },
       unit: {
-        id: book.enrollment.class.units.id,
-        name: book.enrollment.class.units.name,
-        schoolName: book.enrollment.class.units.school.name,
-        logoUrl: book.enrollment.class.units.logoUrl,
+        id: book.student!.class.units.id,
+        name: book.student!.class.units.name,
+        schoolName: book.student!.class.units.school.name,
+        logoUrl: book.student!.class.units.logoUrl,
       },
       pages: book.pages.map((p) => ({
         number: p.number,
@@ -217,9 +217,9 @@ export class BooksService {
   ): Promise<{ drawImageUrl: string; originalImageUrl?: string }> {
     const book = await this.getById(bookId, user);
 
-    // Resolve enrollment → class → unit → active event
-    const enrollment = await this.prisma.enrollment.findUnique({
-      where: { id: book.enrollment.id },
+    // Resolve student → class → unit → active event
+    const student = await this.prisma.student.findUnique({
+      where: { id: book.student.id },
       select: {
         class: {
           select: {
@@ -230,12 +230,12 @@ export class BooksService {
       },
     });
 
-    if (!enrollment) throw new NotFoundBookException();
+    if (!student) throw new NotFoundBookException();
 
     const activeEvent = await this.prisma.authographsEvent.findFirst({
       where: {
-        unitId: enrollment.class.unitId,
-        schoolYear: enrollment.class.schoolYear,
+        unitId: student.class.unitId,
+        schoolYear: student.class.schoolYear,
         status: { in: ['ONGOING', 'PLANNED'] },
       },
       select: { id: true },
@@ -253,9 +253,9 @@ export class BooksService {
 
     const ext = getExt(image.mimetype);
     const key = getProcessedPageUploadBucketPath({
-      unitId: enrollment.class.unitId,
+      unitId: student.class.unitId,
       eventId: activeEvent.id,
-      enrollmentId: book.enrollment.id,
+      studentId: book.student.id,
       bookId,
       pageNumber,
       ext,
@@ -271,8 +271,8 @@ export class BooksService {
     if (originalImage) {
       const origExt = getExt(originalImage.mimetype);
       const origKey = getOriginalPageUploadBucketPath({
-        unitId: enrollment.class.unitId,
-        enrollmentId: book.enrollment.id,
+        unitId: student.class.unitId,
+        studentId: book.student.id,
         pageNumber,
         bookId,
         eventId: activeEvent.id,

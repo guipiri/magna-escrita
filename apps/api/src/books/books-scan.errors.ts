@@ -25,10 +25,10 @@ export class BadRequestBookTemplateMismatchException extends BadRequestException
   }
 }
 
-export class NotFoundEnrollmentException extends NotFoundException {
+export class NotFoundStudentException extends NotFoundException {
   constructor() {
     super({
-      key: ErrorKeys.NOT_FOUND_ENROLLMENT,
+      key: ErrorKeys.NOT_FOUND_STUDENT,
       message: 'Matrícula não encontrada.',
     } satisfies HttpExceptionConstructor);
   }
@@ -43,10 +43,10 @@ export class NotFoundBookTemplatePageException extends NotFoundException {
   }
 }
 
-export class NotFoundActiveEventForEnrollmentException extends NotFoundException {
+export class NotFoundActiveEventForStudentException extends NotFoundException {
   constructor() {
     super({
-      key: ErrorKeys.NOT_FOUND_ACTIVE_EVENT_FOR_ENROLLMENT,
+      key: ErrorKeys.NOT_FOUND_ACTIVE_EVENT_FOR_STUDENT,
       message:
         'Nenhum evento ativo encontrado para a turma desta matrícula no ano letivo atual.',
     } satisfies HttpExceptionConstructor);

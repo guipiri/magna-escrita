@@ -28,7 +28,7 @@ export function BooksPage() {
     return books.filter((book) => {
       const haystack = [
         book.title ?? '',
-        book.enrollment.studentName,
+        book.student.name,
         book.class.name,
         book.class.schoolYear,
         book.unit.schoolName,
@@ -47,7 +47,7 @@ export function BooksPage() {
     (acc, book) => {
       acc.totalBooks++;
       if (book.status === 'READY') acc.readyBooks++;
-      if (book.status === 'FOR_REVIEW') acc.reviewBooks++;
+      if (book.status === 'REVISED_BY_SCHOOL') acc.reviewBooks++;
       return acc;
     },
     { totalBooks: 0, readyBooks: 0, reviewBooks: 0 },

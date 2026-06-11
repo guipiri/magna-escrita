@@ -7,9 +7,9 @@ import type { ReadQrCodeService } from './providers/read-qr-code.service.js';
 import {
   BadRequestBookTemplateMismatchException,
   BadRequestQrCodeNotReadableException,
-  NotFoundActiveEventForEnrollmentException,
+  NotFoundActiveEventForStudentException,
   NotFoundBookTemplatePageException,
-  NotFoundEnrollmentException,
+  NotFoundStudentException,
 } from './books-scan.errors.js';
 import {
   generateMagnificCode,
@@ -19,14 +19,14 @@ import {
 import { AuthographsEventStatus, PageType } from '@prisma/client';
 
 interface QrCodeData {
-  enrollmentId: string;
+  studentId: string;
   templateId: string;
   page: number;
 }
 
 export interface ScanPageResult {
   filename: string;
-  enrollmentId: string;
+  studentId: string;
   pageNumber: number;
   status: 'success' | 'error';
   error?: string;
@@ -65,7 +65,7 @@ export class BooksScanService {
           err instanceof Error ? err.message : 'Erro desconhecido';
         results.push({
           filename: file.originalname,
-          enrollmentId: '',
+          studentId: '',
           pageNumber: 0,
           status: 'error',
           error: message,
@@ -92,9 +92,9 @@ export class BooksScanService {
     const qrData = this.parseQrPayload(qrStringData);
     console.debug('QR code data extracted:', qrStringData);
 
-    // 2. Fetch enrollment → class → current template
-    const enrollment = await this.prisma.enrollment.findUnique({
-      where: { id: qrData.enrollmentId },
+    // 2. Fetch student → class → current template
+    const student = await this.prisma.student.findUnique({
+      where: { id: qrData.studentId },
       select: {
         id: true,
         class: {
@@ -108,13 +108,13 @@ export class BooksScanService {
       },
     });
 
-    if (!enrollment) throw new NotFoundEnrollmentException();
+    if (!student) throw new NotFoundStudentException();
 
     // // 3. Validate template consistency
-    if (enrollment.class.bookTemplateId !== qrData.templateId) {
+    if (student.class.bookTemplateId !== qrData.templateId) {
       throw new BadRequestBookTemplateMismatchException(
         qrData.templateId,
-        enrollment.class.bookTemplateId,
+        student.class.bookTemplateId,
       );
     }
 
@@ -139,8 +139,8 @@ export class BooksScanService {
     // // 5. Fetch active event for this unit + school year
     const activeEvent = await this.prisma.authographsEvent.findFirst({
       where: {
-        unitId: enrollment.class.unitId,
-        schoolYear: enrollment.class.schoolYear,
+        unitId: student.class.unitId,
+        schoolYear: student.class.schoolYear,
         status: {
           in: [AuthographsEventStatus.ONGOING, AuthographsEventStatus.PLANNED],
         },
@@ -149,7 +149,7 @@ export class BooksScanService {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (!activeEvent) throw new NotFoundActiveEventForEnrollmentException();
+    if (!activeEvent) throw new NotFoundActiveEventForStudentException();
 
     // 6. Upsert the Book
 
@@ -166,14 +166,14 @@ export class BooksScanService {
 
     const book = await this.prisma.book.upsert({
       where: {
-        enrollmentId_authographsEventId: {
-          enrollmentId: enrollment.id,
+        studentId_authographsEventId: {
+          studentId: student.id,
           authographsEventId: activeEvent.id,
         },
       },
       create: {
         magnificCode,
-        enrollmentId: enrollment.id,
+        studentId: student.id,
         authographsEventId: activeEvent.id,
         priceId: await this.getDefaultPriceId(),
       },
@@ -200,16 +200,16 @@ export class BooksScanService {
     console.debug('Book upserted:', book.id);
 
     // 6. Save the file to R2 before any processing to ensure we have the original image available in case of errors.
-    const originalFileBucketPath = getOriginalPageUploadBucketPath({
-      unitId: enrollment.class.unitId,
+    const originalFileBucketKey = getOriginalPageUploadBucketPath({
+      unitId: student.class.unitId,
       eventId: activeEvent.id,
-      enrollmentId: enrollment.id,
+      studentId: student.id,
       bookId: book.id,
       pageNumber: qrData.page,
+      ext: this.getExtension(file.mimetype),
     });
-    const originalImageKey = `${originalFileBucketPath}.${this.getExtension(file.mimetype)}`;
     const originalImageUrl = await this.r2.upload({
-      key: originalImageKey,
+      key: originalFileBucketKey,
       body: file.buffer,
       contentType: file.mimetype,
     });
@@ -222,16 +222,21 @@ export class BooksScanService {
 
     const pageType = templatePage.pageType;
 
-    if (pageType === PageType.DRAW || pageType === PageType.DRAW_TEXT) {
+    if (
+      pageType === PageType.DRAW ||
+      pageType === PageType.DRAW_TEXT ||
+      pageType === PageType.COVER
+    ) {
       console.debug('Processing page type:', pageType);
 
-      const processedDrawKey = `${getProcessedPageUploadBucketPath({
-        unitId: enrollment.class.unitId,
+      const processedDrawKey = getProcessedPageUploadBucketPath({
+        unitId: student.class.unitId,
         eventId: activeEvent.id,
-        enrollmentId: enrollment.id,
+        studentId: student.id,
         bookId: book.id,
         pageNumber: qrData.page,
-      })}.${this.getExtension(file.mimetype)}`;
+        ext: this.getExtension(file.mimetype),
+      });
 
       const processedDrawFile = await this.processDrawService.execute(file);
       const processedDrawBuffer = Buffer.from(
@@ -275,9 +280,17 @@ export class BooksScanService {
       },
     });
 
+    if (pageType === PageType.COVER) {
+      const title = await this.extractTextService.execute(file);
+      await this.prisma.book.update({
+        where: { id: book.id },
+        data: { title },
+      });
+    }
+
     return {
       filename: file.originalname,
-      enrollmentId: enrollment.id,
+      studentId: student.id,
       pageNumber: qrData.page,
       status: 'success',
     };
@@ -292,7 +305,7 @@ export class BooksScanService {
     }
 
     if (
-      !parsed.enrollmentId ||
+      !parsed.studentId ||
       !parsed.templateId ||
       (!parsed.page && parsed.page !== 0)
     )

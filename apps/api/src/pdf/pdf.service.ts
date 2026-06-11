@@ -9,13 +9,14 @@ import {
   NotFoundPdfClassException,
   NotFoundPdfNoActiveEventException,
   NotFoundPdfNoEligiblePagesException,
-  NotFoundPdfNoEnrollmentsException,
+  NotFoundPdfNoStudentsException,
 } from './pdf.errors.js';
 
 const ELIGIBLE_PAGE_TYPES: PageType[] = [
   PageType.DRAW,
   PageType.DRAW_TEXT,
   PageType.TEXT,
+  PageType.COVER,
 ];
 
 const PDF_MARGIN = 40;
@@ -92,17 +93,17 @@ export class PdfService {
     if (eligiblePages.length === 0)
       throw new NotFoundPdfNoEligiblePagesException();
 
-    // 3. Fetch enrollments ordered by student name
-    const enrollments = await this.prisma.enrollment.findMany({
+    // 3. Fetch students ordered by name
+    const students = await this.prisma.student.findMany({
       where: { classId },
       select: {
         id: true,
-        student: { select: { id: true, name: true } },
+        name: true,
       },
-      orderBy: { student: { name: 'asc' } },
+      orderBy: { name: 'asc' },
     });
 
-    if (enrollments.length === 0) throw new NotFoundPdfNoEnrollmentsException();
+    if (students.length === 0) throw new NotFoundPdfNoStudentsException();
 
     // 4. Fetch the active event for the unit with the same school year
     const activeEvent = await this.prisma.authographsEvent.findMany({
@@ -129,7 +130,7 @@ export class PdfService {
       schoolName: classRecord.units.school.name,
       eventName: activeEvent[0].name,
       templateId: classRecord.bookTemplate.id,
-      enrollments,
+      students,
       eligiblePages,
     });
   }
@@ -140,7 +141,7 @@ export class PdfService {
     schoolName: string;
     eventName: string;
     templateId: string;
-    enrollments: Array<{ id: string; student: { name: string } }>;
+    students: Array<{ id: string; name: string }>;
     eligiblePages: Array<{ pageNumber: number; pageType: PageType }>;
   }): Promise<Buffer> {
     const {
@@ -149,7 +150,7 @@ export class PdfService {
       schoolName,
       eventName,
       templateId,
-      enrollments,
+      students,
       eligiblePages,
     } = params;
     const totalPagesPerStudent = eligiblePages.length;
@@ -173,14 +174,14 @@ export class PdfService {
       doc.on('error', reject);
 
       const buildPages = async () => {
-        for (const enrollment of enrollments) {
+        for (const student of students) {
           for (let i = 0; i < eligiblePages.length; i++) {
             const templatePage = eligiblePages[i];
             const pageNum = i + 1;
 
             // Generate QR code for this page
             const qrData = JSON.stringify({
-              enrollmentId: enrollment.id,
+              studentId: student.id,
               templateId,
               page: templatePage!.pageNumber,
             });
@@ -193,12 +194,13 @@ export class PdfService {
             doc.addPage();
             this.drawHeader(doc, {
               qrBuffer,
-              studentName: enrollment.student.name,
+              studentName: student.name,
               className,
               unitName,
               schoolName,
               eventName,
               pageNum,
+              pageType: templatePage!.pageType,
               totalPagesPerStudent,
             });
             this.drawPageContent(doc, templatePage!.pageType);
@@ -222,6 +224,7 @@ export class PdfService {
       schoolName: string;
       eventName: string;
       pageNum: number;
+      pageType: PageType;
       totalPagesPerStudent: number;
     },
   ): void {
@@ -233,20 +236,9 @@ export class PdfService {
       schoolName,
       eventName,
       pageNum,
+      pageType,
       totalPagesPerStudent,
     } = params;
-
-    // Header background
-    doc
-      .save()
-      // .rect(
-      //   PDF_MARGIN / 2,
-      //   PDF_MARGIN / 2,
-      //   doc.page.width - PDF_MARGIN,
-      //   HEADER_HEIGHT,
-      // )
-      // .fillAndStroke('#f9fafb', '#e5e7eb')
-      .restore();
 
     // QR Code image
     doc.image(qrBuffer, QR_X, QR_Y, { width: QR_SIZE, height: QR_SIZE });
@@ -281,7 +273,7 @@ export class PdfService {
       .fontSize(9)
       .fillColor('#374151')
       .text(
-        `Página ${pageNum} de ${totalPagesPerStudent}`,
+        `Página ${pageNum} de ${totalPagesPerStudent}${pageType === PageType.COVER ? ' (CAPA)' : ''}`,
         TEXT_X,
         TEXT_Y_START + LINE_HEIGHT * 4,
         { lineBreak: false },
@@ -318,10 +310,14 @@ export class PdfService {
     const contentBottom = doc.page.height - PDF_MARGIN;
     const contentHeight = contentBottom - CONTENT_TOP;
 
-    if (pageType === PageType.DRAW || pageType === PageType.DRAW_TEXT) {
+    if (
+      pageType === PageType.DRAW ||
+      pageType === PageType.DRAW_TEXT ||
+      pageType === PageType.COVER
+    ) {
       let squareSize: number;
 
-      if (pageType === PageType.DRAW) {
+      if (pageType === PageType.DRAW || pageType === PageType.COVER) {
         // The square occupies the full content width, so its height equals the
         // content width (making it a perfect square).
         squareSize = contentWidth;
@@ -366,6 +362,15 @@ export class PdfService {
           contentWidth,
           TEXT_LINES_COUNT,
         );
+      }
+
+      if (pageType === PageType.COVER) {
+        this.drawWritingLines(doc, contentLeft, 160, contentWidth, 1);
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(9)
+          .fillColor('#374151')
+          .text('TÍTULO:', contentLeft, 180);
       }
     } else if (pageType === PageType.TEXT) {
       this.drawWritingLines(

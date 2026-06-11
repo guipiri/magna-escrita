@@ -36,9 +36,9 @@ export interface GetBooksListResponse {
   magnificCode: string;
   title: string | null;
   status: BookStatus;
-  enrollment: {
+  student: {
     id: string;
-    studentName: string;
+    name: string;
   };
   class: {
     id: string;
@@ -56,7 +56,7 @@ export interface GetBooksListResponse {
 
 export interface ScanPageResult {
   filename: string;
-  enrollmentId: string;
+  studentId: string;
   pageNumber: number;
   status: 'success' | 'error';
   error?: string;
@@ -85,9 +85,9 @@ export interface GetBookDetailResponse {
   author: string | null;
   synopsis: string | null;
   status: BookStatus;
-  enrollment: {
+  student: {
     id: string;
-    studentName: string;
+    name: string;
   };
   class: {
     id: string;

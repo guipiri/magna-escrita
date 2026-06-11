@@ -35,7 +35,7 @@ function getBookStatus(
   switch (status) {
     case 'READY':
       return { label: 'Pronto', variant: 'default', icon: CheckCircle2 };
-    case 'FOR_REVIEW':
+    case 'REVISED_BY_SCHOOL':
       return { label: 'Em revisão', variant: 'secondary', icon: Clock3 };
     case 'ARCHIVED':
       return { label: 'Arquivado', variant: 'outline', icon: Eye };
@@ -103,7 +103,7 @@ export function BooksList({ books }: BooksListProps) {
             </DataListHeader>
 
             <DataListContent className='sm:grid-cols-3'>
-              {/* Student / Enrollment */}
+              {/* Student */}
               <div className='rounded-xl border border-border/70 bg-muted/20 p-3'>
                 <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
                   <GraduationCap className='h-4 w-4' />
@@ -112,7 +112,7 @@ export function BooksList({ books }: BooksListProps) {
                   </span>
                 </div>
                 <p className='text-sm font-semibold text-foreground'>
-                  {book.enrollment.studentName}
+                  {book.student.name}
                 </p>
               </div>
 

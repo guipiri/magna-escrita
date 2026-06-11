@@ -9,13 +9,13 @@ import {
   Clock,
   ShoppingBag,
 } from 'lucide-react';
-import { GetOrderRes, OrderResponse } from '@repo/shared';
+import { GetOrderRes } from '@repo/shared';
 import { Button } from '../components/Button';
 import { getOrder } from '../services/order-service';
 import { useQuery } from '@tanstack/react-query';
 
 const getStatusMessage = (
-  paymentData?: OrderResponse,
+  paymentData?: GetOrderRes['mpOrder'],
   orderStatus?: string,
 ) => {
   if (

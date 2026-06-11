@@ -233,7 +233,8 @@ function PageCard({ page, book, isActive }: PageCardProps) {
   const showText = hasText(page.type);
   const showDraw = hasDraw(page.type);
   const isCover = page.type === 'COVER';
-  const canEditText = showText || isCover;
+  const isBackCover = page.type === 'BACK_COVER';
+  const canEditText = showText || isCover || isBackCover;
 
   return (
     <motion.div
@@ -537,8 +538,75 @@ function PageCard({ page, book, isActive }: PageCardProps) {
             </div>
           )}
 
+          {isBackCover && (
+            <div className='flex flex-1 flex-col gap-2'>
+              <div className='flex items-center justify-between'>
+                <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
+                  Biografia do(a) autor(a)
+                </p>
+                {canEditText && !isEditing && (
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    onClick={() => setIsEditing(true)}
+                    aria-label='Editar biografia do(a) autor(a)'
+                  >
+                    <Pencil className='size-3.5' />
+                    Editar biografia
+                  </Button>
+                )}
+                {canEditText && isEditing && (
+                  <div className='flex items-center gap-1'>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      onClick={() => {
+                        setDraft(page.textContent ?? '');
+                        setTitleDraft(book.title ?? '');
+                        setIsEditing(false);
+                      }}
+                    >
+                      <X className='size-3.5' />
+                      Cancelar
+                    </Button>
+                    <Button
+                      size='sm'
+                      disabled={saveMutation.isPending}
+                      onClick={() => saveMutation.mutate()}
+                    >
+                      {saveMutation.isPending ? (
+                        <Loader2 className='size-3.5 animate-spin' />
+                      ) : (
+                        <Save className='size-3.5' />
+                      )}
+                      Salvar
+                    </Button>
+                  </div>
+                )}
+              </div>
+              {isEditing ? (
+                <Textarea
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder='Digite a biografia do(a) autor(a)...'
+                  className='min-h-40 flex-1 resize-none text-sm'
+                  autoFocus
+                />
+              ) : page.textContent ? (
+                <p className='whitespace-pre-wrap rounded-xl border border-border/70 bg-muted/20 p-4 text-sm text-foreground'>
+                  {page.textContent}
+                </p>
+              ) : (
+                <div className='flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/20 text-muted-foreground'>
+                  <FileText className='size-5' />
+                  <p className='text-xs'>Sem conteúdo de texto</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* blank / cover / etc. */}
-          {!showText && !showDraw && !isCover && (
+          {!showText && !showDraw && !isCover && !isBackCover && (
             <div className='flex flex-1 items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/20 text-muted-foreground'>
               <p className='text-xs'>
                 {PAGE_TYPE_LABELS[page.type]} — sem conteúdo
@@ -690,7 +758,7 @@ export function BookDetailPage() {
                   Aluno
                 </p>
                 <p className='truncate text-sm font-semibold text-foreground'>
-                  {book.enrollment.studentName}
+                  {book.student.name}
                 </p>
               </div>
             </div>

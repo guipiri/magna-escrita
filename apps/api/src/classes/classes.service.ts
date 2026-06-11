@@ -6,7 +6,6 @@ import {
   ClassStudentResponse,
   UpdateClassStudentItem,
   getCurrentSchoolYear,
-  SchoolYear,
 } from '@repo/shared';
 import { UserRole } from '@repo/shared/dist/types/user.js';
 import {
@@ -59,7 +58,7 @@ export class ClassesService {
             },
           },
         },
-        enrollments: {
+        students: {
           select: {
             books: {
               select: {
@@ -71,7 +70,7 @@ export class ClassesService {
         },
         _count: {
           select: {
-            enrollments: true,
+            students: true,
           },
         },
       },
@@ -89,8 +88,8 @@ export class ClassesService {
       };
 
       const uniqueBooksByStatus = new Map<string, Set<string>>();
-      _class.enrollments.forEach((enrollment) => {
-        enrollment.books.forEach((book) => {
+      _class.students.forEach((student) => {
+        student.books.forEach((book) => {
           const bookId = String(book.id);
           const bookStatus = String(book.status);
 
@@ -134,7 +133,7 @@ export class ClassesService {
           id: _class.units.id,
           name: _class.units.name,
         },
-        studentsCount: _class._count.enrollments,
+        studentsCount: _class._count.students,
         bookCount: bookStatusCount,
         createdAt: _class.createdAt.toISOString(),
       };
@@ -213,19 +212,10 @@ export class ClassesService {
     const students = await Promise.all(
       studentNames.map((studentName) =>
         this.prisma.student.create({
-          data: { name: studentName.trim() },
+          data: { name: studentName.trim(), classId: createdClass.id },
         }),
       ),
     );
-
-    const enrollmentData: Prisma.EnrollmentCreateManyInput[] = students.map(
-      (s) => ({
-        studentId: s.id,
-        classId: createdClass.id,
-      }),
-    );
-
-    await this.prisma.enrollment.createMany({ data: enrollmentData });
 
     return {
       id: createdClass.id,
@@ -241,7 +231,12 @@ export class ClassesService {
 
   async updateClass(
     id: string,
-    payload: { name: string; teacherName: string; bookTemplateId?: string; students?: UpdateClassStudentItem[] },
+    payload: {
+      name: string;
+      teacherName: string;
+      bookTemplateId?: string;
+      students?: UpdateClassStudentItem[];
+    },
     user: AuthUser,
   ) {
     const { name, teacherName, bookTemplateId, students } = payload;
@@ -271,43 +266,48 @@ export class ClassesService {
     if (gradeNameExists) throw new BadRequestGradeNameAlreadyExistsException();
 
     if (students) {
-      const currentEnrollments = await this.prisma.enrollment.findMany({
+      const currentStudents = await this.prisma.student.findMany({
         where: { classId: id },
-        select: { id: true, studentId: true },
+        select: { id: true },
       });
 
-      const currentStudentIds = new Set(currentEnrollments.map((e) => e.studentId));
+      const currentStudentIds = new Set(
+        currentStudents.map((e) => e.id),
+      );
 
-      const toDelete = currentEnrollments.filter(
-        (e) => !students.some((s) => s.id && s.id === e.studentId),
+      const toDelete = currentStudents.filter(
+        (e) => !students.some((s) => s.id && s.id === e.id),
       );
 
       if (toDelete.length > 0) {
         const existingBooks = await this.prisma.book.count({
-          where: { enrollmentId: { in: toDelete.map((e) => e.id) } },
+          where: { studentId: { in: toDelete.map((e) => e.id) } },
         });
         if (existingBooks > 0) throw new ConflictExistingBooksException();
 
-        await this.prisma.enrollment.deleteMany({
+        await this.prisma.student.deleteMany({
           where: { id: { in: toDelete.map((e) => e.id) } },
         });
       }
 
-      const toUpdate = students.filter((s) => s.id && currentStudentIds.has(s.id));
+      const toUpdate = students.filter(
+        (s) => s.id && currentStudentIds.has(s.id),
+      );
       const toCreate = students.filter((s) => !s.id);
 
       for (const item of toUpdate) {
-        await this.prisma.student.updateMany({ where: { id: item.id }, data: { name: item.name } });
+        await this.prisma.student.updateMany({
+          where: { id: item.id },
+          data: { name: item.name },
+        });
       }
 
       if (toCreate.length > 0) {
-        const createdStudents = await Promise.all(
-          toCreate.map((item) => this.prisma.student.create({ data: { name: item.name.trim() } })),
+        await Promise.all(
+          toCreate.map((item) =>
+            this.prisma.student.create({ data: { name: item.name.trim(), classId: id } }),
+          ),
         );
-
-        await this.prisma.enrollment.createMany({
-          data: createdStudents.map((s) => ({ studentId: s.id, classId: id })),
-        });
       }
     }
 
@@ -339,81 +339,119 @@ export class ClassesService {
       if (!access) throw new BadRequestNoValidUnitIdException();
     }
 
-    await this.prisma.enrollment.deleteMany({ where: { classId: id } });
+    await this.prisma.book.deleteMany({
+      where: { student: { classId: id } },
+    });
+    await this.prisma.student.deleteMany({
+      where: { classId: id },
+    });
     await this.prisma.class.delete({ where: { id } });
   }
 
-  async getClassStudents(classId: string, user: AuthUser): Promise<ClassStudentResponse[]> {
-    const classRecord = await this.prisma.class.findUnique({ where: { id: classId }, include: { units: true } });
+  async getClassStudents(
+    classId: string,
+    user: AuthUser,
+  ): Promise<ClassStudentResponse[]> {
+    const classRecord = await this.prisma.class.findUnique({
+      where: { id: classId },
+      include: { units: true },
+    });
 
     if (!classRecord) throw new NotFoundClassException();
 
     if (user.role !== UserRole.ADMIN) {
-      const access = await this.prisma.userUnit.findFirst({ where: { userId: user.id, unitId: classRecord.unitId } });
+      const access = await this.prisma.userUnit.findFirst({
+        where: { userId: user.id, unitId: classRecord.unitId },
+      });
       if (!access) throw new BadRequestNoValidUnitIdException();
     }
 
-    const enrollments = await this.prisma.enrollment.findMany({
+    const studentsList = await this.prisma.student.findMany({
       where: { classId },
-      select: { id: true, student: { select: { id: true, name: true } } },
-      orderBy: { student: { name: 'asc' } },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
     });
 
-    return enrollments.map((enrollment) => ({
-      id: enrollment.student.id,
-      name: enrollment.student.name,
-      enrollmentId: enrollment.id,
+    return studentsList.map((student) => ({
+      id: student.id,
+      name: student.name,
+      studentId: student.id,
     }));
   }
 
-  async updateClassStudents(classId: string, students: UpdateClassStudentItem[], user: AuthUser) {
-    const classRecord = await this.prisma.class.findUnique({ where: { id: classId }, include: { units: true } });
+  async updateClassStudents(
+    classId: string,
+    students: UpdateClassStudentItem[],
+    user: AuthUser,
+  ) {
+    const classRecord = await this.prisma.class.findUnique({
+      where: { id: classId },
+      include: { units: true },
+    });
 
     if (!classRecord) throw new NotFoundClassException();
 
     if (user.role !== UserRole.ADMIN) {
-      const access = await this.prisma.userUnit.findFirst({ where: { userId: user.id, unitId: classRecord.unitId } });
+      const access = await this.prisma.userUnit.findFirst({
+        where: { userId: user.id, unitId: classRecord.unitId },
+      });
       if (!access) throw new BadRequestNoValidUnitIdException();
     }
 
-    const currentEnrollments = await this.prisma.enrollment.findMany({ where: { classId }, select: { id: true, studentId: true } });
+    const currentStudents = await this.prisma.student.findMany({
+      where: { classId },
+      select: { id: true },
+    });
 
-    const currentStudentIds = new Set(currentEnrollments.map((e) => e.studentId));
-    const newStudentIds = new Set(students.filter((s) => s.id).map((s) => s.id as string));
+    const currentStudentIds = new Set(
+      currentStudents.map((e) => e.id),
+    );
+    const newStudentIds = new Set(
+      students.filter((s) => s.id).map((s) => s.id as string),
+    );
 
-    const toDelete = currentEnrollments.filter((e) => !newStudentIds.has(e.studentId));
+    const toDelete = currentStudents.filter(
+      (e) => !newStudentIds.has(e.id),
+    );
 
     if (toDelete.length > 0) {
-      const hasExistingBooks = await this.prisma.book.findMany({ where: { enrollmentId: { in: toDelete.map((e) => e.id) } } });
+      const hasExistingBooks = await this.prisma.book.findMany({
+        where: { studentId: { in: toDelete.map((e) => e.id) } },
+      });
 
       if (hasExistingBooks.length > 0) {
         throw new ConflictExistingBooksException();
       }
 
-      await this.prisma.enrollment.deleteMany({ where: { id: { in: toDelete.map((e) => e.id) } } });
+      await this.prisma.student.deleteMany({
+        where: { id: { in: toDelete.map((e) => e.id) } },
+      });
     }
 
     const toCreate: Array<{ name: string }> = [];
-    const toUpdate: Array<{ studentId: string; name: string }> = [];
+    const toUpdate: Array<{ id: string; name: string }> = [];
 
     for (const student of students) {
       if (student.id && currentStudentIds.has(student.id)) {
-        toUpdate.push({ studentId: student.id, name: student.name });
+        toUpdate.push({ id: student.id, name: student.name });
       } else if (!student.id) {
         toCreate.push({ name: student.name });
       }
     }
 
     for (const item of toUpdate) {
-      await this.prisma.student.updateMany({ where: { id: item.studentId }, data: { name: item.name } });
+      await this.prisma.student.updateMany({
+        where: { id: item.id },
+        data: { name: item.name },
+      });
     }
 
     if (toCreate.length > 0) {
-      const createdStudents = await Promise.all(
-        toCreate.map((item) => this.prisma.student.create({ data: { name: item.name.trim() } })),
+      await Promise.all(
+        toCreate.map((item) =>
+          this.prisma.student.create({ data: { name: item.name.trim(), classId } }),
+        ),
       );
-
-      await this.prisma.enrollment.createMany({ data: createdStudents.map((s) => ({ studentId: s.id, classId })) });
     }
 
     return this.getClassStudents(classId, user);

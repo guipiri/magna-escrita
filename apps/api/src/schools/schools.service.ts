@@ -64,7 +64,7 @@ export class SchoolsService {
               where: { schoolYear: SchoolYear.YEAR_2026 },
               select: {
                 updatedAt: true,
-                enrollments: {
+                students: {
                   select: {
                     id: true,
                     books: {
@@ -94,12 +94,12 @@ export class SchoolsService {
         classCount += unit.classes.length;
 
         for (const cls of unit.classes) {
-          studentCount += cls.enrollments.length;
+          studentCount += cls.students.length;
 
           if (cls.updatedAt > lastActivity) lastActivity = cls.updatedAt;
 
-          for (const enrollment of cls.enrollments) {
-            for (const be of enrollment.books) {
+          for (const student of cls.students) {
+            for (const be of student.books) {
               allBookIds.add(be.id);
 
               const isCompleted =

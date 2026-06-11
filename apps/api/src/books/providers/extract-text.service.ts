@@ -40,7 +40,9 @@ export class GeminiTextExtractor implements ExtractTextService {
         {
           text: `Esta imagem é uma página de livro escrita por uma criança.
     Abaixo do cabeçalho há linhas horizontais onde a criança escreveu um texto.
-    Por favor, transcreva apenas o texto escrito nas linhas, ignorando o cabeçalho (QR Code, nome do aluno, turma, escola, etc.).
+    Se a página for CAPA, você deve retornar apenas o texto do TÍTULO do livro.
+    Se a página não for CAPA, transcreva apenas o texto escrito nas linhas.
+    Ignore o cabeçalho (QR Code, nome do aluno, turma, escola, etc.).
     Retorne apenas o texto transcrito, sem explicações adicionais e sem parágrafos.
     Se não houver texto escrito, retorne uma string vazia.`,
         },
