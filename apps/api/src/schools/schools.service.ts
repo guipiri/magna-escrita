@@ -162,7 +162,11 @@ export class SchoolsService {
     return school;
   }
 
-  async uploadUnitLogo(unitId: string, logo: Express.Multer.File, user: AuthUser) {
+  async uploadUnitLogo(
+    unitId: string,
+    logo: Express.Multer.File,
+    user: AuthUser,
+  ) {
     if (user.role !== UserRole.ADMIN) {
       const hasAccess = await this.prisma.userUnit.findFirst({
         where: { userId: user.id, unitId },
@@ -170,9 +174,18 @@ export class SchoolsService {
       if (!hasAccess) throw new Error('Unauthorized');
     }
 
-    const ext = logo.mimetype === 'image/png' ? 'png' : logo.mimetype === 'image/webp' ? 'webp' : 'jpg';
+    const ext =
+      logo.mimetype === 'image/png'
+        ? 'png'
+        : logo.mimetype === 'image/webp'
+          ? 'webp'
+          : 'jpg';
     const key = `units/${unitId}/logo.${ext}`;
-    const logoUrl = await this.r2.upload({ key, body: logo.buffer, contentType: logo.mimetype });
+    const logoUrl = await this.r2.upload({
+      key,
+      body: logo.buffer,
+      contentType: logo.mimetype,
+    });
 
     await this.prisma.unit.update({
       where: { id: unitId },

@@ -77,7 +77,7 @@ export function DataListFooter({ className, ...props }: DataListFooterProps) {
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 border-t border-border/70 pt-4 sm:flex-row sm:items-center sm:justify-between',
+        'flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between',
         className,
       )}
       {...props}

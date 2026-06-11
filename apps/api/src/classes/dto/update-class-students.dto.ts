@@ -1,4 +1,11 @@
-import { IsArray, IsString, IsOptional, IsNotEmpty, ValidateNested, ArrayMinSize } from 'class-validator';
+import {
+  IsArray,
+  IsString,
+  IsOptional,
+  IsNotEmpty,
+  ValidateNested,
+  ArrayMinSize,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 class StudentItemDto {

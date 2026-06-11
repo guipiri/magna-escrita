@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, UseGuards, Patch, Param, UploadedFile, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Patch,
+  Param,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SchoolsService } from './schools.service.js';
 import { CreateSchoolDto } from './dto/create-school.dto.js';

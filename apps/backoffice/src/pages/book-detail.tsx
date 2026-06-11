@@ -24,6 +24,7 @@ import type {
   BookDetailPage,
   BookPageType,
   BookStatus,
+  PageStatus,
   GetBookDetailResponse,
 } from '@repo/shared';
 import {
@@ -40,6 +41,8 @@ import { Textarea } from '../components/ui/textarea';
 import { cn } from '../components/ui/utils';
 import { useSnackbar } from 'notistack';
 import { BookImageEditorDialog } from '../components/books/book-image-editor-dialog';
+import { Checkbox } from '../components/ui/checkbox';
+import { useAuth } from '../hooks/auth-hook';
 
 /* ─── helpers ───────────────────────────────────────────── */
 
@@ -111,11 +114,30 @@ function PageCard({ page, book, isActive }: PageCardProps) {
   const [titleDraft, setTitleDraft] = useState(book.title ?? '');
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
   const drawSourceUrl = page.drawImageUrl || '';
+
+  const statusMutation = useMutation({
+    mutationFn: (newStatus: PageStatus) => {
+      return updateBookPage(bookId, page.number, {
+        status: newStatus,
+      });
+    },
+    onSuccess: () => {
+      enqueueSnackbar('Status da página atualizado!', { variant: 'success' });
+      queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+    },
+    onError: (err: any) => {
+      const msg =
+        err?.response?.data?.message ||
+        'Erro ao atualizar status. Tente novamente.';
+      enqueueSnackbar(msg, { variant: 'error' });
+    },
+  });
 
   // Keep draft in sync when page data changes (after refetch)
   useEffect(() => {
@@ -259,6 +281,74 @@ function PageCard({ page, book, isActive }: PageCardProps) {
               </p>
             </div>
           </div>
+
+          {/* Page status checkbox based on role */}
+          {user?.role === 'SCHOOL' && (
+            <div className='flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-1.5 border border-border/50'>
+              <label
+                htmlFor={`revise-page-${page.number}`}
+                className='text-xs font-semibold text-muted-foreground cursor-pointer select-none'
+              >
+                Marcar como revisado
+              </label>
+              <Checkbox
+                id={`revise-page-${page.number}`}
+                checked={
+                  page.status === 'REVISED_BY_SCHOOL' || page.status === 'READY'
+                }
+                onCheckedChange={(checked) => {
+                  statusMutation.mutate(
+                    checked ? 'REVISED_BY_SCHOOL' : 'IN_PROGRESS',
+                  );
+                }}
+                disabled={statusMutation.isPending}
+              />
+            </div>
+          )}
+
+          {user?.role === 'ADMIN' &&
+            (() => {
+              const isRevisedBySchool =
+                page.status === 'REVISED_BY_SCHOOL' || page.status === 'READY';
+              return (
+                <div className='flex items-center gap-4 rounded-lg bg-muted/30 px-3 py-1.5 border border-border/50'>
+                  <span className='text-xs font-medium text-muted-foreground'>
+                    Revisado pela escola:{' '}
+                    {isRevisedBySchool ? (
+                      <span className='text-emerald-600 font-semibold'>
+                        Sim
+                      </span>
+                    ) : (
+                      <span className='text-rose-500 font-semibold'>Não</span>
+                    )}
+                  </span>
+                  <div className='h-4 w-px bg-border/60' />
+                  <div className='flex items-center gap-2'>
+                    <label
+                      htmlFor={`ready-page-${page.number}`}
+                      className={cn(
+                        'text-xs font-semibold select-none',
+                        isRevisedBySchool
+                          ? 'text-muted-foreground cursor-pointer'
+                          : 'text-muted-foreground/40 cursor-not-allowed',
+                      )}
+                    >
+                      Pronto
+                    </label>
+                    <Checkbox
+                      id={`ready-page-${page.number}`}
+                      checked={page.status === 'READY'}
+                      disabled={!isRevisedBySchool || statusMutation.isPending}
+                      onCheckedChange={(checked) => {
+                        statusMutation.mutate(
+                          checked ? 'READY' : 'REVISED_BY_SCHOOL',
+                        );
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
         </div>
 
         {/* card body */}

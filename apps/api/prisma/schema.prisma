@@ -140,6 +140,7 @@ enum PageStatus {
   NOT_STARTED
   IN_PROGRESS
   REVISED_BY_SCHOOL
+  READY
 }
 
 model Page {

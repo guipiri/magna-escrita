@@ -112,7 +112,7 @@ export class EventsService {
       data: {
         name: body.name,
         date: new Date(body.date),
-        schoolYear: body.schoolYear as PrismaSchoolYear,
+        schoolYear: body.schoolYear,
         unitId: body.unitId,
       },
       include: eventInclude,
@@ -133,7 +133,7 @@ export class EventsService {
       name: event.name,
       date: event.date.toISOString(),
       schoolYear: event.schoolYear as SchoolYear,
-      status: event.status as EventResponse['status'],
+      status: event.status,
       unit: {
         id: unit.id,
         name: unit.name,

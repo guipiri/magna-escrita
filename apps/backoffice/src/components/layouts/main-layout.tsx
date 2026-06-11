@@ -15,7 +15,10 @@ export function MainLayout() {
         : pathname === '/livros'
           ? [{ label: 'Livros' }]
           : pathname.startsWith('/livros/')
-            ? [{ label: 'Livros', href: '/livros' }, { label: 'Detalhe do livro' }]
+            ? [
+                { label: 'Livros', href: '/livros' },
+                { label: 'Detalhe do livro' },
+              ]
             : []),
   ];
 

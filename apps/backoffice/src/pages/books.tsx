@@ -1,7 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
-import { BookOpen, CheckCircle2, Clock3, Search } from 'lucide-react';
+import {
+  BookOpen,
+  CheckCircle2,
+  CircleDashed,
+  Clock3,
+  Search,
+} from 'lucide-react';
 import { getBooks } from '../services/books-service';
 import { BooksList } from '../components/books/books-list';
 import { CreateBookButton } from '../components/books/create-book-button';
@@ -43,14 +49,15 @@ export function BooksPage() {
     });
   }, [books, search]);
 
-  const { totalBooks, readyBooks, reviewBooks } = books.reduce(
+  const { totalBooks, readyBooks, reviewBooks, draftBooks } = books.reduce(
     (acc, book) => {
       acc.totalBooks++;
       if (book.status === 'READY') acc.readyBooks++;
       if (book.status === 'REVISED_BY_SCHOOL') acc.reviewBooks++;
+      if (book.status === 'DRAFT') acc.draftBooks++;
       return acc;
     },
-    { totalBooks: 0, readyBooks: 0, reviewBooks: 0 },
+    { totalBooks: 0, readyBooks: 0, reviewBooks: 0, draftBooks: 0 },
   );
 
   if (isLoading) {
@@ -89,39 +96,24 @@ export function BooksPage() {
           animate={{ opacity: 1, y: 0 }}
           className='rounded-3xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6'
         >
-          <div className='flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between'>
-            <div className='space-y-2'>
-              <div>
-                <h1 className='text-2xl font-semibold tracking-tight text-foreground sm:text-3xl'>
-                  Livros
-                </h1>
-                <p className='mt-2 text-sm text-muted-foreground'>
-                  {totalBooks} livros • {readyBooks} prontos • {reviewBooks} em
-                  revisão
-                </p>
-              </div>
-            </div>
-
-            <div className='flex w-full flex-col gap-3 sm:max-w-md'>
-              <div className='relative'>
-                <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
-                <Input
-                  type='search'
-                  placeholder='Buscar por aluno, turma, livro ou unidade...'
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className='pl-9'
-                />
-              </div>
-
-              <CreateBookButton
-                onBulkUpload={() => setIsBulkUploadOpen(true)}
-                className='w-full sm:w-auto sm:self-end'
+          <div className='flex w-full gap-3 flex-wrap'>
+            <div className='relative w-full flex-10'>
+              <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+              <Input
+                type='search'
+                placeholder='Buscar por aluno, turma, livro ou unidade...'
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className='pl-9'
               />
             </div>
+            <CreateBookButton
+              onBulkUpload={() => setIsBulkUploadOpen(true)}
+              className='w-full md:w-auto'
+            />
           </div>
 
-          <div className='mt-6 grid gap-4 md:grid-cols-3'>
+          <div className='mt-6 grid gap-4 md:grid-cols-4'>
             <Card>
               <CardContent className='flex items-center gap-3 p-5'>
                 <div className='flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary'>
@@ -156,9 +148,25 @@ export function BooksPage() {
                   <Clock3 className='size-5' />
                 </div>
                 <div>
-                  <p className='text-sm text-muted-foreground'>Em revisão</p>
+                  <p className='text-sm text-muted-foreground'>
+                    Revisados pela escola
+                  </p>
                   <p className='text-2xl font-semibold text-foreground'>
                     {reviewBooks}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className='flex items-center gap-3 p-5'>
+                <div className='flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary'>
+                  <CircleDashed className='size-5' />
+                </div>
+                <div>
+                  <p className='text-sm text-muted-foreground'>Em rascunho</p>
+                  <p className='text-2xl font-semibold text-foreground'>
+                    {draftBooks}
                   </p>
                 </div>
               </CardContent>

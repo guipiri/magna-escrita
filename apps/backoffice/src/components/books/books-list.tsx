@@ -27,6 +27,7 @@ interface BookStatusConfig {
   label: string;
   variant: 'default' | 'secondary' | 'outline' | 'destructive';
   icon: React.ElementType;
+  bgColor?: string;
 }
 
 function getBookStatus(
@@ -34,14 +35,34 @@ function getBookStatus(
 ): BookStatusConfig {
   switch (status) {
     case 'READY':
-      return { label: 'Pronto', variant: 'default', icon: CheckCircle2 };
+      return {
+        label: 'Pronto',
+        variant: 'default',
+        icon: CheckCircle2,
+        bgColor: 'bg-emerald-600',
+      };
     case 'REVISED_BY_SCHOOL':
-      return { label: 'Em revisão', variant: 'secondary', icon: Clock3 };
+      return {
+        label: 'Revisado pela escola',
+        variant: 'default',
+        icon: Clock3,
+        bgColor: 'bg-amber-600',
+      };
     case 'ARCHIVED':
-      return { label: 'Arquivado', variant: 'outline', icon: Eye };
+      return {
+        label: 'Arquivado',
+        variant: 'outline',
+        icon: Eye,
+        bgColor: 'bg-red-100',
+      };
     case 'DRAFT':
     default:
-      return { label: 'Rascunho', variant: 'outline', icon: CircleDashed };
+      return {
+        label: 'Rascunho',
+        variant: 'outline',
+        icon: CircleDashed,
+        bgColor: 'bg-gray-100',
+      };
   }
 }
 
@@ -91,7 +112,7 @@ export function BooksList({ books }: BooksListProps) {
                   <DataListTitle className='truncate'>
                     {bookTitle}
                   </DataListTitle>
-                  <Badge variant={status.variant}>
+                  <Badge variant={status.variant} className={status.bgColor}>
                     <StatusIcon className='size-3' />
                     {status.label}
                   </Badge>

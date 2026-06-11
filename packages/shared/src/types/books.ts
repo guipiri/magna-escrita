@@ -69,6 +69,12 @@ export interface ScanBooksResult {
   results: ScanPageResult[];
 }
 
+export type PageStatus =
+  | 'NOT_STARTED'
+  | 'IN_PROGRESS'
+  | 'REVISED_BY_SCHOOL'
+  | 'READY';
+
 export interface BookDetailPage {
   number: number;
   type: BookPageType;
@@ -76,6 +82,7 @@ export interface BookDetailPage {
   drawImageUrl: string | null;
   imageUrl: string | null;
   originalImageUrl: string | null;
+  status: PageStatus;
 }
 
 export interface GetBookDetailResponse {
@@ -107,4 +114,5 @@ export interface GetBookDetailResponse {
 
 export interface UpdatePageRequest {
   textContent?: string | null;
+  status?: PageStatus;
 }

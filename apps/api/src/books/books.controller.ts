@@ -5,12 +5,11 @@ import {
   Param,
   Patch,
   Query,
-  UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { BooksService } from './books.service.js';
 import { AuthGuard } from '../auth/guards/auth.guard.js';
 import { BackofficeGuard } from '../auth/guards/backoffice.guard.js';
@@ -38,15 +37,10 @@ export class BooksController {
   updatePage(
     @Param('id') id: string,
     @Param('pageNumber') pageNumber: string,
-    @Body() body: { textContent?: string | null },
+    @Body() body: { textContent?: string | null; status?: any },
     @User() user: AuthUser,
   ) {
-    return this.booksService.updatePage(
-      id,
-      Number(pageNumber),
-      body.textContent,
-      user,
-    );
+    return this.booksService.updatePage(id, Number(pageNumber), body, user);
   }
 
   @Patch('backoffice/:id')
@@ -79,7 +73,7 @@ export class BooksController {
   ) {
     const image = files.image?.[0];
     const originalImage = files.originalImage?.[0];
-    
+
     if (!image) {
       throw new Error('Image file is required');
     }

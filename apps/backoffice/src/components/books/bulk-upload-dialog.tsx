@@ -151,7 +151,7 @@ export function BulkUploadDialog({ isOpen, onClose }: BulkUploadDialogProps) {
         ) : (
           <AlertCircle className='size-3.5 shrink-0' />
         )}
-        {isOk ? `Pág. ${pageResult.pageNumber}` : pageResult.error ?? 'Erro'}
+        {isOk ? `Pág. ${pageResult.pageNumber}` : (pageResult.error ?? 'Erro')}
       </span>
     );
   };
@@ -243,14 +243,12 @@ export function BulkUploadDialog({ isOpen, onClose }: BulkUploadDialogProps) {
             )}
             <div>
               <p className='text-sm font-semibold'>
-                {result.succeeded} de {result.processed} processados com
-                sucesso
+                {result.succeeded} de {result.processed} processados com sucesso
               </p>
               {result.failed > 0 && (
                 <p className='mt-0.5 text-xs'>
-                  {result.failed}{' '}
-                  {result.failed === 1 ? 'falhou' : 'falharam'} — veja os
-                  detalhes abaixo.
+                  {result.failed} {result.failed === 1 ? 'falhou' : 'falharam'}{' '}
+                  — veja os detalhes abaixo.
                 </p>
               )}
             </div>
@@ -299,13 +297,13 @@ export function BulkUploadDialog({ isOpen, onClose }: BulkUploadDialogProps) {
                     >
                       {entry.file.name}
                     </p>
-                    {isDone
-                      ? renderResultRow(entry.file.name)
-                      : (
-                        <p className='text-xs text-muted-foreground'>
-                          {formatBytes(entry.file.size)}
-                        </p>
-                      )}
+                    {isDone ? (
+                      renderResultRow(entry.file.name)
+                    ) : (
+                      <p className='text-xs text-muted-foreground'>
+                        {formatBytes(entry.file.size)}
+                      </p>
+                    )}
                   </div>
                   {!isDone && !isUploading && (
                     <button

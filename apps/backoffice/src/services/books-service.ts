@@ -47,10 +47,10 @@ export const updateBookPageDraw = async (
     formData.append('originalImage', originalImage);
   }
 
-  const response = await api.patch<{ drawImageUrl: string; originalImageUrl?: string }>(
-    `/books/backoffice/${bookId}/pages/${pageNumber}/draw`,
-    formData,
-  );
+  const response = await api.patch<{
+    drawImageUrl: string;
+    originalImageUrl?: string;
+  }>(`/books/backoffice/${bookId}/pages/${pageNumber}/draw`, formData);
 
   return response.data;
 };

@@ -1,10 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
 import { NotFoundBookException } from './books.errors.js';
 import type { GetBookDetailResponse, GetBooksListResponse } from '@repo/shared';
 import type { AuthUser } from '@repo/shared';
 import { UserRole } from '@repo/shared/dist/types/user.js';
 import { CloudflareR2Service } from '../common/cloudflare-r2.service.js';
+import { BookStatus, PageStatus } from '@prisma/client';
 import {
   getOriginalPageUploadBucketPath,
   getProcessedPageUploadBucketPath,
@@ -68,18 +74,18 @@ export class BooksService {
       title: book.title,
       status: book.status,
       student: {
-        id: book.student!.id,
-        name: book.student!.name,
+        id: book.student.id,
+        name: book.student.name,
       },
       class: {
-        id: book.student!.class.id,
-        name: book.student!.class.name,
-        schoolYear: book.student!.class.schoolYear,
+        id: book.student.class.id,
+        name: book.student.class.name,
+        schoolYear: book.student.class.schoolYear,
       },
       unit: {
-        id: book.student!.class.units.id,
-        name: book.student!.class.units.name,
-        schoolName: book.student!.class.units.school.name,
+        id: book.student.class.units.id,
+        name: book.student.class.units.name,
+        schoolName: book.student.class.units.school.name,
       },
       createdAt: book.createdAt.toISOString(),
       updatedAt: book.updatedAt.toISOString(),
@@ -107,6 +113,7 @@ export class BooksService {
             drawImageUrl: true,
             imageUrl: true,
             originalImageUrl: true,
+            status: true,
           },
         },
         student: {
@@ -139,7 +146,7 @@ export class BooksService {
       const hasAccess = await this.prisma.userUnit.findFirst({
         where: {
           userId: user.id,
-          unitId: book.student!.class.units.id,
+          unitId: book.student.class.units.id,
         },
       });
       if (!hasAccess) throw new NotFoundBookException();
@@ -153,19 +160,19 @@ export class BooksService {
       synopsis: book.synopsis,
       status: book.status,
       student: {
-        id: book.student!.id,
-        name: book.student!.name,
+        id: book.student.id,
+        name: book.student.name,
       },
       class: {
-        id: book.student!.class.id,
-        name: book.student!.class.name,
-        schoolYear: book.student!.class.schoolYear,
+        id: book.student.class.id,
+        name: book.student.class.name,
+        schoolYear: book.student.class.schoolYear,
       },
       unit: {
-        id: book.student!.class.units.id,
-        name: book.student!.class.units.name,
-        schoolName: book.student!.class.units.school.name,
-        logoUrl: book.student!.class.units.logoUrl,
+        id: book.student.class.units.id,
+        name: book.student.class.units.name,
+        schoolName: book.student.class.units.school.name,
+        logoUrl: book.student.class.units.logoUrl,
       },
       pages: book.pages.map((p) => ({
         number: p.number,
@@ -174,6 +181,7 @@ export class BooksService {
         drawImageUrl: p.drawImageUrl,
         imageUrl: p.imageUrl,
         originalImageUrl: p.originalImageUrl,
+        status: p.status as any,
       })),
       createdAt: book.createdAt.toISOString(),
       updatedAt: book.updatedAt.toISOString(),
@@ -183,16 +191,79 @@ export class BooksService {
   async updatePage(
     bookId: string,
     pageNumber: number,
-    textContent: string | null | undefined,
+    data: { textContent?: string | null; status?: PageStatus },
     user: AuthUser,
   ): Promise<void> {
     // Ensure user has access to this book
-    await this.getById(bookId, user);
+    const bookDetail = await this.getById(bookId, user);
+
+    const page = bookDetail.pages.find((p) => p.number === pageNumber);
+    if (!page) {
+      throw new NotFoundException('Página não encontrada');
+    }
+
+    const updateData: any = {};
+    if (data.textContent !== undefined) {
+      updateData.textContent = data.textContent;
+    }
+
+    if (data.status !== undefined) {
+      if (user.role === UserRole.SCHOOL) {
+        if (
+          data.status !== 'REVISED_BY_SCHOOL' &&
+          data.status !== 'IN_PROGRESS'
+        ) {
+          throw new BadRequestException(
+            'Status inválido para o perfil de escola',
+          );
+        }
+        updateData.status = data.status;
+      } else if (user.role === UserRole.ADMIN) {
+        if (page.status !== 'REVISED_BY_SCHOOL' && page.status !== 'READY') {
+          throw new BadRequestException(
+            'Alteração permitida apenas se já revisado pela escola',
+          );
+        }
+        if (data.status !== 'READY' && data.status !== 'REVISED_BY_SCHOOL') {
+          throw new BadRequestException(
+            'Status inválido para o perfil de administrador',
+          );
+        }
+        updateData.status = data.status;
+      } else {
+        throw new ForbiddenException(
+          'Usuário não autorizado a alterar o status da página',
+        );
+      }
+    }
 
     await this.prisma.page.update({
       where: { bookId_number: { bookId, number: pageNumber } },
-      data: { ...(textContent !== undefined ? { textContent } : {}) },
+      data: updateData,
     });
+
+    if (data.status !== undefined) {
+      const allPages = await this.prisma.page.findMany({
+        where: { bookId },
+      });
+
+      const allRevised = allPages.every(
+        (p) => p.status === 'REVISED_BY_SCHOOL' || p.status === 'READY',
+      );
+      const allReady = allPages.every((p) => p.status === 'READY');
+
+      let newBookStatus: BookStatus = 'DRAFT';
+      if (allReady) {
+        newBookStatus = 'READY';
+      } else if (allRevised) {
+        newBookStatus = 'REVISED_BY_SCHOOL';
+      }
+
+      await this.prisma.book.update({
+        where: { id: bookId },
+        data: { status: newBookStatus },
+      });
+    }
   }
 
   async updateBook(

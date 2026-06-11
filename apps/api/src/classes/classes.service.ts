@@ -271,9 +271,7 @@ export class ClassesService {
         select: { id: true },
       });
 
-      const currentStudentIds = new Set(
-        currentStudents.map((e) => e.id),
-      );
+      const currentStudentIds = new Set(currentStudents.map((e) => e.id));
 
       const toDelete = currentStudents.filter(
         (e) => !students.some((s) => s.id && s.id === e.id),
@@ -305,7 +303,9 @@ export class ClassesService {
       if (toCreate.length > 0) {
         await Promise.all(
           toCreate.map((item) =>
-            this.prisma.student.create({ data: { name: item.name.trim(), classId: id } }),
+            this.prisma.student.create({
+              data: { name: item.name.trim(), classId: id },
+            }),
           ),
         );
       }
@@ -403,16 +403,12 @@ export class ClassesService {
       select: { id: true },
     });
 
-    const currentStudentIds = new Set(
-      currentStudents.map((e) => e.id),
-    );
+    const currentStudentIds = new Set(currentStudents.map((e) => e.id));
     const newStudentIds = new Set(
       students.filter((s) => s.id).map((s) => s.id as string),
     );
 
-    const toDelete = currentStudents.filter(
-      (e) => !newStudentIds.has(e.id),
-    );
+    const toDelete = currentStudents.filter((e) => !newStudentIds.has(e.id));
 
     if (toDelete.length > 0) {
       const hasExistingBooks = await this.prisma.book.findMany({
@@ -449,7 +445,9 @@ export class ClassesService {
     if (toCreate.length > 0) {
       await Promise.all(
         toCreate.map((item) =>
-          this.prisma.student.create({ data: { name: item.name.trim(), classId } }),
+          this.prisma.student.create({
+            data: { name: item.name.trim(), classId },
+          }),
         ),
       );
     }

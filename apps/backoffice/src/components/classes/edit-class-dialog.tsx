@@ -115,7 +115,12 @@ export function EditClassDialog({
         name: s.name.trim(),
       }));
 
-    updateMutation.mutate({ name, teacherName, bookTemplateId, students: studentsPayload });
+    updateMutation.mutate({
+      name,
+      teacherName,
+      bookTemplateId,
+      students: studentsPayload,
+    });
   };
 
   const allSaved = updateMutation.isSuccess;

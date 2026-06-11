@@ -253,8 +253,8 @@ async function main() {
         where: { id: s.id },
         update: { name: s.name, age: 7, classId: klass.id },
         create: { id: s.id, name: s.name, age: 7, classId: klass.id },
-      })
-    )
+      }),
+    ),
   );
 
   console.log('\n🎫 Criando/atualizando eventos...');
@@ -562,7 +562,6 @@ async function main() {
   console.log(
     `✅ ${userUnits.length} associações de usuário-unidade criadas/atualizadas`,
   );
-
 
   console.log(`\n📋 Resumo do seed:`);
   console.log(`  Escolas: ${schools.length}`);

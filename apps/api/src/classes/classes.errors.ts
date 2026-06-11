@@ -33,7 +33,8 @@ export class BadRequestNoValidUnitIdException extends BadRequestException {
   constructor() {
     super({
       key: ErrorKeys.BAD_REQUEST_NO_VALID_UNIT_ID,
-      message: 'No valid unitId provided and user does not have access to any units',
+      message:
+        'No valid unitId provided and user does not have access to any units',
     } satisfies HttpExceptionConstructor);
   }
 }
