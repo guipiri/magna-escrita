@@ -1,4 +1,4 @@
-import { LogOut } from 'lucide-react';
+import { LogOut, Menu } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import {
   Select,
@@ -15,6 +15,7 @@ interface HeaderProps {
   onYearChange?: (year: string) => void;
   userName?: string;
   userAvatar?: string;
+  onMenuToggle?: () => void;
 }
 
 export function Header({
@@ -24,14 +25,24 @@ export function Header({
   onYearChange,
   userName = 'Professora Maria',
   userAvatar,
+  onMenuToggle,
 }: HeaderProps) {
   const showYearSelector = academicYears.length > 1;
 
   return (
     <header className='h-16 border-b border-border bg-background flex items-center justify-between px-6'>
       <div className='flex items-center gap-4'>
+        {onMenuToggle && (
+          <button
+            onClick={onMenuToggle}
+            className='md:hidden p-2 -ml-2 hover:bg-accent rounded-md transition-colors duration-200'
+            title='Menu'
+          >
+            <Menu className='w-5 h-5 text-muted-foreground' />
+          </button>
+        )}
         {selectedUnit && (
-          <div className='text-foreground'>
+          <div className='text-foreground hidden sm:block'>
             <span className='opacity-60 text-sm mr-2'>Unidade:</span>
             <span className='font-medium'>{selectedUnit}</span>
           </div>
@@ -55,7 +66,7 @@ export function Header({
         )}
 
         <div className='flex items-center gap-3'>
-          <div className='text-right'>
+          <div className='text-right hidden sm:block'>
             <p className='text-sm font-medium text-foreground'>{userName}</p>
             <p className='text-xs text-muted-foreground'>Coordenadora</p>
           </div>

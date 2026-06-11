@@ -14,7 +14,7 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
   if (items.length === 0) return null;
 
   return (
-    <nav className='h-12 border-b border-border bg-muted/30 flex items-center px-6'>
+    <nav className='h-12 border-b border-border bg-muted/30 flex items-center px-6 overflow-x-auto whitespace-nowrap'>
       <ol className='flex items-center gap-2 text-sm'>
         {items.map((item, index) => (
           <Fragment key={index}>
