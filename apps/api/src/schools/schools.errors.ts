@@ -51,6 +51,15 @@ export class UnauthorizedUserNoAccessToUnitException extends UnauthorizedExcepti
   }
 }
 
+export class UnauthorizedUserIsNotAdminException extends UnauthorizedException {
+  constructor() {
+    super({
+      key: ErrorKeys.UNAUTHORIZED_USER_IS_NOT_ADMIN,
+      message: 'User is not admin',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
 export class NotFoundClassException extends NotFoundException {
   constructor() {
     super({

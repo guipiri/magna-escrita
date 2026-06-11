@@ -12,6 +12,7 @@ export const errorMessages: Record<ErrorKeys, string> = {
   UNAUTHORIZED_INVALID_WEBHOOK_SIGNATURE: 'Assinatura do webhook inválida.',
   UNAUTHORIZED_CREATE_SCHOOL:
     'Acesso negado. Usuário não autorizado para criar escola.',
+  UNAUTHORIZED_USER_IS_NOT_ADMIN: 'Apenas administradores podem criar eventos.',
 
   FORBIDDEN_MISSING_AUTH_TOKEN: 'Token de autenticação ausente.',
   FORBIDDEN_INSUFFICIENT_PERMISSIONS: 'Permissões insuficientes.',
@@ -52,7 +53,8 @@ export const errorMessages: Record<ErrorKeys, string> = {
 
   CONFLICT_MORE_THAN_ONE_ACTIVE_EVENT: 'Mais de um evento ativo encontrado.',
   BAD_REQUEST_QR_CODE_NOT_READABLE: 'O QR Code da imagem não pode ser lido.',
-  BAD_REQUEST_DRAW_SQUARE_NOT_FOUND: 'O espaço para desenho não foi encontrado.',
+  BAD_REQUEST_DRAW_SQUARE_NOT_FOUND:
+    'O espaço para desenho não foi encontrado.',
   BAD_REQUEST_BOOK_TEMPLATE_MISMATCH: 'Template de livro incorreto.',
   NOT_FOUND_STUDENT: 'Matrícula não encontrada.',
   NOT_FOUND_BOOK_TEMPLATE_PAGE: 'Página do template não encontrada.',

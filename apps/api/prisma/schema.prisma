@@ -70,13 +70,13 @@ model Book {
   priceId      String
   price        Price   @relation(fields: [priceId], references: [id])
 
-  student   Student? @relation(fields: [studentId], references: [id])
-  studentId String?
+  student   Student @relation(fields: [studentId], references: [id])
+  studentId String
 
   orderItems OrderItem[]
 
-  authographsEvent   AuthographsEvent? @relation(fields: [authographsEventId], references: [id])
-  authographsEventId String?
+  authographsEvent   AuthographsEvent @relation(fields: [authographsEventId], references: [id])
+  authographsEventId String
 
   status BookStatus @default(DRAFT)
 

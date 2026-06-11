@@ -239,16 +239,101 @@ async function main() {
     },
   });
 
-  const student = await prisma.student.upsert({
-    where: { id: 'student-001' },
-    update: { name: 'Sofia Maria', age: 7, classId: klass.id },
-    create: {
-      id: 'student-001',
-      name: 'Sofia Maria',
-      age: 7,
-      classId: klass.id,
-    },
-  });
+  const studentsData = [
+    { id: 'student-001', name: 'Lia Monteiro' },
+    { id: 'student-002', name: 'Rafael Cordeiro' },
+    { id: 'student-003', name: 'Helena Vieira' },
+    { id: 'student-004', name: 'Nuno Azevedo' },
+    { id: 'student-mock-sofia', name: 'Sofia Maria' },
+  ];
+
+  await Promise.all(
+    studentsData.map((s) =>
+      prisma.student.upsert({
+        where: { id: s.id },
+        update: { name: s.name, age: 7, classId: klass.id },
+        create: { id: s.id, name: s.name, age: 7, classId: klass.id },
+      })
+    )
+  );
+
+  console.log('\n🎫 Criando/atualizando eventos...');
+  const events = await Promise.all([
+    prisma.authographsEvent.upsert({
+      where: { id: 'event-001' },
+      update: {
+        name: 'Sessão de autógrafos - Unidade Centro',
+        date: new Date('2026-05-28T14:00:00.000Z'),
+        schoolYear: 'YEAR_2026',
+        status: AuthographsEventStatus.PLANNED,
+        unitId: 'unit-001',
+      },
+      create: {
+        id: 'event-001',
+        name: 'Sessão de autógrafos - Unidade Centro',
+        date: new Date('2026-05-28T14:00:00.000Z'),
+        schoolYear: 'YEAR_2026',
+        status: AuthographsEventStatus.PLANNED,
+        unitId: 'unit-001',
+      },
+    }),
+    prisma.authographsEvent.upsert({
+      where: { id: 'event-002' },
+      update: {
+        name: 'Evento em andamento - Unidade Zona Oeste',
+        date: new Date('2026-05-21T13:00:00.000Z'),
+        schoolYear: 'YEAR_2026',
+        status: AuthographsEventStatus.ONGOING,
+        unitId: 'unit-002',
+      },
+      create: {
+        id: 'event-002',
+        name: 'Evento em andamento - Unidade Zona Oeste',
+        date: new Date('2026-05-21T13:00:00.000Z'),
+        schoolYear: 'YEAR_2026',
+        status: AuthographsEventStatus.ONGOING,
+        unitId: 'unit-002',
+      },
+    }),
+    prisma.authographsEvent.upsert({
+      where: { id: 'event-003' },
+      update: {
+        name: 'Evento concluído - Unidade Centro',
+        date: new Date('2026-04-18T10:00:00.000Z'),
+        schoolYear: 'YEAR_2026',
+        status: AuthographsEventStatus.COMPLETED,
+        unitId: 'unit-003',
+      },
+      create: {
+        id: 'event-003',
+        name: 'Evento concluído - Unidade Centro',
+        date: new Date('2026-04-18T10:00:00.000Z'),
+        schoolYear: 'YEAR_2026',
+        status: AuthographsEventStatus.COMPLETED,
+        unitId: 'unit-003',
+      },
+    }),
+    prisma.authographsEvent.upsert({
+      where: { id: 'event-004' },
+      update: {
+        name: 'Evento cancelado - Unidade Saúde',
+        date: new Date('2026-03-10T09:00:00.000Z'),
+        schoolYear: 'YEAR_2026',
+        status: AuthographsEventStatus.CANCELED,
+        unitId: 'unit-004',
+      },
+      create: {
+        id: 'event-004',
+        name: 'Evento cancelado - Unidade Saúde',
+        date: new Date('2026-03-10T09:00:00.000Z'),
+        schoolYear: 'YEAR_2026',
+        status: AuthographsEventStatus.CANCELED,
+        unitId: 'unit-004',
+      },
+    }),
+  ]);
+
+  console.log(`✅ ${events.length} eventos criados/atualizados`);
 
   // Criar/atualizar livros (agora que student/class/unit existem)
   const books = await Promise.all([
@@ -257,22 +342,24 @@ async function main() {
       update: {
         id: 'book-001',
         title: 'A Cidade das Palavras',
-        studentId: student.id,
+        studentId: 'student-001',
         magnificCode: generateMagnificCode(),
         author: 'Lia Monteiro',
         synopsis:
           'Um romance sobre memória, linguagem e os encontros improváveis que mudam uma vida.',
         priceId: 'price-001',
+        authographsEventId: 'event-001',
       },
       create: {
         id: 'book-001',
         title: 'A Cidade das Palavras',
-        studentId: student.id,
+        studentId: 'student-001',
         magnificCode: generateMagnificCode(),
         author: 'Lia Monteiro',
         synopsis:
           'Um romance sobre memória, linguagem e os encontros improváveis que mudam uma vida.',
         priceId: 'price-001',
+        authographsEventId: 'event-001',
       },
     }),
     prisma.book.upsert({
@@ -280,22 +367,24 @@ async function main() {
       update: {
         id: 'book-002',
         title: 'Código em Movimento',
-        studentId: student.id,
+        studentId: 'student-002',
         magnificCode: generateMagnificCode(),
         author: 'Rafael Cordeiro',
         synopsis:
           'Ensaios curtos sobre produto, software e a disciplina de construir coisas que duram.',
         priceId: 'price-002',
+        authographsEventId: 'event-001',
       },
       create: {
         id: 'book-002',
         title: 'Código em Movimento',
-        studentId: student.id,
+        studentId: 'student-002',
         magnificCode: generateMagnificCode(),
         author: 'Rafael Cordeiro',
         synopsis:
           'Ensaios curtos sobre produto, software e a disciplina de construir coisas que duram.',
         priceId: 'price-002',
+        authographsEventId: 'event-001',
       },
     }),
     prisma.book.upsert({
@@ -303,22 +392,24 @@ async function main() {
       update: {
         id: 'book-003',
         title: 'Mar de Tinta',
-        studentId: student.id,
+        studentId: 'student-003',
         magnificCode: generateMagnificCode(),
         author: 'Helena Vieira',
         synopsis:
           'Crônicas poéticas para leitura lenta, com capítulos que alternam mar, rua e silêncio.',
         priceId: 'price-003',
+        authographsEventId: 'event-001',
       },
       create: {
         id: 'book-003',
         title: 'Mar de Tinta',
-        studentId: student.id,
+        studentId: 'student-003',
         magnificCode: generateMagnificCode(),
         author: 'Helena Vieira',
         synopsis:
           'Crônicas poéticas para leitura lenta, com capítulos que alternam mar, rua e silêncio.',
         priceId: 'price-003',
+        authographsEventId: 'event-001',
       },
     }),
     prisma.book.upsert({
@@ -326,22 +417,24 @@ async function main() {
       update: {
         id: 'book-004',
         title: 'Atlas de Pequenas Revoluções',
-        studentId: student.id,
+        studentId: 'student-004',
         magnificCode: generateMagnificCode(),
         author: 'Nuno Azevedo',
         synopsis:
           'Uma coleção de histórias sobre mudanças discretas que alteram o curso de uma cidade.',
         priceId: 'price-004',
+        authographsEventId: 'event-001',
       },
       create: {
         id: 'book-004',
         title: 'Atlas de Pequenas Revoluções',
-        studentId: student.id,
+        studentId: 'student-004',
         magnificCode: generateMagnificCode(),
         author: 'Nuno Azevedo',
         synopsis:
           'Uma coleção de histórias sobre mudanças discretas que alteram o curso de uma cidade.',
         priceId: 'price-004',
+        authographsEventId: 'event-001',
       },
     }),
     prisma.book.upsert({
@@ -349,21 +442,23 @@ async function main() {
       update: {
         title: 'As Aventuras Mágicas de Sofia',
         magnificCode: MOCK_SOFIA_MAGNIFIC_CODE,
-        studentId: student.id,
+        studentId: 'student-mock-sofia',
         author: 'Sofia Maria, 7 anos',
         synopsis:
           'Uma história encantadora sobre uma menina que descobre um mundo mágico cheio de cores, amizade e aventuras incríveis. Escrito e ilustrado com todo o carinho por uma jovem autora.',
         priceId: 'price-mock-sofia',
+        authographsEventId: 'event-001',
       },
       create: {
         id: 'book-mock-sofia',
         title: 'As Aventuras Mágicas de Sofia',
         magnificCode: MOCK_SOFIA_MAGNIFIC_CODE,
-        studentId: student.id,
+        studentId: 'student-mock-sofia',
         author: 'Sofia Maria, 7 anos',
         synopsis:
           'Uma história encantadora sobre uma menina que descobre um mundo mágico cheio de cores, amizade e aventuras incríveis. Escrito e ilustrado com todo o carinho por uma jovem autora.',
         priceId: 'price-mock-sofia',
+        authographsEventId: 'event-001',
       },
     }),
   ]);
@@ -468,83 +563,7 @@ async function main() {
     `✅ ${userUnits.length} associações de usuário-unidade criadas/atualizadas`,
   );
 
-  console.log('\n🎫 Criando/atualizando eventos...');
-  const events = await Promise.all([
-    prisma.authographsEvent.upsert({
-      where: { id: 'event-001' },
-      update: {
-        name: 'Sessão de autógrafos - Unidade Centro',
-        date: new Date('2026-05-28T14:00:00.000Z'),
-        schoolYear: 'YEAR_2026',
-        status: AuthographsEventStatus.PLANNED,
-        unitId: 'unit-001',
-      },
-      create: {
-        id: 'event-001',
-        name: 'Sessão de autógrafos - Unidade Centro',
-        date: new Date('2026-05-28T14:00:00.000Z'),
-        schoolYear: 'YEAR_2026',
-        status: AuthographsEventStatus.PLANNED,
-        unitId: 'unit-001',
-      },
-    }),
-    prisma.authographsEvent.upsert({
-      where: { id: 'event-002' },
-      update: {
-        name: 'Evento em andamento - Unidade Zona Oeste',
-        date: new Date('2026-05-21T13:00:00.000Z'),
-        schoolYear: 'YEAR_2026',
-        status: AuthographsEventStatus.ONGOING,
-        unitId: 'unit-002',
-      },
-      create: {
-        id: 'event-002',
-        name: 'Evento em andamento - Unidade Zona Oeste',
-        date: new Date('2026-05-21T13:00:00.000Z'),
-        schoolYear: 'YEAR_2026',
-        status: AuthographsEventStatus.ONGOING,
-        unitId: 'unit-002',
-      },
-    }),
-    prisma.authographsEvent.upsert({
-      where: { id: 'event-003' },
-      update: {
-        name: 'Evento concluído - Unidade Centro',
-        date: new Date('2026-04-18T10:00:00.000Z'),
-        schoolYear: 'YEAR_2026',
-        status: AuthographsEventStatus.COMPLETED,
-        unitId: 'unit-003',
-      },
-      create: {
-        id: 'event-003',
-        name: 'Evento concluído - Unidade Centro',
-        date: new Date('2026-04-18T10:00:00.000Z'),
-        schoolYear: 'YEAR_2026',
-        status: AuthographsEventStatus.COMPLETED,
-        unitId: 'unit-003',
-      },
-    }),
-    prisma.authographsEvent.upsert({
-      where: { id: 'event-004' },
-      update: {
-        name: 'Evento cancelado - Unidade Saúde',
-        date: new Date('2026-03-10T09:00:00.000Z'),
-        schoolYear: 'YEAR_2026',
-        status: AuthographsEventStatus.CANCELED,
-        unitId: 'unit-004',
-      },
-      create: {
-        id: 'event-004',
-        name: 'Evento cancelado - Unidade Saúde',
-        date: new Date('2026-03-10T09:00:00.000Z'),
-        schoolYear: 'YEAR_2026',
-        status: AuthographsEventStatus.CANCELED,
-        unitId: 'unit-004',
-      },
-    }),
-  ]);
 
-  console.log(`✅ ${events.length} eventos criados/atualizados`);
   console.log(`\n📋 Resumo do seed:`);
   console.log(`  Escolas: ${schools.length}`);
   console.log(`  Unidades: ${units.length}`);

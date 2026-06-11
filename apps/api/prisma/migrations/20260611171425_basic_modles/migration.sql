@@ -58,8 +58,8 @@ CREATE TABLE "Book" (
     "author" TEXT,
     "synopsis" TEXT,
     "priceId" TEXT NOT NULL,
-    "studentId" TEXT,
-    "authographsEventId" TEXT,
+    "studentId" TEXT NOT NULL,
+    "authographsEventId" TEXT NOT NULL,
     "status" "BookStatus" NOT NULL DEFAULT 'DRAFT',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -240,10 +240,10 @@ ALTER TABLE "Order" ADD CONSTRAINT "Order_userId_fkey" FOREIGN KEY ("userId") RE
 ALTER TABLE "Book" ADD CONSTRAINT "Book_priceId_fkey" FOREIGN KEY ("priceId") REFERENCES "Price"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Book" ADD CONSTRAINT "Book_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Book" ADD CONSTRAINT "Book_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Book" ADD CONSTRAINT "Book_authographsEventId_fkey" FOREIGN KEY ("authographsEventId") REFERENCES "AuthographsEvent"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Book" ADD CONSTRAINT "Book_authographsEventId_fkey" FOREIGN KEY ("authographsEventId") REFERENCES "AuthographsEvent"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "BookTemplatePage" ADD CONSTRAINT "BookTemplatePage_bookTemplateId_fkey" FOREIGN KEY ("bookTemplateId") REFERENCES "BookTemplate"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -14,6 +14,7 @@ import {
 import { PrismaService } from '../db/db.service.js';
 import {
   NotFoundUnitException,
+  UnauthorizedUserIsNotAdminException,
   UnauthorizedUserNoAccessToUnitException,
 } from '../schools/schools.errors.js';
 import { ConflictEventAlreadyActiveException } from './events.errors.js';
@@ -65,7 +66,7 @@ export class EventsService {
     user: AuthUser,
   ): Promise<EventResponse> {
     if (user.role !== UserRole.ADMIN)
-      throw new UnauthorizedUserNoAccessToUnitException();
+      throw new UnauthorizedUserIsNotAdminException();
 
     const unit = await this.prisma.unit.findUnique({
       where: { id: body.unitId },
