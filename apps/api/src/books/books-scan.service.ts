@@ -16,7 +16,12 @@ import {
   getOriginalPageUploadBucketPath,
   getProcessedPageUploadBucketPath,
 } from './books.utils.js';
-import { AuthographsEventStatus, PageType } from '@prisma/client';
+import {
+  $Enums,
+  AuthographsEventStatus,
+  PageStatus,
+  PageType,
+} from '@prisma/client';
 
 interface QrCodeData {
   studentId: string;
@@ -182,17 +187,33 @@ export class BooksScanService {
     });
 
     template.bookTemplatePages.forEach(async (p) => {
+      const pageTypesToCreateWithStatusReady: $Enums.PageType[] = [
+        $Enums.PageType.BLANK,
+        $Enums.PageType.PREFACE,
+        $Enums.PageType.THANKS,
+      ];
+      const status = pageTypesToCreateWithStatusReady.includes(p.pageType)
+        ? PageStatus.READY
+        : PageStatus.NOT_STARTED;
+
+      const pageStatusToIgnore: PageStatus[] = [
+        PageStatus.READY,
+        PageStatus.REVISED_BY_SCHOOL,
+      ];
+
       await this.prisma.page.upsert({
         where: {
           bookId_number: {
             bookId: book.id,
             number: p.pageNumber,
           },
+          status: { notIn: pageStatusToIgnore },
         },
         create: {
           bookId: book.id,
           number: p.pageNumber,
           type: p.pageType,
+          status,
         },
         update: {},
       });
