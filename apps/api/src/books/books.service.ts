@@ -10,7 +10,7 @@ import type { GetBookDetailResponse, GetBooksListResponse } from '@repo/shared';
 import type { AuthUser } from '@repo/shared';
 import { UserRole } from '@repo/shared/dist/types/user.js';
 import { CloudflareR2Service } from '../common/cloudflare-r2.service.js';
-import { BookStatus, PageStatus } from '@prisma/client';
+import { BookStatus, PageStatus, PageType } from '@prisma/client';
 import {
   getOriginalPageUploadBucketPath,
   getProcessedPageUploadBucketPath,
@@ -198,8 +198,30 @@ export class BooksService {
     const bookDetail = await this.getById(bookId, user);
 
     const page = bookDetail.pages.find((p) => p.number === pageNumber);
-    if (!page) {
-      throw new NotFoundException('Página não encontrada');
+    if (!page) throw new NotFoundException('Página não encontrada');
+
+    const finalStatus = data.status !== undefined ? data.status : page.status;
+
+    const statusWithContent: PageStatus[] = [
+      PageStatus.REVISED_BY_SCHOOL,
+      PageStatus.READY,
+    ];
+
+    if (
+      statusWithContent.includes(finalStatus) &&
+      page.type !== PageType.BLANK
+    ) {
+      const finalContent =
+        data.textContent !== undefined ? data.textContent : page.textContent;
+      const hasTextContent = !!finalContent?.trim();
+      const hasImageContent =
+        !!page.drawImageUrl || !!page.imageUrl || !!page.originalImageUrl;
+
+      if (!hasTextContent && !hasImageContent) {
+        throw new BadRequestException(
+          'Não é permitido marcar uma página sem conteúdo como revisada.',
+        );
+      }
     }
 
     const updateData: any = {};

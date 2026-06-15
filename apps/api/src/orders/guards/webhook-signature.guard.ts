@@ -10,6 +10,10 @@ export class WebhookSignatureGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
 
+    if (!this.webhookSecret) {
+      throw new UnauthorizedInvalidWebhookSignatureException();
+    }
+
     const headers = request.headers as Record<string, any>;
     const xSignature = (headers['x-signature'] ||
       headers['X-Signature']) as string;
@@ -18,14 +22,18 @@ export class WebhookSignatureGuard implements CanActivate {
 
     // Obtain Query params related to the request URL
     const query = request.query;
-    const dataID = query['data.id'] as string;
+    const dataID = query?.['data.id'] as string;
+
+    if (!xSignature || !xRequestId || !dataID) {
+      throw new UnauthorizedInvalidWebhookSignatureException();
+    }
 
     // Separating the x-signature into parts
     const parts = xSignature.split(',');
 
     // Initializing variables to store ts and hash
-    let ts;
-    let hash;
+    let ts: string | undefined;
+    let hash: string | undefined;
 
     // Iterate over the values to obtain ts and v1
     parts.forEach((part) => {
@@ -42,11 +50,15 @@ export class WebhookSignatureGuard implements CanActivate {
       }
     });
 
+    if (!ts || !hash) {
+      throw new UnauthorizedInvalidWebhookSignatureException();
+    }
+
     // Generate the manifest string
-    const manifest = `id:${dataID};request-id:${xRequestId};ts:${ts};`;
+    const manifest = `id:${dataID.toLowerCase()};request-id:${xRequestId};ts:${ts};`;
 
     // Create an HMAC signature
-    const hmac = crypto.createHmac('sha256', this.webhookSecret as string);
+    const hmac = crypto.createHmac('sha256', this.webhookSecret);
     hmac.update(manifest);
 
     // Obtain the hash result as a hexadecimal string
