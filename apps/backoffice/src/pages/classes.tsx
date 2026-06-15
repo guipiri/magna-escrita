@@ -18,6 +18,7 @@ export function ClassesPage() {
     teacherName: string;
     bookTemplateId: string;
     bookTemplateName: string;
+    hasBooks?: boolean;
   } | null>(null);
   const [deletingClass, setDeletingClass] = useState<{
     id: string;
@@ -164,6 +165,7 @@ export function ClassesPage() {
                   teacherName: classItem.teacher,
                   bookTemplateId: classItem.bookTemplateId,
                   bookTemplateName: classItem.bookTemplateName,
+                  hasBooks: classItem.bookCount > 0,
                 });
               }
             }}
@@ -193,6 +195,7 @@ export function ClassesPage() {
           teacherName={editingClass?.teacherName ?? ''}
           bookTemplateId={editingClass?.bookTemplateId ?? ''}
           bookTemplateName={editingClass?.bookTemplateName ?? ''}
+          hasBooks={!!editingClass?.hasBooks}
         />
 
         <DeleteClassDialog

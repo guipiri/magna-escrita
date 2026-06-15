@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   BookOpen,
@@ -58,7 +57,7 @@ interface ClassesListProps {
 
 function getProgressPercentage(classData: ClassData) {
   if (classData.bookCount === 0) return 0;
-  return Math.round((classData.booksCompleted / classData.bookCount) * 100);
+  return Math.round((classData.booksCompleted / classData.studentCount) * 100);
 }
 
 export function ClassesList({
@@ -83,14 +82,11 @@ export function ClassesList({
     },
   });
 
-  const totalBooks = useMemo(
-    () => classes.reduce((sum, classItem) => sum + classItem.bookCount, 0),
-    [classes],
-  );
-
   if (classes.length === 0) {
     return <ClassesEmptyState onAddClass={onAddClass} />;
   }
+
+  console.log(classes);
 
   return (
     <DataList>
@@ -122,7 +118,10 @@ export function ClassesList({
                     <MoreHorizontal className='h-4 w-4' />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align='end' onCloseAutoFocus={(e) => e.preventDefault()}>
+                <DropdownMenuContent
+                  align='end'
+                  onCloseAutoFocus={(e) => e.preventDefault()}
+                >
                   <DropdownMenuItem onClick={() => onView?.(classItem.id)}>
                     <Eye className='h-4 w-4' />
                     Visualizar
@@ -167,8 +166,8 @@ export function ClassesList({
                   {classItem.bookCount}
                 </p>
                 <p className='text-xs text-muted-foreground'>
-                  {classItem.booksCompleted} concluídos de {totalBooks} livros
-                  no total
+                  {classItem.booksCompleted} concluídos de{' '}
+                  {classItem.studentCount} livros no total
                 </p>
               </div>
 

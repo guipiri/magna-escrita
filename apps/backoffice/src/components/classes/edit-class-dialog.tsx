@@ -12,6 +12,7 @@ interface StudentInput {
   tempId: string;
   id?: string;
   name: string;
+  hasBook?: boolean;
 }
 
 let tempIdCounter = 0;
@@ -24,6 +25,7 @@ export function EditClassDialog({
   className: initialName,
   teacherName: initialTeacherName,
   bookTemplateId: initialBookTemplateId,
+  hasBooks,
 }: {
   onClose?: () => void;
   isOpen: boolean;
@@ -32,6 +34,7 @@ export function EditClassDialog({
   teacherName: string;
   bookTemplateId: string;
   bookTemplateName: string;
+  hasBooks?: boolean;
 }) {
   const [name, setName] = useState(initialName);
   const [teacherName, setTeacherName] = useState(initialTeacherName);
@@ -62,6 +65,7 @@ export function EditClassDialog({
           tempId: nextTempId(),
           id: s.id,
           name: s.name,
+          hasBook: s.hasBook,
         })),
       );
     }
@@ -174,8 +178,10 @@ export function EditClassDialog({
                 <select
                   value={bookTemplateId}
                   onChange={(e) => setBookTemplateId(e.target.value)}
-                  className='w-full border border-gray-300 rounded px-3 py-2'
+                  className='w-full border border-gray-300 rounded px-3 py-2 disabled:bg-slate-100 disabled:cursor-not-allowed'
                   required
+                  disabled={hasBooks}
+                  title={hasBooks ? 'Não é possível alterar o template de livro pois a turma já possui livros criados' : undefined}
                 >
                   <option value=''>Selecione um template</option>
                   {bookTemplates?.map((template) => (
@@ -184,6 +190,11 @@ export function EditClassDialog({
                     </option>
                   ))}
                 </select>
+                {hasBooks && (
+                  <p className='text-xs text-amber-600 mt-1'>
+                    Não é possível alterar o template de livro pois a turma já possui livros criados.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -233,7 +244,9 @@ export function EditClassDialog({
                       <button
                         type='button'
                         onClick={() => removeStudent(student.tempId)}
-                        className='p-1 text-red-500 hover:text-red-700'
+                        disabled={student.hasBook}
+                        className='p-1 text-red-500 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                        title={student.hasBook ? 'Não é possível remover aluno com livro criado' : undefined}
                       >
                         <X className='w-4 h-4' />
                       </button>

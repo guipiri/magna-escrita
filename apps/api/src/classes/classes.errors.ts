@@ -47,3 +47,12 @@ export class ConflictExistingBooksException extends BadRequestException {
     } satisfies HttpExceptionConstructor);
   }
 }
+
+export class ConflictClassTemplateWithExistingBooksException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.CONFLICT_EXISTING_BOOKS,
+      message: 'Cannot change class book template with existing books',
+    } satisfies HttpExceptionConstructor);
+  }
+}

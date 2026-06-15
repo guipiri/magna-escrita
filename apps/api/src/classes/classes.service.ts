@@ -13,10 +13,12 @@ import {
   BadRequestMultipleUnitsAccessException,
   BadRequestNoValidUnitIdException,
   ConflictExistingBooksException,
+  ConflictClassTemplateWithExistingBooksException,
   NotFoundClassException,
 } from './classes.errors.js';
+
 import { SchoolsMapper } from '../schools/schools.mapper.js';
-import { Prisma } from '@prisma/client';
+import { BookStatus } from '@prisma/client';
 
 @Injectable()
 export class ClassesService {
@@ -81,7 +83,7 @@ export class ClassesService {
       const bookStatusCount = {
         total: 0,
         draft: 0,
-        forReview: 0,
+        revisedBySchool: 0,
         ready: 0,
         archived: 0,
         completed: 0,
@@ -105,18 +107,24 @@ export class ClassesService {
         const count = bookIds.size;
         bookIds.forEach((id) => allUniqueBookIds.add(id));
 
-        if (status === 'DRAFT') bookStatusCount.draft = count;
-        else if (status === 'FOR_REVIEW') bookStatusCount.forReview = count;
-        else if (status === 'READY') bookStatusCount.ready = count;
-        else if (status === 'ARCHIVED') bookStatusCount.archived = count;
+        if (status === BookStatus.DRAFT) bookStatusCount.draft = count;
+        else if (status === BookStatus.REVISED_BY_SCHOOL)
+          bookStatusCount.revisedBySchool = count;
+        else if (status === BookStatus.READY) bookStatusCount.ready = count;
+        else if (status === BookStatus.ARCHIVED)
+          bookStatusCount.archived = count;
       });
 
       bookStatusCount.total = allUniqueBookIds.size;
 
       if (user.role === UserRole.ADMIN) {
-        bookStatusCount.completed = bookStatusCount.ready;
+        bookStatusCount.completed =
+          bookStatusCount.ready + bookStatusCount.archived;
       } else {
-        bookStatusCount.completed = bookStatusCount.forReview;
+        bookStatusCount.completed =
+          bookStatusCount.revisedBySchool +
+          bookStatusCount.ready +
+          bookStatusCount.archived;
       }
 
       return {
@@ -265,6 +273,15 @@ export class ClassesService {
 
     if (gradeNameExists) throw new BadRequestGradeNameAlreadyExistsException();
 
+    if (bookTemplateId && bookTemplateId !== existingClass.bookTemplateId) {
+      const existingBooks = await this.prisma.book.count({
+        where: { student: { classId: id } },
+      });
+      if (existingBooks > 0) {
+        throw new ConflictClassTemplateWithExistingBooksException();
+      }
+    }
+
     if (students) {
       const currentStudents = await this.prisma.student.findMany({
         where: { classId: id },
@@ -368,7 +385,15 @@ export class ClassesService {
 
     const studentsList = await this.prisma.student.findMany({
       where: { classId },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        _count: {
+          select: {
+            books: true,
+          },
+        },
+      },
       orderBy: { name: 'asc' },
     });
 
@@ -376,6 +401,7 @@ export class ClassesService {
       id: student.id,
       name: student.name,
       studentId: student.id,
+      hasBook: student._count.books > 0,
     }));
   }
 

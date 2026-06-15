@@ -59,7 +59,7 @@ export interface GetClassesResponse {
   bookCount: {
     total: number;
     draft: number;
-    forReview: number;
+    revisedBySchool: number;
     ready: number;
     archived: number;
     completed: number; // READY for ADMIN, FOR_REVIEW for SCHOOL
@@ -71,6 +71,7 @@ export interface ClassStudentResponse {
   id: string;
   name: string;
   studentId: string;
+  hasBook?: boolean;
 }
 
 export interface UpdateClassStudentItem {
