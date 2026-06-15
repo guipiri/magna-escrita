@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { ErrorKeys } from '@repo/shared';
 import { HttpExceptionConstructor } from '../common/filters/http-exception.filter.js';
 
@@ -31,3 +31,22 @@ export class BadRequestTimelinePastException extends BadRequestException {
     } satisfies HttpExceptionConstructor);
   }
 }
+
+export class NotFoundEventException extends NotFoundException {
+  constructor() {
+    super({
+      key: ErrorKeys.NOT_FOUND_EVENT,
+      message: 'Evento não encontrado',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class ConflictEventWithExistingBooksException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.CONFLICT_EVENT_WITH_EXISTING_BOOKS,
+      message: 'Não é possível alterar a unidade ou o ano letivo de um evento que já possui livros vinculados.',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+

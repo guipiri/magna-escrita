@@ -24,6 +24,7 @@ export interface EventResponse {
   createdAt: string;
   updatedAt: string;
   timeline?: EventTimelineResponse[];
+  hasBooks?: boolean;
 }
 
 export interface CreateEventRequest {
@@ -34,4 +35,15 @@ export interface CreateEventRequest {
   useDefaultTimeline: boolean;
   timelineDates?: string[];
 }
+
+export interface UpdateEventRequest {
+  name?: string;
+  date?: string;
+  schoolYear?: SchoolYear;
+  unitId?: string;
+  useDefaultTimeline?: boolean;
+  timelineDates?: string[];
+  status?: EventStatus;
+}
+
 

@@ -23,6 +23,7 @@ export const errorMessages: Record<ErrorKeys, string> = {
   NOT_FOUND_ORDER: 'Pedido não encontrado.',
   NOT_FOUND_SCHOOL: 'Escola não encontrada.',
   NOT_FOUND_UNIT: 'Unidade não encontrada.',
+  NOT_FOUND_EVENT: 'Evento não encontrado.',
   NOT_FOUND_BOOK_TEMPLATE: 'Template de livro não encontrado.',
   NOT_FOUND_GRADE: 'Turma não encontrada.',
 
@@ -38,7 +39,7 @@ export const errorMessages: Record<ErrorKeys, string> = {
     'A ordem dos eventos da timeline deve ser respeitada: o evento n não pode acontecer após o evento n+1.',
 
   BAD_REQUEST_TIMELINE_PAST:
-    'A data inicial da timeline não pode estar no passado. O evento mais antigo deve ser hoje ou no futuro.',
+    'Nenhuma data modificada da timeline pode estar no passado.',
 
 
   UNAUTHORIZED_USER_NO_ACCESS_TO_UNIT:
@@ -48,6 +49,8 @@ export const errorMessages: Record<ErrorKeys, string> = {
     'Já existe uma turma com esse nome nesta unidade.',
 
   CONFLICT_EXISTING_BOOKS: 'Já existem livros associados ao registro.',
+  CONFLICT_EVENT_WITH_EXISTING_BOOKS:
+    'Não é possível alterar a unidade ou o ano letivo de um evento que possui livros vinculados.',
 
   CREATE_PIX_ORDER_FAILED: 'Falha ao criar pedido PIX.',
   CREATE_CARD_ORDER_FAILED: 'Falha ao criar pedido com cartão de crédito.',
