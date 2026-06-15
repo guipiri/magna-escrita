@@ -8,6 +8,12 @@ export interface EventUnitSummary {
   schoolName: string;
 }
 
+export interface EventTimelineResponse {
+  id: string;
+  date: string;
+  details: string | null;
+}
+
 export interface EventResponse {
   id: string;
   name: string;
@@ -17,6 +23,7 @@ export interface EventResponse {
   unit: EventUnitSummary;
   createdAt: string;
   updatedAt: string;
+  timeline?: EventTimelineResponse[];
 }
 
 export interface CreateEventRequest {
@@ -24,4 +31,7 @@ export interface CreateEventRequest {
   date: string;
   schoolYear: SchoolYear;
   unitId: string;
+  useDefaultTimeline: boolean;
+  timelineDates?: string[];
 }
+

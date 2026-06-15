@@ -34,8 +34,16 @@ export const errorMessages: Record<ErrorKeys, string> = {
   CONFLICT_EVENT_ALREADY_ACTIVE:
     'Já existe um evento planejado ou em andamento para esta unidade.',
 
+  BAD_REQUEST_TIMELINE_ORDER:
+    'A ordem dos eventos da timeline deve ser respeitada: o evento n não pode acontecer após o evento n+1.',
+
+  BAD_REQUEST_TIMELINE_PAST:
+    'A data inicial da timeline não pode estar no passado. O evento mais antigo deve ser hoje ou no futuro.',
+
+
   UNAUTHORIZED_USER_NO_ACCESS_TO_UNIT:
     'Usuário não tem acesso à unidade selecionada.',
+
   BAD_REQUEST_GRADE_NAME_ALREADY_EXISTS:
     'Já existe uma turma com esse nome nesta unidade.',
 

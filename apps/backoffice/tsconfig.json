@@ -1,6 +1,11 @@
 {
   "extends": "@repo/typescript-config/vite.json",
   "include": ["src"],
+  "exclude": [
+    "src/components/ui/calendar.tsx",
+    "src/components/ui/chart.tsx",
+    "src/components/ui/resizable.tsx"
+  ],
   "compilerOptions": {
     "jsx": "react-jsx",
     "strictNullChecks": true
