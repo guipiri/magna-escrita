@@ -186,8 +186,13 @@ export function CreateEventDialog({
   const isLoading = isUnitsLoading;
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleDialogChange}>
-      <DialogContent className='sm:max-w-4xl max-h-[90vh] overflow-y-auto' aria-describedby={undefined}>
+    <Dialog open={isOpen} onOpenChange={handleDialogChange} modal={false}>
+      <DialogContent
+        className='sm:max-w-4xl max-h-[90vh] overflow-y-auto'
+        aria-describedby={undefined}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader className='flex flex-row items-center gap-3'>
           <div className='flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary'>
             <CalendarDays className='size-5' />
