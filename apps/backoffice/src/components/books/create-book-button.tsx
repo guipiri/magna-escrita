@@ -28,7 +28,7 @@ export function CreateBookButton({
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align='end' className='w-52'>
+      <DropdownMenuContent align='end' className='w-52' onCloseAutoFocus={(e) => e.preventDefault()}>
         <DropdownMenuLabel>Opções de criação</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem

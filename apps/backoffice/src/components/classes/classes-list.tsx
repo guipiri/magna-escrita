@@ -122,7 +122,7 @@ export function ClassesList({
                     <MoreHorizontal className='h-4 w-4' />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align='end'>
+                <DropdownMenuContent align='end' onCloseAutoFocus={(e) => e.preventDefault()}>
                   <DropdownMenuItem onClick={() => onView?.(classItem.id)}>
                     <Eye className='h-4 w-4' />
                     Visualizar
