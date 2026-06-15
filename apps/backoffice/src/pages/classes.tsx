@@ -34,7 +34,6 @@ export function ClassesPage() {
     queryKey: ['classes'],
     queryFn: getClasses,
   });
-
   const classesData: ClassData[] = useMemo(() => {
     if (!classes) return [];
 
@@ -47,6 +46,7 @@ export function ClassesPage() {
       studentCount: _class.studentsCount,
       bookCount: _class.bookCount.total,
       booksCompleted: _class.bookCount.completed,
+      booksRevisedBySchool: _class.bookCount.revisedBySchool + _class.bookCount.ready + _class.bookCount.archived,
       schoolYear: _class.schoolYear,
       schoolName: _class.school.name,
     }));

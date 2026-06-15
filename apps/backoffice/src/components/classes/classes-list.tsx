@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
+import { useAuth } from '../../hooks/auth-hook';
 import {
   BookOpen,
   Edit,
@@ -43,6 +44,7 @@ export interface ClassData {
   studentCount: number;
   bookCount: number;
   booksCompleted: number;
+  booksRevisedBySchool: number;
   schoolYear: string;
   schoolName: string;
 }
@@ -60,6 +62,13 @@ function getProgressPercentage(classData: ClassData) {
   return Math.round((classData.booksCompleted / classData.studentCount) * 100);
 }
 
+function getRevisedProgressPercentage(classData: ClassData) {
+  if (classData.studentCount === 0) return 0;
+  return Math.round(
+    (classData.booksRevisedBySchool / classData.studentCount) * 100,
+  );
+}
+
 export function ClassesList({
   classes,
   onView,
@@ -68,6 +77,8 @@ export function ClassesList({
   onAddClass,
 }: ClassesListProps) {
   const { enqueueSnackbar } = useSnackbar();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
 
   const pdfMutation = useMutation({
     mutationFn: downloadClassPdf,
@@ -86,12 +97,11 @@ export function ClassesList({
     return <ClassesEmptyState onAddClass={onAddClass} />;
   }
 
-  console.log(classes);
-
   return (
     <DataList>
       {classes.map((classItem) => {
         const progress = getProgressPercentage(classItem);
+        const progressRevised = getRevisedProgressPercentage(classItem);
 
         return (
           <DataListItem key={classItem.id}>
@@ -178,15 +188,32 @@ export function ClassesList({
                     Progresso
                   </span>
                 </div>
-                <div className='mt-2 h-2 overflow-hidden rounded-full bg-background'>
-                  <div
-                    className='h-full rounded-full bg-linear-to-r from-emerald-500 to-green-500 transition-all duration-300'
-                    style={{ width: `${progress}%` }}
-                  />
+                <div className='space-y-3 mt-2'>
+                  <div>
+                    <div className='h-2 overflow-hidden rounded-full bg-background'>
+                      <div
+                        className='h-full rounded-full bg-linear-to-r from-emerald-500 to-green-500 transition-all duration-300'
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <p className='mt-1 text-xs font-medium text-muted-foreground'>
+                      {progress}% concluído
+                    </p>
+                  </div>
+                  {isAdmin && (
+                    <div>
+                      <div className='h-2 overflow-hidden rounded-full bg-background'>
+                        <div
+                          className='h-full rounded-full bg-linear-to-r from-blue-500 to-indigo-500 transition-all duration-300'
+                          style={{ width: `${progressRevised}%` }}
+                        />
+                      </div>
+                      <p className='mt-1 text-xs font-medium text-muted-foreground'>
+                        {progressRevised}% revisado pela escola
+                      </p>
+                    </div>
+                  )}
                 </div>
-                <p className='mt-2 text-xs font-medium text-muted-foreground'>
-                  {progress}% concluído
-                </p>
               </div>
             </DataListContent>
 
