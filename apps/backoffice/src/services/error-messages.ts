@@ -49,6 +49,12 @@ export const errorMessages: Record<ErrorKeys, string> = {
 
   BAD_REQUEST_GRADE_NAME_ALREADY_EXISTS:
     'Já existe uma turma com esse nome nesta unidade.',
+  BAD_REQUEST_SCHOOL_USER_WITHOUT_UNITS:
+    'Um usuário com perfil de escola precisa estar associado a pelo menos uma unidade.',
+  BAD_REQUEST_INVALID_ROLE_FOR_USER_CREATION:
+    'Perfil inválido para criação de usuário.',
+  CONFLICT_EMAIL_ALREADY_EXISTS:
+    'Já existe um usuário cadastrado com este e-mail.',
 
   CONFLICT_EXISTING_BOOKS: 'Já existem livros associados ao registro.',
   CONFLICT_EVENT_WITH_EXISTING_BOOKS:

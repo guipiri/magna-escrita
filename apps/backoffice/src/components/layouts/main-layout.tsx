@@ -16,12 +16,16 @@ export function MainLayout() {
         ? [{ label: 'Eventos' }]
         : pathname === '/livros'
           ? [{ label: 'Livros' }]
-          : pathname.startsWith('/livros/')
-            ? [
-                { label: 'Livros', href: '/livros' },
-                { label: 'Detalhe do livro' },
-              ]
-            : []),
+          : pathname === '/usuarios'
+            ? [{ label: 'Usuários' }]
+            : pathname === '/book-templates'
+              ? [{ label: 'Book Templates' }]
+              : pathname.startsWith('/livros/')
+                ? [
+                    { label: 'Livros', href: '/livros' },
+                    { label: 'Detalhe do livro' },
+                  ]
+                : []),
   ];
 
   return (

@@ -11,3 +11,4 @@ applyTo: 'apps/api/**'
 - Explicitly define the return type of all service methods.
 - Always possible, use class validator para os requests dtos.
 - To throw an error, create a custom exception that extends the built-in NestJS exceptions. Do not throw plain Error objects. Remenber to add the error key to the shared package errors enum.
+- When creating new env var, add it to validationSchema in `src/config/validation.ts`

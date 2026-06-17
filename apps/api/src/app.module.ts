@@ -13,6 +13,7 @@ import { SchoolsModule } from './schools/schools.module.js';
 import { ClassesModule } from './classes/classes.module.js';
 import { EventsModule } from './events/events.module.js';
 import { PdfModule } from './pdf/pdf.module.js';
+import { UsersModule } from './users/users.module.js';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { PdfModule } from './pdf/pdf.module.js';
     ClassesModule,
     EventsModule,
     PdfModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

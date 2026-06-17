@@ -22,6 +22,7 @@ import { BookTemplatesPage } from './pages/book-templates';
 import { EventsPage } from './pages/events';
 import { BooksPage } from './pages/books';
 import { BookDetailPage } from './pages/book-detail';
+import { UsersPage } from './pages/users';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
@@ -82,6 +83,14 @@ const AppRoutes = () => (
           element={
             <RequireAuth allowedRoles={[UserRole.ADMIN]}>
               <BookTemplatesPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path='/usuarios'
+          element={
+            <RequireAuth allowedRoles={[UserRole.ADMIN]}>
+              <UsersPage />
             </RequireAuth>
           }
         />

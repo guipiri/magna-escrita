@@ -7,6 +7,7 @@ import {
   LayoutTemplate,
   ChevronLeft,
   ChevronRight,
+  UserCog,
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { motion } from 'motion/react';
@@ -40,7 +41,10 @@ export function Sidebar({
     { icon: CalendarDays, label: 'Eventos', path: '/eventos' },
     { icon: BookOpen, label: 'Livros', path: '/livros' },
     ...(isAdmin
-      ? [{ icon: LayoutTemplate, label: 'Book Templates', path: '/book-templates' }]
+      ? [
+          { icon: LayoutTemplate, label: 'Book Templates', path: '/book-templates' },
+          { icon: UserCog, label: 'Usuários', path: '/usuarios' },
+        ]
       : []),
   ];
 
