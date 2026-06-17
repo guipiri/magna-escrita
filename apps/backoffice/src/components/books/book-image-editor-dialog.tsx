@@ -105,6 +105,7 @@ interface BookImageEditorDialogProps {
   sourceUrl: string;
   pageNumber: number;
   onSave: (file: File) => Promise<unknown>;
+  aspect?: number;
 }
 
 export function BookImageEditorDialog({
@@ -113,6 +114,7 @@ export function BookImageEditorDialog({
   sourceUrl,
   pageNumber,
   onSave,
+  aspect = 1,
 }: BookImageEditorDialogProps) {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -189,8 +191,8 @@ export function BookImageEditorDialog({
                 Editar imagem da página {pageNumber}
               </DialogTitle>
               <DialogDescription className='text-white/70'>
-                Posicione o quadrado do desenho, ajuste o zoom ou a rotação e
-                salve a imagem final.
+                Posicione a área de corte, ajuste o zoom ou a rotação e salve a
+                imagem final.
               </DialogDescription>
             </DialogHeader>
 
@@ -202,7 +204,7 @@ export function BookImageEditorDialog({
                     crop={crop}
                     zoom={zoom}
                     rotation={rotation}
-                    aspect={1}
+                    aspect={aspect}
                     cropShape='rect'
                     showGrid
                     restrictPosition
@@ -299,14 +301,6 @@ export function BookImageEditorDialog({
                     Restaurar
                   </Button>
                 </div>
-              </div>
-
-              <div className='rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground'>
-                <p className='font-medium text-foreground'>Como salvar</p>
-                <p className='mt-1'>
-                  Use o quadrado central para enquadrar apenas o desenho. O
-                  arquivo final será enviado em PNG.
-                </p>
               </div>
 
               {error ? (

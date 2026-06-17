@@ -629,69 +629,173 @@ function PageCard({ page, book, isActive }: PageCardProps) {
           )}
 
           {isBackCover && (
-            <div className='flex flex-1 flex-col gap-2'>
-              <div className='flex items-center justify-between'>
-                <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
-                  Biografia do(a) autor(a)
-                </p>
-                {canEditText && !isEditing && (
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    onClick={() => setIsEditing(true)}
-                    aria-label='Editar biografia do(a) autor(a)'
-                  >
-                    <Pencil className='size-3.5' />
-                    Editar biografia
-                  </Button>
-                )}
-                {canEditText && isEditing && (
-                  <div className='flex items-center gap-1'>
+            <div className='flex flex-1 flex-col gap-6 md:flex-row md:items-start'>
+              {/* Biografia do(a) autor(a) */}
+              <div className='flex flex-1 flex-col gap-2'>
+                <div className='flex items-center justify-between'>
+                  <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
+                    Biografia do(a) autor(a)
+                  </p>
+                  {canEditText && !isEditing && (
                     <Button
                       variant='ghost'
                       size='sm'
-                      onClick={() => {
-                        setDraft(page.textContent ?? '');
-                        setTitleDraft(book.title ?? '');
-                        setIsEditing(false);
-                      }}
+                      onClick={() => setIsEditing(true)}
+                      aria-label='Editar biografia do(a) autor(a)'
                     >
-                      <X className='size-3.5' />
-                      Cancelar
+                      <Pencil className='size-3.5' />
+                      Editar biografia
                     </Button>
-                    <Button
-                      size='sm'
-                      disabled={saveMutation.isPending}
-                      onClick={() => saveMutation.mutate()}
-                    >
-                      {saveMutation.isPending ? (
-                        <Loader2 className='size-3.5 animate-spin' />
-                      ) : (
-                        <Save className='size-3.5' />
-                      )}
-                      Salvar
-                    </Button>
+                  )}
+                  {canEditText && isEditing && (
+                    <div className='flex items-center gap-1'>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => {
+                          setDraft(page.textContent ?? '');
+                          setTitleDraft(book.title ?? '');
+                          setIsEditing(false);
+                        }}
+                      >
+                        <X className='size-3.5' />
+                        Cancelar
+                      </Button>
+                      <Button
+                        size='sm'
+                        disabled={saveMutation.isPending}
+                        onClick={() => saveMutation.mutate()}
+                      >
+                        {saveMutation.isPending ? (
+                          <Loader2 className='size-3.5 animate-spin' />
+                        ) : (
+                          <Save className='size-3.5' />
+                        )}
+                        Salvar
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {isEditing ? (
+                  <Textarea
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    placeholder='Digite a biografia do(a) autor(a)...'
+                    className='min-h-40 flex-1 resize-none text-sm'
+                    autoFocus
+                  />
+                ) : page.textContent ? (
+                  <p className='whitespace-pre-wrap rounded-xl border border-border/70 bg-muted/20 p-4 text-sm text-foreground'>
+                    {page.textContent}
+                  </p>
+                ) : (
+                  <div className='flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/20 text-muted-foreground'>
+                    <FileText className='size-5' />
+                    <p className='text-xs'>Sem conteúdo de texto</p>
                   </div>
                 )}
               </div>
-              {isEditing ? (
-                <Textarea
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  placeholder='Digite a biografia do(a) autor(a)...'
-                  className='min-h-40 flex-1 resize-none text-sm'
-                  autoFocus
-                />
-              ) : page.textContent ? (
-                <p className='whitespace-pre-wrap rounded-xl border border-border/70 bg-muted/20 p-4 text-sm text-foreground'>
-                  {page.textContent}
-                </p>
-              ) : (
-                <div className='flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/20 text-muted-foreground'>
-                  <FileText className='size-5' />
-                  <p className='text-xs'>Sem conteúdo de texto</p>
+
+              {/* Foto do(a) Aluno(a) */}
+              <div className='flex flex-col gap-2 md:w-64 shrink-0'>
+                <div className='flex items-center justify-between'>
+                  <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
+                    Foto do(a) Aluno(a)
+                  </p>
+                  {drawSourceUrl && !isImageEditorOpen && (
+                    <div className='flex gap-1'>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        className='h-7 px-2'
+                        onClick={() => setIsImageEditorOpen(true)}
+                        aria-label='Editar foto'
+                      >
+                        <Crop className='size-3.5' />
+                      </Button>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        className='h-7 px-2'
+                        onClick={() => fileInputRef.current?.click()}
+                        aria-label='Trocar foto'
+                      >
+                        <FileImage className='size-3.5' />
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              )}
+
+                {drawSourceUrl ? (
+                  <div className='overflow-hidden rounded-xl border border-border/70 bg-muted/20 aspect-[3/4] relative group'>
+                    <img
+                      src={drawSourceUrl}
+                      alt='Foto do(a) aluno(a)'
+                      className='w-full h-full object-cover transition-transform duration-300 group-hover:scale-105'
+                    />
+                    <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2'>
+                      <Button
+                        variant='secondary'
+                        size='sm'
+                        onClick={() => setIsImageEditorOpen(true)}
+                      >
+                        <Crop className='size-3.5 mr-1.5' />
+                        Editar
+                      </Button>
+                      <Button
+                        variant='secondary'
+                        size='sm'
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <FileImage className='size-3.5 mr-1.5' />
+                        Alterar
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className={cn(
+                      'relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-4 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 aspect-[3/4]',
+                      isDragging
+                        ? 'border-primary bg-primary/5 text-primary'
+                        : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:bg-muted/50',
+                    )}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    role='button'
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        fileInputRef.current?.click();
+                      }
+                    }}
+                  >
+                    <div
+                      className={cn(
+                        'flex size-12 items-center justify-center rounded-xl transition-colors duration-200',
+                        isDragging
+                          ? 'bg-primary/10 text-primary'
+                          : 'bg-muted text-muted-foreground',
+                      )}
+                    >
+                      <UploadCloud className='size-6' />
+                    </div>
+                    <div>
+                      <p className='text-sm font-medium text-foreground'>
+                        {isDragging
+                          ? 'Solte a foto aqui'
+                          : 'Arraste a foto ou clique'}
+                      </p>
+                      <p className='mt-1 text-xs text-muted-foreground'>
+                        Proporção 3x4 (PNG, JPG)
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -723,6 +827,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
           }}
           sourceUrl={editorSourceUrl}
           pageNumber={page.number}
+          aspect={isBackCover ? 3 / 4 : 1}
           onSave={async (file) => {
             await saveDrawMutation.mutateAsync({
               file,
