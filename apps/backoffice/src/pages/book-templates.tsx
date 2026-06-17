@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
 import {
@@ -14,12 +14,16 @@ import type {
   BookTemplatePage,
   BookTemplateResponse,
   CreateBookTemplateRequest,
+  UpdateBookTemplateRequest,
 } from '@repo/shared';
 import { BOOK_PAGE_TYPES } from '@repo/shared';
 import {
   createBookTemplate,
   getBookTemplates,
+  updateBookTemplate,
 } from '../services/book-templates-service';
+import { getSchoolUnits } from '../services/schools-service';
+import { getErrorMessage } from '../services/error-messages';
 
 const PAGE_TYPE_LABELS: Record<string, string> = {
   COVER: 'Capa',
@@ -43,8 +47,20 @@ const PAGE_TYPE_COLORS: Record<string, string> = {
   BACK_COVER: 'bg-indigo-100 text-indigo-700',
 };
 
-function TemplateCard({ template }: { template: BookTemplateResponse }) {
+function TemplateCard({
+  template,
+  allUnits,
+  onEdit,
+}: {
+  template: BookTemplateResponse;
+  allUnits: Array<{ id: string; name: string }>;
+  onEdit: () => void;
+}) {
   const [expanded, setExpanded] = useState(false);
+
+  const unitNames = template.units
+    ?.map((uid) => allUnits.find((u) => u.id === uid)?.name)
+    .filter(Boolean) ?? [];
 
   return (
     <div className='rounded-xl border border-border bg-card shadow-sm overflow-hidden'>
@@ -65,13 +81,41 @@ function TemplateCard({ template }: { template: BookTemplateResponse }) {
               {template.pageCount} página
               {template.pageCount !== 1 ? 's' : ''}
             </p>
+            {unitNames.length > 0 ? (
+              <div className='flex flex-wrap gap-1 mt-1.5'>
+                {unitNames.map((name) => (
+                  <span
+                    key={name}
+                    className='inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground border border-border/30'
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className='text-xs text-muted-foreground mt-1'>
+                Nenhuma unidade associada
+              </p>
+            )}
           </div>
         </div>
-        {expanded ? (
-          <ChevronUp className='w-4 h-4 text-muted-foreground shrink-0' />
-        ) : (
-          <ChevronDown className='w-4 h-4 text-muted-foreground shrink-0' />
-        )}
+        <div className='flex items-center gap-2'>
+          <button
+            type='button'
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+            className='px-2.5 py-1 text-xs font-medium rounded-md border border-border bg-card text-foreground hover:bg-accent transition-colors'
+          >
+            Editar
+          </button>
+          {expanded ? (
+            <ChevronUp className='w-4 h-4 text-muted-foreground shrink-0' />
+          ) : (
+            <ChevronDown className='w-4 h-4 text-muted-foreground shrink-0' />
+          )}
+        </div>
       </button>
 
       <AnimatePresence>
@@ -128,31 +172,86 @@ function TemplateCard({ template }: { template: BookTemplateResponse }) {
 
 type NewPage = { pageNumber: number; pageType: string };
 
-function CreateTemplatePanel({
+function TemplatePanel({
   open,
   onClose,
+  template,
 }: {
   open: boolean;
   onClose: () => void;
+  template?: BookTemplateResponse | null;
 }) {
   const [name, setName] = useState('');
   const [pages, setPages] = useState<NewPage[]>([
     { pageNumber: 1, pageType: 'COVER' },
   ]);
+  const [selectedUnits, setSelectedUnits] = useState<string[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const mutation = useMutation({
+  const { data: schools } = useQuery({
+    queryKey: ['school-units'],
+    queryFn: getSchoolUnits,
+  });
+
+  const allUnits = schools?.flatMap((school) =>
+    school.units.map((unit) => ({
+      id: unit.id,
+      name: `${school.name} - ${unit.name || 'Sem nome'}`,
+    })),
+  ) ?? [];
+
+  useEffect(() => {
+    if (template) {
+      setName(template.name);
+      setPages(
+        template.pages.map((p) => ({
+          pageNumber: p.pageNumber,
+          pageType: p.pageType,
+        })),
+      );
+      setSelectedUnits(template.units || []);
+    } else {
+      setName('');
+      setPages([{ pageNumber: 1, pageType: 'COVER' }]);
+      setSelectedUnits([]);
+    }
+    setFormError(null);
+  }, [template, open]);
+
+  const resetForm = () => {
+    setName('');
+    setPages([{ pageNumber: 1, pageType: 'COVER' }]);
+    setSelectedUnits([]);
+    setFormError(null);
+  };
+
+  const createMutation = useMutation({
     mutationFn: (data: CreateBookTemplateRequest) => createBookTemplate(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['book-templates'] });
-      setName('');
-      setPages([{ pageNumber: 1, pageType: 'COVER' }]);
-      setFormError(null);
+      resetForm();
       onClose();
     },
-    onError: () => {
-      setFormError('Erro ao criar template. Tente novamente.');
+    onError: (err) => {
+      setFormError(
+        getErrorMessage(err) || 'Erro ao criar template. Tente novamente.',
+      );
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data: { id: string; body: UpdateBookTemplateRequest }) =>
+      updateBookTemplate(data.id, data.body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['book-templates'] });
+      resetForm();
+      onClose();
+    },
+    onError: (err) => {
+      setFormError(
+        getErrorMessage(err) || 'Erro ao salvar template. Tente novamente.',
+      );
     },
   });
 
@@ -188,11 +287,20 @@ function CreateTemplatePanel({
       return;
     }
 
-    mutation.mutate({
+    const payload = {
       name: name.trim(),
       pages: pages as BookTemplatePage[],
-    });
+      units: selectedUnits,
+    };
+
+    if (template) {
+      updateMutation.mutate({ id: template.id, body: payload });
+    } else {
+      createMutation.mutate(payload);
+    }
   };
+
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
     <AnimatePresence>
@@ -216,7 +324,7 @@ function CreateTemplatePanel({
           >
             <header className='flex items-center justify-between px-6 py-4 border-b border-border'>
               <h2 className='text-base font-semibold text-foreground'>
-                Novo Template
+                {template ? 'Editar Template' : 'Novo Template'}
               </h2>
               <button
                 type='button'
@@ -251,21 +359,79 @@ function CreateTemplatePanel({
                   />
                 </div>
 
+                {/* Units selection */}
+                <div>
+                  <label className='block text-sm font-medium text-foreground mb-1.5'>
+                    Unidades Associadas
+                  </label>
+                  <div className='max-h-40 overflow-y-auto border border-border rounded-lg p-3 space-y-2 bg-muted/10'>
+                    {allUnits.length === 0 ? (
+                      <p className='text-xs text-muted-foreground'>
+                        Nenhuma unidade cadastrada.
+                      </p>
+                    ) : (
+                      allUnits.map((unit) => {
+                        const isChecked = selectedUnits.includes(unit.id);
+                        const isUnitDisabled =
+                          template?.unitsWithBooks?.includes(unit.id);
+                        return (
+                          <label
+                            key={unit.id}
+                            className={`flex items-start gap-2.5 text-sm font-normal text-foreground select-none ${isUnitDisabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                          >
+                            <input
+                              type='checkbox'
+                              checked={isChecked}
+                              disabled={isUnitDisabled}
+                              onChange={() => {
+                                setSelectedUnits((prev) =>
+                                  isChecked
+                                    ? prev.filter((id) => id !== unit.id)
+                                    : [...prev, unit.id],
+                                );
+                              }}
+                              className='mt-1 rounded border-border text-primary focus:ring-ring disabled:opacity-50'
+                            />
+                            <span>
+                              {unit.name}{' '}
+                              {isUnitDisabled && (
+                                <span className='text-xs text-amber-600 font-medium'>
+                                  (Possui livros)
+                                </span>
+                              )}
+                            </span>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
                 {/* Pages */}
                 <div>
                   <div className='flex items-center justify-between mb-2'>
                     <label className='block text-sm font-medium text-foreground'>
                       Páginas ({pages.length})
                     </label>
-                    <button
-                      type='button'
-                      onClick={addPage}
-                      className='flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-violet-100 text-violet-700 hover:bg-violet-200 transition-colors'
-                    >
-                      <Plus className='w-3.5 h-3.5' />
-                      Adicionar
-                    </button>
+                    {!template?.hasBooks && (
+                      <button
+                        type='button'
+                        onClick={addPage}
+                        className='flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-violet-100 text-violet-700 hover:bg-violet-200 transition-colors'
+                      >
+                        <Plus className='w-3.5 h-3.5' />
+                        Adicionar
+                      </button>
+                    )}
                   </div>
+
+                  {template?.hasBooks && (
+                    <div className='flex items-center gap-2 text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mb-3 border border-amber-200/50'>
+                      <AlertCircle className='w-4 h-4 shrink-0' />
+                      Este template possui livros vinculados. Suas páginas não
+                      podem ser alteradas.
+                    </div>
+                  )}
 
                   <div className='space-y-2'>
                     {pages.map((page, idx) => (
@@ -278,8 +444,9 @@ function CreateTemplatePanel({
                         </span>
                         <select
                           value={page.pageType}
+                          disabled={template?.hasBooks}
                           onChange={(e) => updatePageType(idx, e.target.value)}
-                          className='flex-1 text-sm px-2 py-1.5 rounded-md border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring'
+                          className='flex-1 text-sm px-2 py-1.5 rounded-md border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-75 disabled:bg-muted/40'
                           aria-label={`Tipo da página ${page.pageNumber}`}
                         >
                           {BOOK_PAGE_TYPES.map((type) => (
@@ -288,15 +455,17 @@ function CreateTemplatePanel({
                             </option>
                           ))}
                         </select>
-                        <button
-                          type='button'
-                          onClick={() => removePage(idx)}
-                          disabled={pages.length <= 1}
-                          className='p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-30 disabled:cursor-not-allowed'
-                          aria-label={`Remover página ${page.pageNumber}`}
-                        >
-                          <Trash2 className='w-4 h-4' />
-                        </button>
+                        {!template?.hasBooks && (
+                          <button
+                            type='button'
+                            onClick={() => removePage(idx)}
+                            disabled={pages.length <= 1}
+                            className='p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-30 disabled:cursor-not-allowed'
+                            aria-label={`Remover página ${page.pageNumber}`}
+                          >
+                            <Trash2 className='w-4 h-4' />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -313,10 +482,16 @@ function CreateTemplatePanel({
               <div className='px-6 py-4 border-t border-border'>
                 <button
                   type='submit'
-                  disabled={mutation.isPending}
+                  disabled={isPending}
                   className='w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm shadow-sm hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed'
                 >
-                  {mutation.isPending ? 'Criando...' : 'Criar Template'}
+                  {isPending
+                    ? template
+                      ? 'Salvando...'
+                      : 'Criando...'
+                    : template
+                      ? 'Salvar Alterações'
+                      : 'Criar Template'}
                 </button>
               </div>
             </form>
@@ -329,6 +504,9 @@ function CreateTemplatePanel({
 
 export function BookTemplatesPage() {
   const [panelOpen, setPanelOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<BookTemplateResponse | null>(
+    null,
+  );
 
   const { data, isLoading, error } = useQuery<BookTemplateResponse[]>({
     queryKey: ['book-templates'],
@@ -338,7 +516,29 @@ export function BookTemplatesPage() {
     staleTime: 1000 * 60 * 5,
   });
 
+  const { data: schools } = useQuery({
+    queryKey: ['school-units'],
+    queryFn: getSchoolUnits,
+  });
+
+  const allUnits = schools?.flatMap((school) =>
+    school.units.map((unit) => ({
+      id: unit.id,
+      name: `${school.name} - ${unit.name || 'Sem nome'}`,
+    })),
+  ) ?? [];
+
   const templates = data ?? [];
+
+  const handleOpenCreatePanel = () => {
+    setEditingTemplate(null);
+    setPanelOpen(true);
+  };
+
+  const handleOpenEditPanel = (template: BookTemplateResponse) => {
+    setEditingTemplate(template);
+    setPanelOpen(true);
+  };
 
   return (
     <main className='flex-1 overflow-auto'>
@@ -358,7 +558,7 @@ export function BookTemplatesPage() {
             </div>
             <button
               type='button'
-              onClick={() => setPanelOpen(true)}
+              onClick={handleOpenCreatePanel}
               className='inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium shadow-sm hover:opacity-90 transition-opacity shrink-0'
             >
               <Plus className='w-4 h-4' />
@@ -384,7 +584,7 @@ export function BookTemplatesPage() {
             </p>
             <button
               type='button'
-              onClick={() => setPanelOpen(true)}
+              onClick={handleOpenCreatePanel}
               className='mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-sm hover:bg-accent transition-colors'
             >
               <Plus className='w-4 h-4' />
@@ -394,16 +594,26 @@ export function BookTemplatesPage() {
         ) : (
           <div className='space-y-3'>
             {templates.map((template) => (
-              <TemplateCard key={template.id} template={template} />
+              <TemplateCard
+                key={template.id}
+                template={template}
+                allUnits={allUnits}
+                onEdit={() => handleOpenEditPanel(template)}
+              />
             ))}
           </div>
         )}
       </div>
 
-      <CreateTemplatePanel
+      <TemplatePanel
         open={panelOpen}
-        onClose={() => setPanelOpen(false)}
+        onClose={() => {
+          setPanelOpen(false);
+          setEditingTemplate(null);
+        }}
+        template={editingTemplate}
       />
     </main>
   );
 }
+

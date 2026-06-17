@@ -16,6 +16,15 @@ export interface BookTemplateResponse {
   name: string;
   pageCount: number;
   pages: BookTemplatePage[];
+  units?: string[];
+  hasBooks?: boolean;
+  unitsWithBooks?: string[];
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+export interface UpdateBookTemplateRequest {
+  name?: string;
+  units?: string[];
+  pages?: BookTemplatePage[];
 }

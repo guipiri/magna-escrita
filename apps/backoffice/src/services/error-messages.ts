@@ -53,6 +53,10 @@ export const errorMessages: Record<ErrorKeys, string> = {
   CONFLICT_EXISTING_BOOKS: 'Já existem livros associados ao registro.',
   CONFLICT_EVENT_WITH_EXISTING_BOOKS:
     'Não é possível alterar a unidade ou o ano letivo de um evento que possui livros vinculados.',
+  CONFLICT_REMOVE_UNIT_WITH_BOOKS:
+    'Não é possível remover a unidade porque existem livros criados utilizando este template nas turmas dessa unidade.',
+  CONFLICT_CHANGE_PAGES_WITH_BOOKS:
+    'Não é possível alterar as páginas do template porque existem livros criados utilizando ele.',
 
   CREATE_PIX_ORDER_FAILED: 'Falha ao criar pedido PIX.',
   CREATE_CARD_ORDER_FAILED: 'Falha ao criar pedido com cartão de crédito.',
