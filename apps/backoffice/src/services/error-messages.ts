@@ -16,6 +16,8 @@ export const errorMessages: Record<ErrorKeys, string> = {
 
   FORBIDDEN_MISSING_AUTH_TOKEN: 'Token de autenticação ausente.',
   FORBIDDEN_INSUFFICIENT_PERMISSIONS: 'Permissões insuficientes.',
+  FORBIDDEN_BOOK_READY:
+    'Este livro está finalizado (status Pronto). Usuários com perfil da escola não podem fazer modificações em livros finalizados.',
   NOT_FOUND_BOOK_NOT_FOUND: 'Livro não encontrado.',
   HTTP_ERROR: 'Ocorreu um erro na requisição.',
   INTERNAL_ERROR: 'Ocorreu um erro interno no servidor.',

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import {
   ArrowLeft,
+  AlertCircle,
   BookOpen,
   CheckCircle2,
   ChevronLeft,
@@ -43,6 +44,7 @@ import { useSnackbar } from 'notistack';
 import { BookImageEditorDialog } from '../components/books/book-image-editor-dialog';
 import { Checkbox } from '../components/ui/checkbox';
 import { useAuth } from '../hooks/auth-hook';
+import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert';
 
 /* ─── helpers ───────────────────────────────────────────── */
 
@@ -115,6 +117,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const { user } = useAuth();
+  const isReadOnlyForSchool = user?.role === 'SCHOOL' && book.status === 'READY';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -287,7 +290,10 @@ function PageCard({ page, book, isActive }: PageCardProps) {
             <div className='flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-1.5 border border-border/50'>
               <label
                 htmlFor={`revise-page-${page.number}`}
-                className='text-xs font-semibold text-muted-foreground cursor-pointer select-none'
+                className={cn(
+                  'text-xs font-semibold text-muted-foreground select-none',
+                  isReadOnlyForSchool ? 'cursor-not-allowed' : 'cursor-pointer'
+                )}
               >
                 Marcar como revisado
               </label>
@@ -301,7 +307,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                     checked ? 'REVISED_BY_SCHOOL' : 'IN_PROGRESS',
                   );
                 }}
-                disabled={statusMutation.isPending}
+                disabled={statusMutation.isPending || isReadOnlyForSchool}
               />
             </div>
           )}
@@ -360,7 +366,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                 <p className='mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground'>
                   Desenho
                 </p>
-                {showDraw && drawSourceUrl && !isImageEditorOpen && (
+                {showDraw && drawSourceUrl && !isImageEditorOpen && !isReadOnlyForSchool && (
                   <div>
                     <Button
                       variant='ghost'
@@ -395,18 +401,20 @@ function PageCard({ page, book, isActive }: PageCardProps) {
               ) : (
                 <div
                   className={cn(
-                    'relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
-                    isDragging
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:bg-muted/50',
+                    'relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 text-center transition-colors duration-200 focus:outline-none',
+                    isReadOnlyForSchool
+                      ? 'border-border/50 bg-muted/10 text-muted-foreground/50 cursor-not-allowed'
+                      : isDragging
+                        ? 'border-primary bg-primary/5 text-primary cursor-pointer focus:ring-2 focus:ring-primary focus:ring-offset-2'
+                        : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:bg-muted/50 cursor-pointer focus:ring-2 focus:ring-primary focus:ring-offset-2',
                   )}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  role='button'
-                  tabIndex={0}
-                  onKeyDown={(e) => {
+                  onDragOver={isReadOnlyForSchool ? undefined : handleDragOver}
+                  onDragLeave={isReadOnlyForSchool ? undefined : handleDragLeave}
+                  onDrop={isReadOnlyForSchool ? undefined : handleDrop}
+                  onClick={isReadOnlyForSchool ? undefined : () => fileInputRef.current?.click()}
+                  role={isReadOnlyForSchool ? undefined : 'button'}
+                  tabIndex={isReadOnlyForSchool ? undefined : 0}
+                  onKeyDown={isReadOnlyForSchool ? undefined : (e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
                       fileInputRef.current?.click();
@@ -416,21 +424,27 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                   <div
                     className={cn(
                       'flex size-12 items-center justify-center rounded-xl transition-colors duration-200',
-                      isDragging
-                        ? 'bg-primary/10 text-primary'
-                        : 'bg-muted text-muted-foreground',
+                      isReadOnlyForSchool
+                        ? 'bg-muted/20 text-muted-foreground/30'
+                        : isDragging
+                          ? 'bg-primary/10 text-primary'
+                          : 'bg-muted text-muted-foreground',
                     )}
                   >
                     <UploadCloud className='size-6' />
                   </div>
                   <div>
                     <p className='text-sm font-medium text-foreground'>
-                      {isDragging
-                        ? 'Solte a imagem aqui'
-                        : 'Arraste uma imagem ou clique para selecionar'}
+                      {isReadOnlyForSchool
+                        ? 'Modificações desabilitadas'
+                        : isDragging
+                          ? 'Solte a imagem aqui'
+                          : 'Arraste uma imagem ou clique para selecionar'}
                     </p>
                     <p className='mt-1 text-xs text-muted-foreground'>
-                      PNG, JPG, WEBP
+                      {isReadOnlyForSchool
+                        ? 'O livro está pronto e não pode ser alterado.'
+                        : 'PNG, JPG, WEBP'}
                     </p>
                   </div>
                 </div>
@@ -445,7 +459,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                 <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
                   Conteúdo de texto
                 </p>
-                {canEditText && !isEditing && (
+                {canEditText && !isEditing && !isReadOnlyForSchool && (
                   <Button
                     variant='ghost'
                     size='sm'
@@ -515,7 +529,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                   <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
                     Título do Livro
                   </p>
-                  {canEditText && !isEditing && (
+                  {canEditText && !isEditing && !isReadOnlyForSchool && (
                     <Button
                       variant='ghost'
                       size='sm'
@@ -602,7 +616,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                       variant='outline'
                       size='sm'
                       onClick={() => logoInputRef.current?.click()}
-                      disabled={uploadLogoMutation.isPending}
+                      disabled={uploadLogoMutation.isPending || isReadOnlyForSchool}
                     >
                       {uploadLogoMutation.isPending ? (
                         <Loader2 className='size-3.5 animate-spin mr-2' />
@@ -636,7 +650,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                   <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
                     Biografia do(a) autor(a)
                   </p>
-                  {canEditText && !isEditing && (
+                  {canEditText && !isEditing && !isReadOnlyForSchool && (
                     <Button
                       variant='ghost'
                       size='sm'
@@ -702,7 +716,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                   <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
                     Foto do(a) Aluno(a)
                   </p>
-                  {drawSourceUrl && !isImageEditorOpen && (
+                  {drawSourceUrl && !isImageEditorOpen && !isReadOnlyForSchool && (
                     <div className='flex gap-1'>
                       <Button
                         variant='ghost'
@@ -733,40 +747,44 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                       alt='Foto do(a) aluno(a)'
                       className='w-full h-full object-cover transition-transform duration-300 group-hover:scale-105'
                     />
-                    <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2'>
-                      <Button
-                        variant='secondary'
-                        size='sm'
-                        onClick={() => setIsImageEditorOpen(true)}
-                      >
-                        <Crop className='size-3.5 mr-1.5' />
-                        Editar
-                      </Button>
-                      <Button
-                        variant='secondary'
-                        size='sm'
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <FileImage className='size-3.5 mr-1.5' />
-                        Alterar
-                      </Button>
-                    </div>
+                    {!isReadOnlyForSchool && (
+                      <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2'>
+                        <Button
+                          variant='secondary'
+                          size='sm'
+                          onClick={() => setIsImageEditorOpen(true)}
+                        >
+                          <Crop className='size-3.5 mr-1.5' />
+                          Editar
+                        </Button>
+                        <Button
+                          variant='secondary'
+                          size='sm'
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <FileImage className='size-3.5 mr-1.5' />
+                          Alterar
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div
                     className={cn(
-                      'relative flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-4 text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 aspect-[3/4]',
-                      isDragging
-                        ? 'border-primary bg-primary/5 text-primary'
-                        : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:bg-muted/50',
+                      'relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-4 text-center transition-colors duration-200 focus:outline-none aspect-[3/4]',
+                      isReadOnlyForSchool
+                        ? 'border-border/50 bg-muted/10 text-muted-foreground/50 cursor-not-allowed'
+                        : isDragging
+                          ? 'border-primary bg-primary/5 text-primary cursor-pointer focus:ring-2 focus:ring-primary focus:ring-offset-2'
+                          : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:bg-muted/50 cursor-pointer focus:ring-2 focus:ring-primary focus:ring-offset-2',
                     )}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    role='button'
-                    tabIndex={0}
-                    onKeyDown={(e) => {
+                    onDragOver={isReadOnlyForSchool ? undefined : handleDragOver}
+                    onDragLeave={isReadOnlyForSchool ? undefined : handleDragLeave}
+                    onDrop={isReadOnlyForSchool ? undefined : handleDrop}
+                    onClick={isReadOnlyForSchool ? undefined : () => fileInputRef.current?.click()}
+                    role={isReadOnlyForSchool ? undefined : 'button'}
+                    tabIndex={isReadOnlyForSchool ? undefined : 0}
+                    onKeyDown={isReadOnlyForSchool ? undefined : (e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         fileInputRef.current?.click();
@@ -776,21 +794,27 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                     <div
                       className={cn(
                         'flex size-12 items-center justify-center rounded-xl transition-colors duration-200',
-                        isDragging
-                          ? 'bg-primary/10 text-primary'
-                          : 'bg-muted text-muted-foreground',
+                        isReadOnlyForSchool
+                          ? 'bg-muted/20 text-muted-foreground/30'
+                          : isDragging
+                            ? 'bg-primary/10 text-primary'
+                            : 'bg-muted text-muted-foreground',
                       )}
                     >
                       <UploadCloud className='size-6' />
                     </div>
                     <div>
                       <p className='text-sm font-medium text-foreground'>
-                        {isDragging
-                          ? 'Solte a foto aqui'
-                          : 'Arraste a foto ou clique'}
+                        {isReadOnlyForSchool
+                          ? 'Modificações desabilitadas'
+                          : isDragging
+                            ? 'Solte a foto aqui'
+                            : 'Arraste a foto ou clique'}
                       </p>
                       <p className='mt-1 text-xs text-muted-foreground'>
-                        Proporção 3x4 (PNG, JPG)
+                        {isReadOnlyForSchool
+                          ? 'O livro está pronto e não pode ser alterado.'
+                          : 'Proporção 3x4 (PNG, JPG)'}
                       </p>
                     </div>
                   </div>
@@ -846,6 +870,7 @@ export function BookDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { user } = useAuth();
 
   const {
     data: book,
@@ -909,6 +934,16 @@ export function BookDetailPage() {
   return (
     <main className='flex-1 overflow-auto'>
       <div className='mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8'>
+        {user?.role === 'SCHOOL' && book.status === 'READY' && (
+          <Alert variant="destructive" className="mb-6 bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-500 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-500">
+            <AlertCircle className="size-4" />
+            <AlertTitle>Modificações Desabilitadas</AlertTitle>
+            <AlertDescription>
+              Este livro está finalizado (status Pronto). Usuários com perfil da escola não podem fazer modificações em livros finalizados.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* ── Header ── */}
         <motion.section
           initial={{ opacity: 0, y: 16 }}

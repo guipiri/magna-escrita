@@ -5,6 +5,7 @@ import { CloudflareR2Service } from '../common/cloudflare-r2.service.js';
 import { BadRequestException } from '@nestjs/common';
 import { UserRole } from '@repo/shared/dist/types/user.js';
 import { PageStatus, PageType } from '@prisma/client';
+import { ForbiddenBookReadyException } from './books.errors.js';
 
 describe('BooksService', () => {
   let service: BooksService;
@@ -176,6 +177,116 @@ describe('BooksService', () => {
       ).resolves.not.toThrow();
 
       expect(mockPrisma.page.update).toHaveBeenCalled();
+    });
+
+    it('should throw ForbiddenBookReadyException if school role updates a page when book status is READY', async () => {
+      const readyBookDetail = {
+        ...baseBookDetail,
+        status: 'READY',
+      };
+      mockPrisma.book.findUnique.mockResolvedValue(readyBookDetail);
+      mockPrisma.userUnit.findFirst.mockResolvedValue({ id: 'userUnit-1' });
+
+      await expect(
+        service.updatePage(
+          bookId,
+          pageNumber,
+          { textContent: 'Algum texto' },
+          user as any,
+        ),
+      ).rejects.toThrow(ForbiddenBookReadyException);
+    });
+  });
+
+  describe('updateBook', () => {
+    const user = { id: 'user-1', role: UserRole.SCHOOL };
+    const bookId = 'book-1';
+
+    const baseBookDetail = {
+      id: bookId,
+      magnificCode: '123456',
+      title: 'Livro de Teste',
+      author: 'Autor',
+      synopsis: 'Sinopse',
+      status: 'READY',
+      student: {
+        id: 'student-1',
+        name: 'Estudante',
+        class: {
+          id: 'class-1',
+          name: 'Turma',
+          schoolYear: '2026',
+          units: {
+            id: 'unit-1',
+            name: 'Unidade',
+            logoUrl: null,
+            school: { name: 'Escola' },
+          },
+        },
+      },
+      pages: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    it('should throw ForbiddenBookReadyException if school role updates a book when book status is READY', async () => {
+      mockPrisma.book.findUnique.mockResolvedValue(baseBookDetail);
+      mockPrisma.userUnit.findFirst.mockResolvedValue({ id: 'userUnit-1' });
+
+      await expect(
+        service.updateBook(
+          bookId,
+          { title: 'Novo Titulo' },
+          user as any,
+        ),
+      ).rejects.toThrow(ForbiddenBookReadyException);
+    });
+  });
+
+  describe('updatePageDraw', () => {
+    const user = { id: 'user-1', role: UserRole.SCHOOL };
+    const bookId = 'book-1';
+
+    const readyBookDetail = {
+      id: bookId,
+      magnificCode: '123456',
+      title: 'Livro de Teste',
+      author: 'Autor',
+      synopsis: 'Sinopse',
+      status: 'READY',
+      student: {
+        id: 'student-1',
+        name: 'Estudante',
+        class: {
+          id: 'class-1',
+          name: 'Turma',
+          schoolYear: '2026',
+          units: {
+            id: 'unit-1',
+            name: 'Unidade',
+            logoUrl: null,
+            school: { name: 'Escola' },
+          },
+        },
+      },
+      pages: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    it('should throw ForbiddenBookReadyException if school role updates page draw when book status is READY', async () => {
+      mockPrisma.book.findUnique.mockResolvedValue(readyBookDetail);
+      mockPrisma.userUnit.findFirst.mockResolvedValue({ id: 'userUnit-1' });
+
+      await expect(
+        service.updatePageDraw(
+          bookId,
+          1,
+          { buffer: Buffer.from([]), mimetype: 'image/png' } as any,
+          undefined,
+          user as any,
+        ),
+      ).rejects.toThrow(ForbiddenBookReadyException);
     });
   });
 });

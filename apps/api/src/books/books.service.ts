@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
-import { NotFoundBookException } from './books.errors.js';
+import { NotFoundBookException, ForbiddenBookReadyException } from './books.errors.js';
 import type { GetBookDetailResponse, GetBooksListResponse } from '@repo/shared';
 import type { AuthUser } from '@repo/shared';
 import { UserRole } from '@repo/shared/dist/types/user.js';
@@ -197,6 +197,10 @@ export class BooksService {
     // Ensure user has access to this book
     const bookDetail = await this.getById(bookId, user);
 
+    if (user.role === UserRole.SCHOOL && bookDetail.status === 'READY') {
+      throw new ForbiddenBookReadyException();
+    }
+
     const page = bookDetail.pages.find((p) => p.number === pageNumber);
     if (!page) throw new NotFoundException('Página não encontrada');
 
@@ -293,7 +297,11 @@ export class BooksService {
     data: { title?: string | null },
     user: AuthUser,
   ): Promise<void> {
-    await this.getById(bookId, user); // Ensure user has access
+    const bookDetail = await this.getById(bookId, user); // Ensure user has access
+
+    if (user.role === UserRole.SCHOOL && bookDetail.status === 'READY') {
+      throw new ForbiddenBookReadyException();
+    }
 
     await this.prisma.book.update({
       where: { id: bookId },
@@ -309,6 +317,10 @@ export class BooksService {
     user: AuthUser,
   ): Promise<{ drawImageUrl: string; originalImageUrl?: string }> {
     const book = await this.getById(bookId, user);
+
+    if (user.role === UserRole.SCHOOL && book.status === 'READY') {
+      throw new ForbiddenBookReadyException();
+    }
 
     // Resolve student → class → unit → active event
     const student = await this.prisma.student.findUnique({
