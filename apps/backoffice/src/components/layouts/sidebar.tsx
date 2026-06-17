@@ -12,6 +12,8 @@ import { cn } from '../ui/utils';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../../hooks/use-is-mobile';
+import { useAuth } from '../../hooks/auth-hook';
+import { UserRole } from '@repo/shared';
 
 interface SidebarProps {
   hasMultipleUnits?: boolean;
@@ -27,6 +29,8 @@ export function Sidebar({
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { user } = useAuth();
+  const isAdmin = user?.role === UserRole.ADMIN;
 
   const menuItems = [
     ...(hasMultipleUnits
@@ -35,7 +39,9 @@ export function Sidebar({
     { icon: Users, label: 'Turmas', path: '/turmas' },
     { icon: CalendarDays, label: 'Eventos', path: '/eventos' },
     { icon: BookOpen, label: 'Livros', path: '/livros' },
-    { icon: LayoutTemplate, label: 'Book Templates', path: '/book-templates' },
+    ...(isAdmin
+      ? [{ icon: LayoutTemplate, label: 'Book Templates', path: '/book-templates' }]
+      : []),
   ];
 
   const handleItemClick = (path: string) => {

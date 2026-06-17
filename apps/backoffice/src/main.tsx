@@ -80,7 +80,7 @@ const AppRoutes = () => (
         <Route
           path='/book-templates'
           element={
-            <RequireAuth>
+            <RequireAuth allowedRoles={[UserRole.ADMIN]}>
               <BookTemplatesPage />
             </RequireAuth>
           }

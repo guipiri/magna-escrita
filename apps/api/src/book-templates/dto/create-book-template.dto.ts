@@ -9,6 +9,7 @@ import {
   IsIn,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
@@ -27,6 +28,12 @@ export class CreateBookTemplateDto implements CreateBookTemplateRequest {
   @IsString()
   @IsNotEmpty()
   name!: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  units?: string[];
 
   @IsArray()
   @ValidateNested({ each: true })

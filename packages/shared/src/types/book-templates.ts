@@ -7,6 +7,7 @@ export interface BookTemplatePage {
 
 export interface CreateBookTemplateRequest {
   name: string;
+  units?: string[];
   pages: BookTemplatePage[];
 }
 

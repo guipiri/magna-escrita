@@ -96,6 +96,7 @@ model BookTemplate {
   updatedAt DateTime @updatedAt
 
   classes Class[]
+  units   Unit[]  @relation("UnitBookTemplates")
 }
 
 model BookTemplatePage {
@@ -256,6 +257,7 @@ model Unit {
   userUnits UserUnit[]
 
   authographsEvents AuthographsEvent[]
+  bookTemplates     BookTemplate[]     @relation("UnitBookTemplates")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

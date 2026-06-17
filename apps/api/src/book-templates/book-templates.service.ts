@@ -1,16 +1,39 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
-import type {
-  CreateBookTemplateRequest,
-  BookTemplateResponse,
+import {
+  type BookTemplateResponse,
+  type AuthUser,
+  UserRole,
 } from '@repo/shared';
+import { CreateBookTemplateDto } from './dto/create-book-template.dto.js';
 
 @Injectable()
 export class BookTemplatesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(): Promise<BookTemplateResponse[]> {
+  async findAll(user: AuthUser): Promise<BookTemplateResponse[]> {
+    const units = await this.prisma.unit.findMany({
+      where: {
+        userUnits: {
+          some: {
+            userId: user.id,
+          },
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
     const templates = await this.prisma.bookTemplate.findMany({
+      where:
+        user.role === UserRole.ADMIN
+          ? undefined
+          : {
+              units: {
+                some: { id: { in: units.map((u) => u.id) } },
+              },
+            },
       include: {
         bookTemplatePages: {
           orderBy: { pageNumber: 'asc' },
@@ -35,8 +58,8 @@ export class BookTemplatesService {
     return response;
   }
 
-  async create(body: CreateBookTemplateRequest): Promise<BookTemplateResponse> {
-    const { name, pages } = body;
+  async create(body: CreateBookTemplateDto): Promise<BookTemplateResponse> {
+    const { name, pages, units } = body;
 
     const template = await this.prisma.bookTemplate.create({
       data: {
@@ -47,6 +70,11 @@ export class BookTemplatesService {
             pageType: p.pageType,
           })),
         },
+        units: units
+          ? {
+              connect: units.map((id) => ({ id })),
+            }
+          : undefined,
       },
       include: { bookTemplatePages: true },
     });
