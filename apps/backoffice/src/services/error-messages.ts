@@ -55,6 +55,10 @@ export const errorMessages: Record<ErrorKeys, string> = {
     'Perfil inválido para criação de usuário.',
   CONFLICT_EMAIL_ALREADY_EXISTS:
     'Já existe um usuário cadastrado com este e-mail.',
+  NOT_FOUND_USER:
+    'Usuário não encontrado.',
+  BAD_REQUEST_CANNOT_DELETE_SELF:
+    'Você não pode excluir sua própria conta de usuário.',
 
   CONFLICT_EXISTING_BOOKS: 'Já existem livros associados ao registro.',
   CONFLICT_EVENT_WITH_EXISTING_BOOKS:

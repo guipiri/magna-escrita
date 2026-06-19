@@ -26,6 +26,12 @@ export interface CreateUserRequest {
   unitIds?: string[];
 }
 
+export interface UpdateUserRequest {
+  email?: string;
+  role?: UserRole;
+  unitIds?: string[];
+}
+
 enum UserRole {
   ADMIN = 'ADMIN',
   SCHOOL = 'SCHOOL',

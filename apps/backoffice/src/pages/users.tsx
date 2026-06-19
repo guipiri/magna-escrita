@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { Search, Plus, Mail, ShieldAlert, Building2, User } from 'lucide-react';
+import { Search, Plus, Mail, ShieldAlert, Building2, User, Pencil, Trash2 } from 'lucide-react';
 import { useSnackbar } from 'notistack';
-import { UserRole } from '@repo/shared';
-import { getUsers, createUser } from '../services/users-service';
+import { UserRole, UpdateUserRequest, UserListResponse } from '@repo/shared';
+import { getUsers, createUser, updateUser, deleteUser } from '../services/users-service';
 import { getSchoolUnits } from '../services/schools-service';
 import { getErrorMessage } from '../services/error-messages';
 import { Button } from '../components/ui/button';
@@ -25,6 +25,11 @@ export function UsersPage() {
   const [role, setRole] = useState<UserRole>(UserRole.SCHOOL);
   const [selectedUnitIds, setSelectedUnitIds] = useState<string[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Edit / Delete States
+  const [editingUser, setEditingUser] = useState<UserListResponse | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserListResponse | null>(null);
 
   const queryClient = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
@@ -60,11 +65,38 @@ export function UsersPage() {
       // Invalidate queries to reload the user list
       queryClient.invalidateQueries({ queryKey: ['users'] });
       // Reset form and close dialog
-      setEmail('');
-      setRole(UserRole.SCHOOL);
-      setSelectedUnitIds([]);
-      setValidationError(null);
-      setCreateModalOpen(false);
+      handleCloseModal();
+    },
+  });
+
+  // Mutation to update an existing user
+  const updateUserMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateUserRequest }) =>
+      updateUser(id, data),
+    onSuccess: (data) => {
+      enqueueSnackbar(`Usuário ${data.email} editado com sucesso!`, {
+        variant: 'success',
+      });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      handleCloseModal();
+    },
+  });
+
+  // Mutation to delete a user
+  const deleteUserMutation = useMutation({
+    mutationFn: deleteUser,
+    onSuccess: () => {
+      enqueueSnackbar('Usuário excluído com sucesso!', {
+        variant: 'success',
+      });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setUserToDelete(null);
+      setDeleteDialogOpen(false);
+    },
+    onError: (err) => {
+      enqueueSnackbar(getErrorMessage(err) || 'Erro ao excluir usuário.', {
+        variant: 'error',
+      });
     },
   });
 
@@ -79,10 +111,10 @@ export function UsersPage() {
       const nameMatch = user.name?.toLowerCase().includes(normalizedSearch) || false;
       const roleMatch = user.role.toLowerCase().includes(normalizedSearch);
       const unitMatch = user.units.some(
-        (unit) =>
-          unit.name?.toLowerCase().includes(normalizedSearch) ||
-          unit.schoolName.toLowerCase().includes(normalizedSearch),
-      );
+          (unit) =>
+            unit.name?.toLowerCase().includes(normalizedSearch) ||
+            unit.schoolName.toLowerCase().includes(normalizedSearch),
+        );
 
       return emailMatch || nameMatch || roleMatch || unitMatch;
     });
@@ -114,11 +146,22 @@ export function UsersPage() {
       return;
     }
 
-    createUserMutation.mutate({
-      email: emailTrimmed,
-      role,
-      unitIds: role === UserRole.SCHOOL ? selectedUnitIds : undefined,
-    });
+    if (editingUser) {
+      updateUserMutation.mutate({
+        id: editingUser.id,
+        data: {
+          email: emailTrimmed,
+          role,
+          unitIds: role === UserRole.SCHOOL ? selectedUnitIds : [],
+        },
+      });
+    } else {
+      createUserMutation.mutate({
+        email: emailTrimmed,
+        role,
+        unitIds: role === UserRole.SCHOOL ? selectedUnitIds : undefined,
+      });
+    }
   };
 
   const handleCloseModal = () => {
@@ -126,8 +169,23 @@ export function UsersPage() {
     setRole(UserRole.SCHOOL);
     setSelectedUnitIds([]);
     setValidationError(null);
+    setEditingUser(null);
     createUserMutation.reset();
+    updateUserMutation.reset();
     setCreateModalOpen(false);
+  };
+
+  const handleOpenEdit = (userItem: UserListResponse) => {
+    setEditingUser(userItem);
+    setEmail(userItem.email);
+    setRole(userItem.role);
+    setSelectedUnitIds(userItem.units.map((u) => u.id));
+    setCreateModalOpen(true);
+  };
+
+  const handleOpenDelete = (userItem: UserListResponse) => {
+    setUserToDelete(userItem);
+    setDeleteDialogOpen(true);
   };
 
   if (usersLoading) {
@@ -217,20 +275,21 @@ export function UsersPage() {
                   <th className='p-4 pl-6'>Usuário</th>
                   <th className='p-4'>Perfil</th>
                   <th className='p-4'>Unidades Associadas</th>
-                  <th className='p-4 pr-6 text-right'>Cadastro</th>
+                  <th className='p-4 text-center'>Cadastro</th>
+                  <th className='p-4 pr-6 text-right'>Ações</th>
                 </tr>
               </thead>
               <tbody className='divide-y divide-border/60 text-sm'>
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className='p-8 text-center text-muted-foreground'>
+                    <td colSpan={5} className='p-8 text-center text-muted-foreground'>
                       Nenhum usuário correspondente encontrado.
                     </td>
                   </tr>
                 ) : (
                   filteredUsers.map((userItem) => (
                     <tr key={userItem.id} className='hover:bg-muted/10 transition-colors'>
-                      <td className='p-4 pl-6'>
+                       <td className='p-4 pl-6'>
                         <div className='flex items-center gap-3'>
                           {userItem.picture ? (
                             <img
@@ -289,8 +348,28 @@ export function UsersPage() {
                           </div>
                         )}
                       </td>
-                      <td className='p-4 pr-6 text-right text-xs text-muted-foreground vertical-middle'>
+                      <td className='p-4 text-center text-xs text-muted-foreground vertical-middle'>
                         {new Date(userItem.createdAt).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className='p-4 pr-6 text-right vertical-middle whitespace-nowrap'>
+                        <div className='flex items-center justify-end gap-2'>
+                          <Button
+                            variant='ghost'
+                            size='icon'
+                            className='h-8 w-8 text-muted-foreground hover:text-foreground'
+                            onClick={() => handleOpenEdit(userItem)}
+                          >
+                            <Pencil className='w-4 h-4' />
+                          </Button>
+                          <Button
+                            variant='ghost'
+                            size='icon'
+                            className='h-8 w-8 text-muted-foreground hover:text-destructive'
+                            onClick={() => handleOpenDelete(userItem)}
+                          >
+                            <Trash2 className='w-4 h-4' />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -300,23 +379,23 @@ export function UsersPage() {
           </div>
         </div>
 
-        {/* Create User Dialog */}
+        {/* Create / Edit User Dialog */}
         <Dialog open={createModalOpen} onOpenChange={handleCloseModal}>
           <DialogContent className='sm:max-w-lg' aria-describedby={undefined}>
             <DialogHeader>
               <DialogTitle className='text-xl font-semibold text-foreground'>
-                Adicionar Novo Usuário
+                {editingUser ? 'Editar Usuário' : 'Adicionar Novo Usuário'}
               </DialogTitle>
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className='space-y-4 py-2'>
               {/* Errors Block */}
-              {(createUserMutation.isError || validationError) && (
+              {(createUserMutation.isError || updateUserMutation.isError || validationError) && (
                 <div className='p-3.5 bg-destructive/10 border border-destructive/20 text-destructive text-xs font-medium rounded-lg space-y-1'>
                   <p>
                     {validationError ||
-                      getErrorMessage(createUserMutation.error) ||
-                      'Erro ao criar usuário. Verifique as informações.'}
+                      getErrorMessage(createUserMutation.error || updateUserMutation.error) ||
+                      'Erro ao salvar usuário. Verifique as informações.'}
                   </p>
                 </div>
               )}
@@ -332,7 +411,7 @@ export function UsersPage() {
                   placeholder='exemplo@empresa.com'
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={createUserMutation.isPending}
+                  disabled={createUserMutation.isPending || updateUserMutation.isPending}
                 />
               </div>
 
@@ -348,7 +427,7 @@ export function UsersPage() {
                       setRole(UserRole.SCHOOL);
                       setValidationError(null);
                     }}
-                    disabled={createUserMutation.isPending}
+                    disabled={createUserMutation.isPending || updateUserMutation.isPending}
                     className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-sm font-medium transition-all ${
                       role === UserRole.SCHOOL
                         ? 'border-emerald-500 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400'
@@ -364,7 +443,7 @@ export function UsersPage() {
                       setRole(UserRole.ADMIN);
                       setValidationError(null);
                     }}
-                    disabled={createUserMutation.isPending}
+                    disabled={createUserMutation.isPending || updateUserMutation.isPending}
                     className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-sm font-medium transition-all ${
                       role === UserRole.ADMIN
                         ? 'border-violet-500 bg-violet-500/5 text-violet-600 dark:text-violet-400'
@@ -425,7 +504,7 @@ export function UsersPage() {
                                         );
                                       }
                                     }}
-                                    disabled={createUserMutation.isPending}
+                                    disabled={createUserMutation.isPending || updateUserMutation.isPending}
                                   />
                                   <span className='leading-none pt-0.5 truncate'>
                                     {unit.name || 'Unidade principal'}
@@ -447,7 +526,7 @@ export function UsersPage() {
                   type='button'
                   variant='outline'
                   onClick={handleCloseModal}
-                  disabled={createUserMutation.isPending}
+                  disabled={createUserMutation.isPending || updateUserMutation.isPending}
                 >
                   Cancelar
                 </Button>
@@ -455,13 +534,70 @@ export function UsersPage() {
                   type='submit'
                   disabled={
                     createUserMutation.isPending ||
+                    updateUserMutation.isPending ||
                     (role === UserRole.SCHOOL && selectedUnitIds.length === 0)
                   }
                 >
-                  {createUserMutation.isPending ? 'Criando...' : 'Adicionar Usuário'}
+                  {createUserMutation.isPending || updateUserMutation.isPending
+                    ? 'Salvando...'
+                    : editingUser
+                    ? 'Salvar Alterações'
+                    : 'Adicionar Usuário'}
                 </Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete User Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onOpenChange={(open) => {
+          if (!open) {
+            setUserToDelete(null);
+            setDeleteDialogOpen(false);
+          }
+        }}>
+          <DialogContent className='sm:max-w-md' aria-describedby={undefined}>
+            <DialogHeader>
+              <DialogTitle className='text-xl font-semibold text-foreground flex items-center gap-2'>
+                <Trash2 className='w-5 h-5 text-destructive' />
+                Confirmar Exclusão
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className='py-4 space-y-3'>
+              <p className='text-sm text-muted-foreground leading-relaxed'>
+                Tem certeza que deseja excluir o usuário <span className='font-semibold text-foreground'>{userToDelete?.email}</span>?
+              </p>
+              <p className='text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg p-3'>
+                Esta ação é irreversível e removerá todos os acessos e vínculos associados a este usuário.
+              </p>
+            </div>
+
+            <DialogFooter className='border-t border-border/40 pt-4 mt-2'>
+              <Button
+                type='button'
+                variant='outline'
+                disabled={deleteUserMutation.isPending}
+                onClick={() => {
+                  setUserToDelete(null);
+                  setDeleteDialogOpen(false);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type='button'
+                variant='destructive'
+                disabled={deleteUserMutation.isPending}
+                onClick={() => {
+                  if (userToDelete) {
+                    deleteUserMutation.mutate(userToDelete.id);
+                  }
+                }}
+              >
+                {deleteUserMutation.isPending ? 'Excluindo...' : 'Excluir Usuário'}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

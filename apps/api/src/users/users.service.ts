@@ -7,10 +7,13 @@ import {
 } from '@repo/shared';
 import { Role } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto.js';
+import { UpdateUserDto } from './dto/update-user.dto.js';
 import {
   BadRequestSchoolUserWithoutUnitsException,
   BadRequestInvalidRoleForUserCreationException,
   ConflictEmailAlreadyExistsException,
+  NotFoundUserException,
+  BadRequestCannotDeleteSelfException,
 } from './users.errors.js';
 
 @Injectable()
@@ -120,5 +123,123 @@ export class UsersService {
         schoolName: uu.unit.school.name,
       })),
     };
+  }
+
+  async updateUser(
+    id: string,
+    data: UpdateUserDto,
+    currentUser: AuthUser,
+  ): Promise<UserListResponse> {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        units: true,
+      },
+    });
+    if (!existingUser) {
+      throw new NotFoundUserException();
+    }
+
+    let email = existingUser.email;
+    if (data.email) {
+      email = data.email.trim().toLowerCase();
+      if (email !== existingUser.email) {
+        const emailExists = await this.prisma.user.findUnique({
+          where: { email },
+        });
+        if (emailExists) {
+          throw new ConflictEmailAlreadyExistsException();
+        }
+      }
+    }
+
+    const newRole = data.role ?? (existingUser.role as unknown as UserRole);
+    if (newRole !== UserRole.ADMIN && newRole !== UserRole.SCHOOL) {
+      throw new BadRequestInvalidRoleForUserCreationException();
+    }
+
+    if (newRole === UserRole.SCHOOL) {
+      const newUnitIds = data.unitIds ?? existingUser.units.map((u) => u.unitId);
+      if (!newUnitIds || newUnitIds.length === 0) {
+        throw new BadRequestSchoolUserWithoutUnitsException();
+      }
+    }
+
+    const prismaRole = newRole === UserRole.ADMIN ? Role.ADMIN : Role.SCHOOL;
+    let googleIdUpdate: string | undefined = undefined;
+    if (existingUser.googleId.startsWith('pending-') && email !== existingUser.email) {
+      googleIdUpdate = `pending-${email}`;
+    }
+
+    const updatedUser = await this.prisma.$transaction(async (tx) => {
+      if (prismaRole === Role.ADMIN) {
+        await tx.userUnit.deleteMany({
+          where: { userId: id },
+        });
+      } else if (prismaRole === Role.SCHOOL && data.unitIds) {
+        await tx.userUnit.deleteMany({
+          where: { userId: id },
+        });
+        await tx.userUnit.createMany({
+          data: data.unitIds.map((unitId) => ({
+            userId: id,
+            unitId,
+          })),
+        });
+      }
+
+      return tx.user.update({
+        where: { id },
+        data: {
+          email,
+          role: prismaRole,
+          ...(googleIdUpdate ? { googleId: googleIdUpdate } : {}),
+        },
+        include: {
+          units: {
+            include: {
+              unit: {
+                include: {
+                  school: true,
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    return {
+      id: updatedUser.id,
+      email: updatedUser.email,
+      name: updatedUser.name,
+      picture: updatedUser.picture,
+      role: updatedUser.role as unknown as UserRole,
+      createdAt: updatedUser.createdAt.toISOString(),
+      units: updatedUser.units.map((uu) => ({
+        id: uu.unit.id,
+        name: uu.unit.name,
+        schoolName: uu.unit.school.name,
+      })),
+    };
+  }
+
+  async deleteUser(id: string, currentUser: AuthUser): Promise<{ success: boolean }> {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { id },
+    });
+    if (!existingUser) {
+      throw new NotFoundUserException();
+    }
+
+    if (existingUser.id === currentUser.id) {
+      throw new BadRequestCannotDeleteSelfException();
+    }
+
+    await this.prisma.user.delete({
+      where: { id },
+    });
+
+    return { success: true };
   }
 }

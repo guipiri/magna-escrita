@@ -1,9 +1,28 @@
 import {
   BadRequestException,
   ConflictException,
+  NotFoundException,
 } from '@nestjs/common';
 import { ErrorKeys } from '@repo/shared';
 import { HttpExceptionConstructor } from '../common/filters/http-exception.filter.js';
+
+export class NotFoundUserException extends NotFoundException {
+  constructor() {
+    super({
+      key: ErrorKeys.NOT_FOUND_USER,
+      message: 'User not found.',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class BadRequestCannotDeleteSelfException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.BAD_REQUEST_CANNOT_DELETE_SELF,
+      message: 'You cannot delete your own user account.',
+    } satisfies HttpExceptionConstructor);
+  }
+}
 
 export class BadRequestSchoolUserWithoutUnitsException extends BadRequestException {
   constructor() {

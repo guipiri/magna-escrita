@@ -2,6 +2,10 @@
 trigger: always_on
 ---
 
+# General Instructions
+
+- For now, do not create any tests
+
 # API Project Instructions
 
 - Use `yarn` for all package manager operations.
