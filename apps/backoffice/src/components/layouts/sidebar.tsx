@@ -15,6 +15,9 @@ import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../../hooks/use-is-mobile';
 import { useAuth } from '../../hooks/auth-hook';
 import { UserRole } from '@repo/shared';
+import { routes } from '../../main';
+import { getSchoolsList } from '../../services/schools-service';
+import { useQuery } from '@tanstack/react-query';
 
 interface SidebarProps {
   hasMultipleUnits?: boolean;
@@ -22,30 +25,66 @@ interface SidebarProps {
   onCloseMobile?: () => void;
 }
 
-export function Sidebar({
-  hasMultipleUnits = true,
-  isMobileOpen = false,
-  onCloseMobile,
-}: SidebarProps) {
+interface MenuItems {
+  icon: React.ElementType;
+  label: string;
+  path: string;
+  shouldBeVisible: boolean;
+}
+
+export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const isAdmin = user?.role === UserRole.ADMIN;
 
-  const menuItems = [
-    ...(hasMultipleUnits
-      ? [{ icon: Building2, label: 'Unidades Escolares', path: '/' }]
-      : []),
-    { icon: Users, label: 'Turmas', path: '/turmas' },
-    { icon: CalendarDays, label: 'Eventos', path: '/eventos' },
-    { icon: BookOpen, label: 'Livros', path: '/livros' },
-    ...(isAdmin
-      ? [
-          { icon: LayoutTemplate, label: 'Book Templates', path: '/book-templates' },
-          { icon: UserCog, label: 'Usuários', path: '/usuarios' },
-        ]
-      : []),
+  const { data: schools } = useQuery({
+    queryKey: ['schools'],
+    queryFn: getSchoolsList,
+  });
+  // Define se o usuário tem mais de uma unidade
+  const hasMultipleUnits = schools ? schools.length > 1 : false;
+
+  const menuItems: MenuItems[] = [
+    {
+      icon: Building2,
+      label: 'Unidades Escolares',
+      path: routes.schools.path,
+      shouldBeVisible: hasMultipleUnits || isAdmin,
+    },
+
+    {
+      icon: Users,
+      label: 'Turmas',
+      path: routes.classes.path,
+      shouldBeVisible: true,
+    },
+    {
+      icon: CalendarDays,
+      label: 'Eventos',
+      path: routes.events.path,
+      shouldBeVisible: isAdmin,
+    },
+    {
+      icon: BookOpen,
+      label: 'Livros',
+      path: routes.books.path,
+      shouldBeVisible: true,
+    },
+
+    {
+      icon: LayoutTemplate,
+      label: 'Modelo de Livros',
+      path: routes.bookTemplates.path,
+      shouldBeVisible: isAdmin,
+    },
+    {
+      icon: UserCog,
+      label: 'Usuários',
+      path: routes.users.path,
+      shouldBeVisible: isAdmin,
+    },
   ];
 
   const handleItemClick = (path: string) => {
@@ -103,31 +142,34 @@ export function Sidebar({
         {/* Navigation */}
         <nav className='flex-1 p-3'>
           <ul className='space-y-1'>
-            {menuItems.map((item) => (
-              <li key={item.path}>
-                <button
-                  onClick={() => handleItemClick(item.path)}
-                  className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-md',
-                    'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                    'transition-all duration-200',
-                    collapsed && !isMobile && 'justify-center',
-                  )}
-                >
-                  <item.icon className='w-5 h-5 shrink-0' />
-                  {(!collapsed || isMobile) && (
-                    <motion.span
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.1 }}
-                      className='whitespace-nowrap'
-                    >
-                      {item.label}
-                    </motion.span>
-                  )}
-                </button>
-              </li>
-            ))}
+            {menuItems.map((item) => {
+              if (!item.shouldBeVisible) return null;
+              return (
+                <li key={item.path}>
+                  <button
+                    onClick={() => handleItemClick(item.path)}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-3 py-2.5 rounded-md',
+                      'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                      'transition-all duration-200',
+                      collapsed && !isMobile && 'justify-center',
+                    )}
+                  >
+                    <item.icon className='w-5 h-5 shrink-0' />
+                    {(!collapsed || isMobile) && (
+                      <motion.span
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.1 }}
+                        className='whitespace-nowrap'
+                      >
+                        {item.label}
+                      </motion.span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 

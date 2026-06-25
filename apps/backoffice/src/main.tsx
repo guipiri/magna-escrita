@@ -17,7 +17,7 @@ import { useAuth } from './hooks/auth-hook';
 import { JSX } from 'react';
 import { UserRole } from '@repo/shared';
 import { MainLayout } from './components/layouts/main-layout';
-import Home from './pages/home';
+import Home from './pages/schools';
 import { BookTemplatesPage } from './pages/book-templates';
 import { EventsPage } from './pages/events';
 import { BooksPage } from './pages/books';
@@ -28,7 +28,7 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
 const RequireAuth = ({
   children,
-  allowedRoles = [UserRole.ADMIN, UserRole.SCHOOL],
+  allowedRoles = defaultBackofficeAllowedRoles,
   redirectTo = '/login',
 }: {
   children: JSX.Element;
@@ -57,21 +57,61 @@ const RequireAuth = ({
   return children;
 };
 
+const defaultBackofficeAllowedRoles = [UserRole.ADMIN, UserRole.SCHOOL];
+
+export const routes = {
+  login: {
+    path: '/login',
+    allowedRoles: defaultBackofficeAllowedRoles,
+  },
+  schools: {
+    path: '/escolas',
+    allowedRoles: defaultBackofficeAllowedRoles,
+  },
+  classes: {
+    path: '/turmas',
+    allowedRoles: defaultBackofficeAllowedRoles,
+  },
+  bookTemplates: {
+    path: '/book-templates',
+    allowedRoles: [UserRole.ADMIN],
+  },
+  users: {
+    path: '/usuarios',
+    allowedRoles: [UserRole.ADMIN],
+  },
+  events: {
+    path: '/eventos',
+    allowedRoles: [UserRole.ADMIN],
+  },
+  books: {
+    path: '/livros',
+    allowedRoles: defaultBackofficeAllowedRoles,
+  },
+  bookDetail: {
+    path: '/livros/:id',
+    allowedRoles: defaultBackofficeAllowedRoles,
+  },
+};
+
 const AppRoutes = () => (
   <BrowserRouter>
     <Routes>
-      <Route path='/login' element={<LoginPage />} />
+      <Route path={routes.login.path} element={<LoginPage />} />
       <Route element={<MainLayout />}>
         <Route
-          path='/'
+          path={routes.schools.path}
           element={
-            <RequireAuth>
+            <RequireAuth
+              allowedRoles={routes.schools.allowedRoles}
+              redirectTo={routes.login.path}
+            >
               <Home />
             </RequireAuth>
           }
         />
         <Route
-          path='/turmas'
+          path={routes.classes.path}
           element={
             <RequireAuth>
               <ClassesPage />
@@ -79,31 +119,31 @@ const AppRoutes = () => (
           }
         />
         <Route
-          path='/book-templates'
+          path={routes.bookTemplates.path}
           element={
-            <RequireAuth allowedRoles={[UserRole.ADMIN]}>
+            <RequireAuth allowedRoles={routes.bookTemplates.allowedRoles}>
               <BookTemplatesPage />
             </RequireAuth>
           }
         />
         <Route
-          path='/usuarios'
+          path={routes.users.path}
           element={
-            <RequireAuth allowedRoles={[UserRole.ADMIN]}>
+            <RequireAuth allowedRoles={routes.users.allowedRoles}>
               <UsersPage />
             </RequireAuth>
           }
         />
         <Route
-          path='/eventos'
+          path={routes.events.path}
           element={
-            <RequireAuth>
+            <RequireAuth allowedRoles={routes.events.allowedRoles}>
               <EventsPage />
             </RequireAuth>
           }
         />
         <Route
-          path='/livros'
+          path={routes.books.path}
           element={
             <RequireAuth>
               <BooksPage />
@@ -111,7 +151,7 @@ const AppRoutes = () => (
           }
         />
         <Route
-          path='/livros/:id'
+          path={routes.bookDetail.path}
           element={
             <RequireAuth>
               <BookDetailPage />

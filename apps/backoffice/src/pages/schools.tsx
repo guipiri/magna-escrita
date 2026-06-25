@@ -7,6 +7,10 @@ import { Input } from '../components/ui/input';
 import { EmptyState } from '../components/schools/empty-state';
 import { CreateSchoolDialog } from '../components/schools/create-school-dialog';
 import { getSchoolsList } from '../services/schools-service';
+import { useAuth } from '../hooks/auth-hook';
+import { UserRole } from '@repo/shared';
+import { useNavigate } from 'react-router-dom';
+import { routes } from '../main';
 
 function formatRelativeTime(isoString: string): string {
   const now = Date.now();
@@ -24,10 +28,12 @@ function formatRelativeTime(isoString: string): string {
   return new Date(isoString).toLocaleDateString('pt-BR');
 }
 
-export default function Home() {
+export default function Schools() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const {
     data: schools,
@@ -78,6 +84,9 @@ export default function Home() {
       </main>
     );
   }
+
+  if (schools?.length === 1 || user?.role === UserRole.SCHOOL)
+    navigate(routes.classes.path);
 
   return (
     <main className='flex-1 overflow-auto'>

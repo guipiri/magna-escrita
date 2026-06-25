@@ -3,26 +3,27 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { Header } from './header';
 import { Sidebar } from './sidebar';
 import { Breadcrumb } from './breadcrumb';
+import { routes } from '../../main';
 
 export function MainLayout() {
   const { pathname } = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const breadcrumbItems = [
-    { label: 'Início', href: '/' },
-    ...(pathname === '/turmas'
+    { label: 'Escolas', href: routes.schools.path },
+    ...(pathname === routes.classes.path
       ? [{ label: 'Turmas' }]
-      : pathname === '/eventos'
+      : pathname === routes.events.path
         ? [{ label: 'Eventos' }]
-        : pathname === '/livros'
+        : pathname === routes.books.path
           ? [{ label: 'Livros' }]
-          : pathname === '/usuarios'
+          : pathname === routes.users.path
             ? [{ label: 'Usuários' }]
-            : pathname === '/book-templates'
+            : pathname === routes.bookTemplates.path
               ? [{ label: 'Book Templates' }]
-              : pathname.startsWith('/livros/')
+              : pathname.startsWith(routes.books.path)
                 ? [
-                    { label: 'Livros', href: '/livros' },
+                    { label: 'Livros', href: routes.books.path },
                     { label: 'Detalhe do livro' },
                   ]
                 : []),
@@ -32,7 +33,6 @@ export function MainLayout() {
     <div className='flex h-screen bg-background'>
       {/* Sidebar */}
       <Sidebar
-        hasMultipleUnits={true}
         isMobileOpen={isMobileOpen}
         onCloseMobile={() => setIsMobileOpen(false)}
       />
