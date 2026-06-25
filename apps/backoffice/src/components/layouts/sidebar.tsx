@@ -132,7 +132,7 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
               </div>
               {isLogoVisible && (
                 <span className='font-semibold text-sidebar-foreground whitespace-nowrap'>
-                  Livros Mágicos
+                  Magna Printi
                 </span>
               )}
             </div>

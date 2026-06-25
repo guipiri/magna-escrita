@@ -13,7 +13,8 @@ interface HeaderProps {
   academicYears?: { value: string; label: string }[];
   selectedYear?: string;
   onYearChange?: (year: string) => void;
-  userName?: string;
+  userName: string;
+  userRole: string;
   userAvatar?: string;
   onMenuToggle?: () => void;
 }
@@ -23,7 +24,8 @@ export function Header({
   academicYears = [],
   selectedYear,
   onYearChange,
-  userName = 'Professora Maria',
+  userName,
+  userRole,
   userAvatar,
   onMenuToggle,
 }: HeaderProps) {
@@ -43,7 +45,6 @@ export function Header({
         )}
         {selectedUnit && (
           <div className='text-foreground hidden sm:block'>
-            <span className='opacity-60 text-sm mr-2'>Unidade:</span>
             <span className='font-medium'>{selectedUnit}</span>
           </div>
         )}
@@ -68,7 +69,7 @@ export function Header({
         <div className='flex items-center gap-3'>
           <div className='text-right hidden sm:block'>
             <p className='text-sm font-medium text-foreground'>{userName}</p>
-            <p className='text-xs text-muted-foreground'>Coordenadora</p>
+            <p className='text-xs text-muted-foreground'>{userRole}</p>
           </div>
           <Avatar>
             <AvatarImage src={userAvatar} alt={userName} />

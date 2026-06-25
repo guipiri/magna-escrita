@@ -46,7 +46,18 @@ export class SchoolsService {
 
     const schools = await this.prisma.school.findMany({
       where: { units: { some: { userUnits: { some: { userId: user.id } } } } },
-      select: selectSchoolUnits,
+      select: {
+        id: true,
+        name: true,
+        units: {
+          where: { userUnits: { some: { userId: user.id } } },
+          select: {
+            id: true,
+            name: true,
+            bookTemplates: { select: { id: true, name: true } },
+          },
+        },
+      },
       orderBy: { name: 'asc' },
     });
 
