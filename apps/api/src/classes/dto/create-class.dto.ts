@@ -1,4 +1,10 @@
-import { IsString, IsArray, ArrayMinSize, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsArray,
+  ArrayMinSize,
+  IsNotEmpty,
+  IsOptional,
+} from 'class-validator';
 import { CreateClassRequest } from '@repo/shared';
 
 export class CreateClassDto implements CreateClassRequest {
@@ -11,8 +17,9 @@ export class CreateClassDto implements CreateClassRequest {
   teacherName!: string;
 
   @IsString()
+  @IsOptional()
   @IsNotEmpty()
-  unitId!: string;
+  unitId?: string;
 
   @IsString()
   @IsNotEmpty()

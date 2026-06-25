@@ -1,8 +1,7 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { SubmitEvent, useEffect, useState } from 'react';
+import { SubmitEvent, useEffect, useMemo, useState } from 'react';
 import { useSnackbar } from 'notistack';
 import { getSchoolUnits } from '../../services/schools-service';
-import { getBookTemplates } from '../../services/book-templates-service';
 import { getErrorMessage } from '../../services/error-messages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { CreateClassButton } from './create-class-button';
@@ -34,17 +33,41 @@ export function CreateClassDialog({
     queryFn: getSchoolUnits,
   });
 
-  const { data: bookTemplates, isLoading: bookTemplatesLoading } = useQuery({
-    queryKey: ['book-templates'],
-    queryFn: getBookTemplates,
-  });
+  const units = useMemo(() => {
+    return schools?.flatMap((school) =>
+      school.units.map((unit) => ({
+        id: unit.id,
+        name: `${school.name} - ${unit.name || 'Sem nome'}`,
+        bookTemplates: unit.bookTemplates || [],
+      })),
+    );
+  }, [schools]);
 
-  const firstTemplateId = bookTemplates?.[0]?.id;
+  const selectedUnit = useMemo(() => {
+    return units?.find((u) => u.id === unitId);
+  }, [units, unitId]);
+
+  const templatesForSelectedUnit = useMemo(() => {
+    return selectedUnit?.bookTemplates || [];
+  }, [selectedUnit]);
+
   useEffect(() => {
-    if (!bookTemplateId && firstTemplateId) {
-      setBookTemplateId(firstTemplateId);
+    if (units && units.length === 1 && !unitId) {
+      setUnitId(units[0].id);
     }
-  }, [bookTemplateId, firstTemplateId]);
+  }, [units, unitId]);
+
+  useEffect(() => {
+    if (templatesForSelectedUnit.length === 1) {
+      setBookTemplateId(templatesForSelectedUnit[0].id);
+    } else if (templatesForSelectedUnit.length > 1) {
+      if (!bookTemplateId || !templatesForSelectedUnit.some((t) => t.id === bookTemplateId)) {
+        setBookTemplateId(templatesForSelectedUnit[0].id);
+      }
+    } else {
+      setBookTemplateId('');
+    }
+  }, [templatesForSelectedUnit, bookTemplateId]);
 
   const createClassMutation = useMutation({
     mutationFn: createClass,
@@ -77,14 +100,7 @@ export function CreateClassDialog({
     });
   };
 
-  const units = schools?.flatMap((school) =>
-    school.units.map((unit) => ({
-      id: unit.id,
-      name: `${school.name} - ${unit.name || 'Sem nome'}`,
-    })),
-  );
-
-  if (schoolsLoading || bookTemplatesLoading) {
+  if (schoolsLoading) {
     return (
       <main className='px-4 py-12 text-center text-gray-500'>
         Carregando...
@@ -123,17 +139,17 @@ export function CreateClassDialog({
           )}
 
           <form onSubmit={handleSubmit} className='space-y-4'>
-            {schools && schools.length > 1 && (
+            {units && units.length > 1 && (
               <div>
                 <label className='block text-sm font-medium mb-1'>Escola</label>
                 <select
-                  value={unitId}
+                  value={unitId || ''}
                   onChange={(e) => setUnitId(e.target.value)}
                   className='w-full border border-gray-300 rounded px-3 py-2'
                   required
                 >
                   <option value=''>Selecione uma escola</option>
-                  {units?.map((unit) => (
+                  {units.map((unit) => (
                     <option key={unit.id} value={unit.id}>
                       {unit.name}
                     </option>
@@ -156,26 +172,28 @@ export function CreateClassDialog({
               />
             </div>
 
-            <div className='flex-2'>
-              <label className='block text-sm font-medium mb-1'>
-                Template de Livro
-              </label>
-              <select
-                value={bookTemplateId}
-                onChange={(e) => setBookTemplateId(e.target.value)}
-                className='w-full border border-gray-300 rounded px-3 py-2'
-                required
-              >
-                <option value=''>Selecione um template</option>
-                {bookTemplates?.map((template) => (
-                  <option key={template.id} value={template.id}>
-                    {template.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {templatesForSelectedUnit.length !== 1 && (
+              <div className='flex-2'>
+                <label className='block text-sm font-medium mb-1'>
+                  Template de Livro
+                </label>
+                <select
+                  value={bookTemplateId}
+                  onChange={(e) => setBookTemplateId(e.target.value)}
+                  className='w-full border border-gray-300 rounded px-3 py-2'
+                  required
+                >
+                  <option value=''>Selecione um template</option>
+                  {templatesForSelectedUnit.map((template) => (
+                    <option key={template.id} value={template.id}>
+                      {template.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-            {bookTemplates && bookTemplates.length === 0 && (
+            {unitId && templatesForSelectedUnit.length === 0 && (
               <p className='text-sm text-red-600'>
                 Nenhum template de livro encontrado. Crie um template antes de
                 cadastrar turmas.
@@ -214,7 +232,7 @@ export function CreateClassDialog({
               disabled={
                 createClassMutation.isPending ||
                 !bookTemplateId ||
-                (bookTemplates?.length ?? 0) === 0
+                templatesForSelectedUnit.length === 0
               }
             >
               {createClassMutation.isPending ? 'Criando...' : 'Criar Turma'}

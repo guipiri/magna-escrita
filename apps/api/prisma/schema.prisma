@@ -56,7 +56,8 @@ model Price {
 enum BookStatus {
   DRAFT
   REVISED_BY_SCHOOL // REVISED BY SCHOOL AND READY TO BE REVISED BY MAGNA
-  READY // READY FOR SALE AND PRINT
+  REVISED_BY_MAGNA // REVISED BY MAGNA AND READY TO BE ASSOCIATED WITH A PRICE
+  READY_FOR_SALE // THE PRICE WAS DEFINED AND THE BOOK IS READY FOR SALE AND PRINT
   ARCHIVED // NOT FOR SALE
 }
 
@@ -67,8 +68,8 @@ model Book {
   author       String?
   synopsis     String?
   pages        Page[]
-  priceId      String
-  price        Price   @relation(fields: [priceId], references: [id])
+  priceId      String?
+  price        Price?  @relation(fields: [priceId], references: [id])
 
   student   Student @relation(fields: [studentId], references: [id])
   studentId String

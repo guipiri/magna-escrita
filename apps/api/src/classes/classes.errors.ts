@@ -1,4 +1,8 @@
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { ErrorKeys } from '@repo/shared';
 import { HttpExceptionConstructor } from '../common/filters/http-exception.filter.js';
 
@@ -53,6 +57,15 @@ export class ConflictClassTemplateWithExistingBooksException extends BadRequestE
     super({
       key: ErrorKeys.CONFLICT_EXISTING_BOOKS,
       message: 'Cannot change class book template with existing books',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class ConflictNoExistingValidUnitException extends ConflictException {
+  constructor() {
+    super({
+      key: ErrorKeys.CONFLICT_NO_EXISTING_VALID_UNIT,
+      message: 'There are no existing valid units',
     } satisfies HttpExceptionConstructor);
   }
 }

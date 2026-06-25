@@ -4,6 +4,10 @@ export interface GetSchoolsResponse {
   units: Array<{
     id: string;
     name: string | null;
+    bookTemplates?: Array<{
+      id: string;
+      name: string;
+    }>;
   }>;
 }
 

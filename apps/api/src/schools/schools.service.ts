@@ -9,9 +9,25 @@ import {
 } from '@repo/shared';
 import { UserRole } from '@repo/shared/dist/types/user.js';
 import { UnauthorizedAccessToCreateSchoolException } from '../auth/auth.erros.js';
-import { BookStatus, SchoolYear as PrismaSchoolYear } from '@prisma/client';
+import {
+  BookStatus,
+  Prisma,
+  SchoolYear as PrismaSchoolYear,
+} from '@prisma/client';
 import { CreateSchoolDto } from './dto/create-school.dto.js';
 import { CloudflareR2Service } from '../common/cloudflare-r2.service.js';
+
+const selectSchoolUnits: Prisma.SchoolSelect = {
+  id: true,
+  name: true,
+  units: {
+    select: {
+      id: true,
+      name: true,
+      bookTemplates: { select: { id: true, name: true } },
+    },
+  },
+};
 
 @Injectable()
 export class SchoolsService {
@@ -23,22 +39,14 @@ export class SchoolsService {
   async getSchoolUnits(user: AuthUser): Promise<GetSchoolsResponse[]> {
     if (user.role === UserRole.ADMIN) {
       return this.prisma.school.findMany({
-        select: {
-          id: true,
-          name: true,
-          units: { select: { id: true, name: true } },
-        },
+        select: selectSchoolUnits,
         orderBy: { name: 'asc' },
       });
     }
 
     const schools = await this.prisma.school.findMany({
       where: { units: { some: { userUnits: { some: { userId: user.id } } } } },
-      select: {
-        id: true,
-        name: true,
-        units: { select: { id: true, name: true } },
-      },
+      select: selectSchoolUnits,
       orderBy: { name: 'asc' },
     });
 

@@ -67,6 +67,8 @@ export const errorMessages: Record<ErrorKeys, string> = {
     'Não é possível remover a unidade porque existem livros criados utilizando este template nas turmas dessa unidade.',
   CONFLICT_CHANGE_PAGES_WITH_BOOKS:
     'Não é possível alterar as páginas do template porque existem livros criados utilizando ele.',
+  CONFLICT_NO_EXISTING_VALID_UNIT:
+    'Nenhuma unidade escolar válida associada ao usuário.',
 
   CREATE_PIX_ORDER_FAILED: 'Falha ao criar pedido PIX.',
   CREATE_CARD_ORDER_FAILED: 'Falha ao criar pedido com cartão de crédito.',

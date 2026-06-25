@@ -15,10 +15,12 @@ import {
   ConflictExistingBooksException,
   ConflictClassTemplateWithExistingBooksException,
   NotFoundClassException,
+  ConflictNoExistingValidUnitException,
 } from './classes.errors.js';
 
 import { SchoolsMapper } from '../schools/schools.mapper.js';
 import { BookStatus } from '@prisma/client';
+import { NotFoundBookTemplateException } from '../schools/schools.errors.js';
 
 @Injectable()
 export class ClassesService {
@@ -155,58 +157,82 @@ export class ClassesService {
     studentNames: string[],
     teacherName: string,
     user: AuthUser,
-    bookTemplateId: string,
+    bookTemplateId?: string,
     unitId?: string,
   ) {
-    const units = await this.prisma.userUnit.findMany({
-      where: { userId: user.id, unitId },
+    const allUnits = await this.prisma.unit.findMany({
       select: {
         id: true,
-        unit: {
+        name: true,
+        userUnits: { select: { userId: true, unitId: true } },
+        school: {
           select: {
             id: true,
             name: true,
-            school: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
           },
         },
       },
     });
 
-    if (!unitId && (units.length > 1 || user.role === UserRole.ADMIN))
+    const isAdmin = user.role === UserRole.ADMIN;
+
+    const userUnits = isAdmin
+      ? allUnits
+      : allUnits.filter((uu) => uu.userUnits.some((u) => u.userId === user.id));
+
+    if (userUnits.length === 0)
+      throw new ConflictNoExistingValidUnitException();
+
+    if (!unitId && userUnits.length > 1)
       throw new BadRequestMultipleUnitsAccessException();
 
-    if (!units[0] && user.role !== UserRole.ADMIN)
+    if (!unitId && !userUnits[0]?.id)
+      throw new ConflictNoExistingValidUnitException();
+
+    if (unitId && !userUnits.some((uu) => uu.id === unitId))
       throw new BadRequestNoValidUnitIdException();
 
-    if (!unitId && !units[0]?.unit.id)
-      throw new BadRequestNoValidUnitIdException();
-
-    const unitIdtoUse = (unitId || units[0]?.unit.id)!;
+    const unitIdtoUse = (unitId || userUnits[0]?.id)!;
 
     const gradeNameExists = await this.prisma.class.findFirst({
-      where: { name, unitId: unitIdtoUse },
+      where: {
+        name,
+        unitId: unitIdtoUse,
+        schoolYear: SchoolsMapper.schoolYearDomainToPrisma(
+          getCurrentSchoolYear(),
+        ),
+      },
     });
 
     if (gradeNameExists) throw new BadRequestGradeNameAlreadyExistsException();
 
-    const existingBookTemplate = await this.prisma.bookTemplate.findUnique({
-      where: { id: bookTemplateId },
+    const allBookTemplates = await this.prisma.bookTemplate.findMany({
       select: { id: true },
+      where: {
+        units: { some: { id: unitIdtoUse } },
+      },
     });
 
-    if (!existingBookTemplate) throw new Error('Book template not found');
+    if (allBookTemplates.length === 0)
+      throw new NotFoundBookTemplateException();
+
+    if (
+      bookTemplateId &&
+      !allBookTemplates.some((bt) => bt.id === bookTemplateId)
+    )
+      throw new NotFoundBookTemplateException();
+
+    if (!bookTemplateId && allBookTemplates.length > 1)
+      throw new NotFoundBookTemplateException();
+
+    const bookTemplateIdToUse = bookTemplateId || allBookTemplates[0]?.id!;
 
     const createdClass = await this.prisma.class.create({
       data: {
         name,
         teacherName,
         unitId: unitIdtoUse,
-        bookTemplateId: existingBookTemplate.id,
+        bookTemplateId: bookTemplateIdToUse,
         schoolYear: SchoolsMapper.schoolYearDomainToPrisma(
           getCurrentSchoolYear(),
         ),
@@ -229,10 +255,10 @@ export class ClassesService {
       id: createdClass.id,
       name: createdClass.name,
       school: {
-        id: units[0]?.unit.school.id,
-        name: units[0]?.unit.school.name,
+        id: userUnits[0]?.school.id,
+        name: userUnits[0]?.school.name,
       },
-      unit: { id: units[0]?.unit.id, name: units[0]?.unit.name },
+      unit: { id: userUnits[0]?.id, name: userUnits[0]?.name },
       students: students.map((s) => ({ id: s.id, name: s.name })),
     };
   }
