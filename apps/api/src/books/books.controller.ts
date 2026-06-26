@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Query,
   UploadedFiles,
   UseGuards,
@@ -30,6 +31,12 @@ export class BooksController {
   @UseGuards(AuthGuard, BackofficeGuard)
   getById(@Param('id') id: string, @User() user: AuthUser) {
     return this.booksService.getById(id, user);
+  }
+
+  @Post('backoffice/:id/generate-pdf')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  generateBookPdf(@Param('id') id: string, @User() user: AuthUser) {
+    return this.booksService.generateFinalBookPdf(id, user);
   }
 
   @Patch('backoffice/:id/pages/:pageNumber')

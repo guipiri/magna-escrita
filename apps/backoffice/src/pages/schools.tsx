@@ -85,7 +85,7 @@ export default function Schools() {
     );
   }
 
-  if (schools?.length === 1 || user?.role === UserRole.SCHOOL)
+  if (schools?.length === 1 && user?.role === UserRole.SCHOOL)
     navigate(routes.classes.path);
 
   return (

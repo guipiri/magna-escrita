@@ -18,6 +18,7 @@ export const errorMessages: Record<ErrorKeys, string> = {
   FORBIDDEN_INSUFFICIENT_PERMISSIONS: 'Permissões insuficientes.',
   FORBIDDEN_BOOK_READY:
     'Este livro está finalizado (status Pronto). Usuários com perfil da escola não podem fazer modificações em livros finalizados.',
+  FORBIDDEN_USER_NOT_ADMIN: 'Apenas administradores têm permissão para realizar esta ação.',
   NOT_FOUND_BOOK_NOT_FOUND: 'Livro não encontrado.',
   HTTP_ERROR: 'Ocorreu um erro na requisição.',
   INTERNAL_ERROR: 'Ocorreu um erro interno no servidor.',
@@ -79,6 +80,7 @@ export const errorMessages: Record<ErrorKeys, string> = {
   NOT_FOUND_PDF_NO_STUDENTS: 'Esta turma não possui alunos matriculados.',
   NOT_FOUND_PDF_NO_ACTIVE_EVENT:
     'Não há evento ativo para a unidade desta turma no ano letivo vigente.',
+  NOT_FOUND_PDF_PAGE: 'Página do livro não encontrada.',
 
   CONFLICT_MORE_THAN_ONE_ACTIVE_EVENT: 'Mais de um evento ativo encontrado.',
   BAD_REQUEST_QR_CODE_NOT_READABLE: 'O QR Code da imagem não pode ser lido.',

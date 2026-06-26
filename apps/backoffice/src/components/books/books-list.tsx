@@ -1,4 +1,5 @@
-import type { GetBooksListResponse } from '@repo/shared';
+import type { BookStatus, GetBooksListResponse } from '@repo/shared';
+import { BookStatusEnum } from '@repo/shared';
 import {
   BookOpen,
   CheckCircle2,
@@ -7,6 +8,10 @@ import {
   Eye,
   GraduationCap,
   School,
+  MoreHorizontal,
+  FileDown,
+  Loader2,
+  Sparkles,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -22,6 +27,16 @@ import {
 } from '../ui/data-list';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSnackbar } from 'notistack';
+import { generateFinalBookPdf } from '../../services/books-service';
+import { getErrorMessage } from '../../services/error-messages';
 
 interface BookStatusConfig {
   label: string;
@@ -30,32 +45,30 @@ interface BookStatusConfig {
   bgColor?: string;
 }
 
-function getBookStatus(
-  status: GetBooksListResponse['status'],
-): BookStatusConfig {
+function getBookStatus(status: BookStatus): BookStatusConfig {
   switch (status) {
-    case 'READY':
+    case BookStatusEnum.REVISED_BY_MAGNA:
       return {
-        label: 'Pronto',
+        label: 'Revisado pela Magna',
         variant: 'default',
         icon: CheckCircle2,
         bgColor: 'bg-emerald-600',
       };
-    case 'REVISED_BY_SCHOOL':
+    case BookStatusEnum.REVISED_BY_SCHOOL:
       return {
         label: 'Revisado pela escola',
         variant: 'default',
         icon: Clock3,
         bgColor: 'bg-amber-600',
       };
-    case 'ARCHIVED':
+    case BookStatusEnum.ARCHIVED:
       return {
         label: 'Arquivado',
         variant: 'outline',
         icon: Eye,
         bgColor: 'bg-red-100',
       };
-    case 'DRAFT':
+    case BookStatusEnum.DRAFT:
     default:
       return {
         label: 'Rascunho',
@@ -92,6 +105,22 @@ function BooksEmptyState() {
 
 export function BooksList({ books }: BooksListProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { enqueueSnackbar } = useSnackbar();
+
+  const generatePdfMutation = useMutation({
+    mutationFn: generateFinalBookPdf,
+    onSuccess: () => {
+      enqueueSnackbar('PDF do livro gerado com sucesso!', {
+        variant: 'success',
+      });
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+    },
+    onError: (error) => {
+      const message = getErrorMessage(error);
+      enqueueSnackbar(message, { variant: 'error' });
+    },
+  });
 
   if (books.length === 0) {
     return <BooksEmptyState />;
@@ -121,6 +150,52 @@ export function BooksList({ books }: BooksListProps) {
                   {book.magnificCode}
                 </DataListDescription>
               </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    className='h-8 w-8 p-0'
+                    variant='ghost'
+                    size='icon'
+                    aria-label='Ações do livro'
+                  >
+                    <MoreHorizontal className='h-4 w-4' />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align='end'
+                  onCloseAutoFocus={(e) => e.preventDefault()}
+                >
+                  <DropdownMenuItem
+                    onClick={() => navigate(`/livros/${book.id}`)}
+                  >
+                    <Eye className='mr-2 h-4 w-4' />
+                    Ver livro
+                  </DropdownMenuItem>
+
+                  {book.pdfUrl ? (
+                    <DropdownMenuItem
+                      onClick={() => window.open(book.pdfUrl!, '_blank')}
+                    >
+                      <FileDown className='mr-2 h-4 w-4' />
+                      Baixar PDF
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      disabled={generatePdfMutation.isPending}
+                      onClick={() => generatePdfMutation.mutate(book.id)}
+                    >
+                      {generatePdfMutation.isPending &&
+                      generatePdfMutation.variables === book.id ? (
+                        <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                      ) : (
+                        <Sparkles className='mr-2 h-4 w-4' />
+                      )}
+                      Gerar PDF
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </DataListHeader>
 
             <DataListContent className='sm:grid-cols-3'>

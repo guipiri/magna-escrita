@@ -68,6 +68,7 @@ model Book {
   author       String?
   synopsis     String?
   pages        Page[]
+  pdfUrl       String?
   priceId      String?
   price        Price?  @relation(fields: [priceId], references: [id])
 

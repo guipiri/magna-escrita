@@ -48,3 +48,12 @@ export class ConflictMoreThanOneActiveEventException extends NotFoundException {
     } satisfies HttpExceptionConstructor);
   }
 }
+
+export class NotFoundPdfPageException extends NotFoundException {
+  constructor() {
+    super({
+      key: ErrorKeys.NOT_FOUND_PDF_PAGE,
+      message: 'Page not found',
+    } satisfies HttpExceptionConstructor);
+  }
+}

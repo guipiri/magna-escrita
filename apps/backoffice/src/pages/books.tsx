@@ -14,6 +14,7 @@ import { CreateBookButton } from '../components/books/create-book-button';
 import { BulkUploadDialog } from '../components/books/bulk-upload-dialog';
 import { Input } from '../components/ui/input';
 import { Card, CardContent } from '../components/ui/card';
+import { BookStatusEnum } from '@repo/shared';
 
 export function BooksPage() {
   const [search, setSearch] = useState('');
@@ -49,16 +50,28 @@ export function BooksPage() {
     });
   }, [books, search]);
 
-  const { totalBooks, readyBooks, reviewBooks, draftBooks } = books.reduce(
-    (acc, book) => {
-      acc.totalBooks++;
-      if (book.status === 'READY') acc.readyBooks++;
-      if (book.status === 'REVISED_BY_SCHOOL') acc.reviewBooks++;
-      if (book.status === 'DRAFT') acc.draftBooks++;
-      return acc;
-    },
-    { totalBooks: 0, readyBooks: 0, reviewBooks: 0, draftBooks: 0 },
-  );
+  const { totalBooks, readyBooks, reviewBySchoolBooks, draftBooks } =
+    books.reduce(
+      (acc, book) => {
+        acc.totalBooks++;
+        if (book.status === BookStatusEnum.READY_FOR_SALE) acc.readyBooks++;
+        if (book.status === BookStatusEnum.REVISED_BY_MAGNA)
+          acc.reviewedByMagnaBooks++;
+        if (book.status === BookStatusEnum.REVISED_BY_SCHOOL)
+          acc.reviewBySchoolBooks++;
+        if (book.status === BookStatusEnum.DRAFT) acc.draftBooks++;
+        if (book.status === BookStatusEnum.ARCHIVED) acc.archivedBooks++;
+        return acc;
+      },
+      {
+        totalBooks: 0,
+        readyBooks: 0,
+        reviewedByMagnaBooks: 0,
+        reviewBySchoolBooks: 0,
+        draftBooks: 0,
+        archivedBooks: 0,
+      },
+    );
 
   if (isLoading) {
     return (
@@ -134,7 +147,7 @@ export function BooksPage() {
                   <CheckCircle2 className='size-5' />
                 </div>
                 <div>
-                  <p className='text-sm text-muted-foreground'>Prontos</p>
+                  <p className='text-sm text-muted-foreground'>Á Venda</p>
                   <p className='text-2xl font-semibold text-foreground'>
                     {readyBooks}
                   </p>
@@ -152,7 +165,7 @@ export function BooksPage() {
                     Revisados pela escola
                   </p>
                   <p className='text-2xl font-semibold text-foreground'>
-                    {reviewBooks}
+                    {reviewBySchoolBooks}
                   </p>
                 </div>
               </CardContent>

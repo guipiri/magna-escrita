@@ -112,7 +112,8 @@ export class ClassesService {
         if (status === BookStatus.DRAFT) bookStatusCount.draft = count;
         else if (status === BookStatus.REVISED_BY_SCHOOL)
           bookStatusCount.revisedBySchool = count;
-        else if (status === BookStatus.READY) bookStatusCount.ready = count;
+        else if (status === BookStatus.REVISED_BY_MAGNA)
+          bookStatusCount.ready = count;
         else if (status === BookStatus.ARCHIVED)
           bookStatusCount.archived = count;
       });

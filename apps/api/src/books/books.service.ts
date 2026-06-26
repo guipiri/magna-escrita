@@ -5,12 +5,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
-import { NotFoundBookException, ForbiddenBookReadyException } from './books.errors.js';
+import {
+  NotFoundBookException,
+  ForbiddenBookReadyException,
+} from './books.errors.js';
 import type { GetBookDetailResponse, GetBooksListResponse } from '@repo/shared';
 import type { AuthUser } from '@repo/shared';
 import { UserRole } from '@repo/shared/dist/types/user.js';
 import { CloudflareR2Service } from '../common/cloudflare-r2.service.js';
 import { BookStatus, PageStatus, PageType } from '@prisma/client';
+import { PdfService } from '../pdf/pdf.service.js';
 import {
   getOriginalPageUploadBucketPath,
   getProcessedPageUploadBucketPath,
@@ -21,6 +25,7 @@ export class BooksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly r2: CloudflareR2Service,
+    private readonly pdfService: PdfService,
   ) {}
 
   async getAll(user: AuthUser): Promise<GetBooksListResponse[]> {
@@ -42,6 +47,7 @@ export class BooksService {
         magnificCode: true,
         title: true,
         status: true,
+        pdfUrl: true,
         createdAt: true,
         updatedAt: true,
         student: {
@@ -87,6 +93,7 @@ export class BooksService {
         name: book.student.class.units.name,
         schoolName: book.student.class.units.school.name,
       },
+      pdfUrl: book.pdfUrl,
       createdAt: book.createdAt.toISOString(),
       updatedAt: book.updatedAt.toISOString(),
     })) satisfies GetBooksListResponse[];
@@ -102,6 +109,7 @@ export class BooksService {
         author: true,
         synopsis: true,
         status: true,
+        pdfUrl: true,
         createdAt: true,
         updatedAt: true,
         pages: {
@@ -183,6 +191,7 @@ export class BooksService {
         originalImageUrl: p.originalImageUrl,
         status: p.status as any,
       })),
+      pdfUrl: book.pdfUrl,
       createdAt: book.createdAt.toISOString(),
       updatedAt: book.updatedAt.toISOString(),
     } satisfies GetBookDetailResponse;
@@ -197,7 +206,16 @@ export class BooksService {
     // Ensure user has access to this book
     const bookDetail = await this.getById(bookId, user);
 
-    if (user.role === UserRole.SCHOOL && bookDetail.status === 'READY') {
+    const forbiddenBySchoolStatusList: BookStatus[] = [
+      BookStatus.REVISED_BY_MAGNA,
+      BookStatus.READY_FOR_SALE,
+      BookStatus.ARCHIVED,
+    ];
+
+    if (
+      user.role === UserRole.SCHOOL &&
+      forbiddenBySchoolStatusList.includes(bookDetail.status)
+    ) {
       throw new ForbiddenBookReadyException();
     }
 
@@ -236,8 +254,8 @@ export class BooksService {
     if (data.status !== undefined) {
       if (user.role === UserRole.SCHOOL) {
         if (
-          data.status !== 'REVISED_BY_SCHOOL' &&
-          data.status !== 'IN_PROGRESS'
+          data.status !== PageStatus.REVISED_BY_SCHOOL &&
+          data.status !== PageStatus.IN_PROGRESS
         ) {
           throw new BadRequestException(
             'Status inválido para o perfil de escola',
@@ -245,12 +263,18 @@ export class BooksService {
         }
         updateData.status = data.status;
       } else if (user.role === UserRole.ADMIN) {
-        if (page.status !== 'REVISED_BY_SCHOOL' && page.status !== 'READY') {
+        if (
+          page.status !== PageStatus.REVISED_BY_SCHOOL &&
+          page.status !== PageStatus.READY
+        ) {
           throw new BadRequestException(
             'Alteração permitida apenas se já revisado pela escola',
           );
         }
-        if (data.status !== 'READY' && data.status !== 'REVISED_BY_SCHOOL') {
+        if (
+          data.status !== PageStatus.READY &&
+          data.status !== PageStatus.REVISED_BY_SCHOOL
+        ) {
           throw new BadRequestException(
             'Status inválido para o perfil de administrador',
           );
@@ -274,15 +298,17 @@ export class BooksService {
       });
 
       const allRevised = allPages.every(
-        (p) => p.status === 'REVISED_BY_SCHOOL' || p.status === 'READY',
+        (p) =>
+          p.status === PageStatus.REVISED_BY_SCHOOL ||
+          p.status === PageStatus.READY,
       );
-      const allReady = allPages.every((p) => p.status === 'READY');
+      const allReady = allPages.every((p) => p.status === PageStatus.READY);
 
-      let newBookStatus: BookStatus = 'DRAFT';
+      let newBookStatus: BookStatus = BookStatus.DRAFT;
       if (allReady) {
-        newBookStatus = 'READY';
+        newBookStatus = BookStatus.REVISED_BY_MAGNA;
       } else if (allRevised) {
-        newBookStatus = 'REVISED_BY_SCHOOL';
+        newBookStatus = BookStatus.REVISED_BY_SCHOOL;
       }
 
       await this.prisma.book.update({
@@ -299,7 +325,10 @@ export class BooksService {
   ): Promise<void> {
     const bookDetail = await this.getById(bookId, user); // Ensure user has access
 
-    if (user.role === UserRole.SCHOOL && bookDetail.status === 'READY') {
+    if (
+      user.role === UserRole.SCHOOL &&
+      bookDetail.status !== BookStatus.DRAFT
+    ) {
       throw new ForbiddenBookReadyException();
     }
 
@@ -318,7 +347,7 @@ export class BooksService {
   ): Promise<{ drawImageUrl: string; originalImageUrl?: string }> {
     const book = await this.getById(bookId, user);
 
-    if (user.role === UserRole.SCHOOL && book.status === 'READY') {
+    if (user.role === UserRole.SCHOOL && book.status !== BookStatus.DRAFT) {
       throw new ForbiddenBookReadyException();
     }
 
@@ -435,7 +464,7 @@ export class BooksService {
 
       return {
         ...book,
-        price: Number(book.price.amount),
+        price: book.price ? Number(book.price.amount) : 0,
       };
     });
 
@@ -475,7 +504,73 @@ export class BooksService {
 
     return {
       ...book,
-      price: Number(book.price.amount),
+      price: book.price ? Number(book.price.amount) : 0,
     };
+  }
+
+  async generateFinalBookPdf(
+    bookId: string,
+    user: AuthUser,
+  ): Promise<{ pdfUrl: string }> {
+    const bookDetail = await this.prisma.book.findUnique({
+      where: { id: bookId },
+      select: {
+        id: true,
+        student: {
+          select: {
+            id: true,
+            class: {
+              select: {
+                unitId: true,
+                schoolYear: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!bookDetail) throw new NotFoundBookException();
+
+    // Check user unit access if not admin
+    if (user.role !== UserRole.ADMIN) {
+      const hasAccess = await this.prisma.userUnit.findFirst({
+        where: {
+          userId: user.id,
+          unitId: bookDetail.student.class.unitId,
+        },
+      });
+      if (!hasAccess) throw new NotFoundBookException();
+    }
+
+    // Resolve active event
+    const activeEvent = await this.prisma.authographsEvent.findFirst({
+      where: {
+        unitId: bookDetail.student.class.unitId,
+        schoolYear: bookDetail.student.class.schoolYear,
+        status: { in: ['ONGOING', 'PLANNED'] },
+      },
+      select: { id: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!activeEvent) throw new Error('Active event not found');
+
+    const pdfBuffer = await this.pdfService.generateBookPdf(bookId, user);
+
+    const key = `units/${bookDetail.student.class.unitId}/events/${activeEvent.id}/students/${bookDetail.student.id}/books/${bookId}.pdf`;
+
+    const pdfUrl = await this.r2.upload({
+      key,
+      body: pdfBuffer,
+      contentType: 'application/pdf',
+    });
+
+    await this.prisma.book.update({
+      where: { id: bookId },
+      data: { pdfUrl },
+    });
+
+    return { pdfUrl };
   }
 }

@@ -11,7 +11,15 @@ export const BOOK_PAGE_TYPES = [
 
 export type BookPageType = (typeof BOOK_PAGE_TYPES)[number];
 
-export type BookStatus = 'DRAFT' | 'REVISED_BY_SCHOOL' | 'READY' | 'ARCHIVED';
+export enum BookStatusEnum {
+  DRAFT = 'DRAFT',
+  REVISED_BY_SCHOOL = 'REVISED_BY_SCHOOL',
+  REVISED_BY_MAGNA = 'REVISED_BY_MAGNA',
+  READY_FOR_SALE = 'READY_FOR_SALE',
+  ARCHIVED = 'ARCHIVED',
+}
+
+export type BookStatus = keyof typeof BookStatusEnum;
 
 export interface BookPageData {
   id: string;
@@ -50,6 +58,7 @@ export interface GetBooksListResponse {
     name: string | null;
     schoolName: string;
   };
+  pdfUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -108,6 +117,7 @@ export interface GetBookDetailResponse {
     logoUrl: string | null;
   };
   pages: BookDetailPage[];
+  pdfUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -37,7 +37,7 @@ export class OrdersService {
       let total = 0;
       for (const it of data.items) {
         const book = books.find((b) => b.id === it.bookId);
-        if (!book) throw new Error(`Livro não encontrado: ${it.bookId}`);
+        if (!book || !book.price) throw new Error(`Livro não encontrado ou sem preço: ${it.bookId}`);
         const unit = Number(book.price.amount);
         total += unit * it.quantity;
       }
@@ -89,6 +89,7 @@ export class OrdersService {
           items: {
             create: data.items.map((it) => {
               const book = books.find((b) => b.id === it.bookId)!;
+              if (!book.price) throw new Error(`Preço não encontrado para livro: ${it.bookId}`);
               return {
                 book: { connect: { id: it.bookId } },
                 quantity: it.quantity,
@@ -128,7 +129,7 @@ export class OrdersService {
     let total = 0;
     for (const it of data.items) {
       const book = books.find((b) => b.id === it.bookId);
-      if (!book) throw new NotFoundBookException();
+      if (!book || !book.price) throw new NotFoundBookException();
       const unit = Number(book.price.amount);
       total += unit * it.quantity;
     }
@@ -183,6 +184,7 @@ export class OrdersService {
           items: {
             create: data.items.map((it) => {
               const book = books.find((b) => b.id === it.bookId)!;
+              if (!book.price) throw new Error(`Preço não encontrado para livro: ${it.bookId}`);
               return {
                 book: { connect: { id: it.bookId } },
                 quantity: it.quantity,

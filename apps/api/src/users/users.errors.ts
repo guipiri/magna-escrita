@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import { ErrorKeys } from '@repo/shared';
@@ -47,6 +48,15 @@ export class BadRequestInvalidRoleForUserCreationException extends BadRequestExc
     super({
       key: ErrorKeys.BAD_REQUEST_INVALID_ROLE_FOR_USER_CREATION,
       message: 'Invalid role for user creation. Must be ADMIN or SCHOOL.',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class ForbiddenUserNotAdminException extends ForbiddenException {
+  constructor() {
+    super({
+      key: ErrorKeys.FORBIDDEN_USER_NOT_ADMIN,
+      message: 'User is not admin',
     } satisfies HttpExceptionConstructor);
   }
 }

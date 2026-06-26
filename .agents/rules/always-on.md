@@ -5,6 +5,8 @@ trigger: always_on
 # General Instructions
 
 - For now, do not create any tests
+- Do not use string literals when refering status or oders properties that can be used with enum
+  Ex.: - wrong: const isBookReadyForSale = book.status === 'READY_FOR_SALE' ; right: const isBookReadyForSale = book.status === BookStatusEnum.READY_FOR_SALE
 
 # API Project Instructions
 

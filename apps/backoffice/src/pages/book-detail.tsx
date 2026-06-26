@@ -21,12 +21,13 @@ import {
   UploadCloud,
   X,
 } from 'lucide-react';
-import type {
-  BookDetailPage,
-  BookPageType,
+import {
+  type BookDetailPage,
+  type BookPageType,
   BookStatus,
-  PageStatus,
-  GetBookDetailResponse,
+  type PageStatus,
+  type GetBookDetailResponse,
+  UserRole,
 } from '@repo/shared';
 import {
   getBookById,
@@ -54,8 +55,8 @@ function formatSchoolYear(s: string) {
 
 function bookStatusConfig(status: BookStatus) {
   switch (status) {
-    case 'READY':
-      return { label: 'Pronto', variant: 'default' as const };
+    case 'REVISED_BY_MAGNA':
+      return { label: 'Revisado pela Magna', variant: 'default' as const };
     case 'REVISED_BY_SCHOOL':
       return { label: 'Revisado pela escola', variant: 'secondary' as const };
     case 'ARCHIVED':
@@ -117,7 +118,8 @@ function PageCard({ page, book, isActive }: PageCardProps) {
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const { user } = useAuth();
-  const isReadOnlyForSchool = user?.role === 'SCHOOL' && book.status === 'READY';
+  const isReadOnlyForSchool =
+    user?.role === UserRole.SCHOOL && book.status === 'READY_FOR_SALE';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -292,7 +294,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                 htmlFor={`revise-page-${page.number}`}
                 className={cn(
                   'text-xs font-semibold text-muted-foreground select-none',
-                  isReadOnlyForSchool ? 'cursor-not-allowed' : 'cursor-pointer'
+                  isReadOnlyForSchool ? 'cursor-not-allowed' : 'cursor-pointer',
                 )}
               >
                 Marcar como revisado
@@ -366,28 +368,31 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                 <p className='mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground'>
                   Desenho
                 </p>
-                {showDraw && drawSourceUrl && !isImageEditorOpen && !isReadOnlyForSchool && (
-                  <div>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      onClick={() => setIsImageEditorOpen(true)}
-                      aria-label='Editar imagem'
-                    >
-                      <Crop className='size-3.5' />
-                      Editar imagem
-                    </Button>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      onClick={() => fileInputRef.current?.click()}
-                      aria-label='Trocar imagem'
-                    >
-                      <FileImage className='size-3.5' />
-                      Trocar imagem
-                    </Button>
-                  </div>
-                )}
+                {showDraw &&
+                  drawSourceUrl &&
+                  !isImageEditorOpen &&
+                  !isReadOnlyForSchool && (
+                    <div>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => setIsImageEditorOpen(true)}
+                        aria-label='Editar imagem'
+                      >
+                        <Crop className='size-3.5' />
+                        Editar imagem
+                      </Button>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => fileInputRef.current?.click()}
+                        aria-label='Trocar imagem'
+                      >
+                        <FileImage className='size-3.5' />
+                        Trocar imagem
+                      </Button>
+                    </div>
+                  )}
               </div>
               {drawSourceUrl ? (
                 <div className='overflow-hidden rounded-xl border border-border/70 bg-muted/20'>
@@ -409,17 +414,27 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                         : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:bg-muted/50 cursor-pointer focus:ring-2 focus:ring-primary focus:ring-offset-2',
                   )}
                   onDragOver={isReadOnlyForSchool ? undefined : handleDragOver}
-                  onDragLeave={isReadOnlyForSchool ? undefined : handleDragLeave}
+                  onDragLeave={
+                    isReadOnlyForSchool ? undefined : handleDragLeave
+                  }
                   onDrop={isReadOnlyForSchool ? undefined : handleDrop}
-                  onClick={isReadOnlyForSchool ? undefined : () => fileInputRef.current?.click()}
+                  onClick={
+                    isReadOnlyForSchool
+                      ? undefined
+                      : () => fileInputRef.current?.click()
+                  }
                   role={isReadOnlyForSchool ? undefined : 'button'}
                   tabIndex={isReadOnlyForSchool ? undefined : 0}
-                  onKeyDown={isReadOnlyForSchool ? undefined : (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      fileInputRef.current?.click();
-                    }
-                  }}
+                  onKeyDown={
+                    isReadOnlyForSchool
+                      ? undefined
+                      : (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            fileInputRef.current?.click();
+                          }
+                        }
+                  }
                 >
                   <div
                     className={cn(
@@ -616,7 +631,9 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                       variant='outline'
                       size='sm'
                       onClick={() => logoInputRef.current?.click()}
-                      disabled={uploadLogoMutation.isPending || isReadOnlyForSchool}
+                      disabled={
+                        uploadLogoMutation.isPending || isReadOnlyForSchool
+                      }
                     >
                       {uploadLogoMutation.isPending ? (
                         <Loader2 className='size-3.5 animate-spin mr-2' />
@@ -716,28 +733,30 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                   <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
                     Foto do(a) Aluno(a)
                   </p>
-                  {drawSourceUrl && !isImageEditorOpen && !isReadOnlyForSchool && (
-                    <div className='flex gap-1'>
-                      <Button
-                        variant='ghost'
-                        size='sm'
-                        className='h-7 px-2'
-                        onClick={() => setIsImageEditorOpen(true)}
-                        aria-label='Editar foto'
-                      >
-                        <Crop className='size-3.5' />
-                      </Button>
-                      <Button
-                        variant='ghost'
-                        size='sm'
-                        className='h-7 px-2'
-                        onClick={() => fileInputRef.current?.click()}
-                        aria-label='Trocar foto'
-                      >
-                        <FileImage className='size-3.5' />
-                      </Button>
-                    </div>
-                  )}
+                  {drawSourceUrl &&
+                    !isImageEditorOpen &&
+                    !isReadOnlyForSchool && (
+                      <div className='flex gap-1'>
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          className='h-7 px-2'
+                          onClick={() => setIsImageEditorOpen(true)}
+                          aria-label='Editar foto'
+                        >
+                          <Crop className='size-3.5' />
+                        </Button>
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          className='h-7 px-2'
+                          onClick={() => fileInputRef.current?.click()}
+                          aria-label='Trocar foto'
+                        >
+                          <FileImage className='size-3.5' />
+                        </Button>
+                      </div>
+                    )}
                 </div>
 
                 {drawSourceUrl ? (
@@ -778,18 +797,30 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                           ? 'border-primary bg-primary/5 text-primary cursor-pointer focus:ring-2 focus:ring-primary focus:ring-offset-2'
                           : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:bg-muted/50 cursor-pointer focus:ring-2 focus:ring-primary focus:ring-offset-2',
                     )}
-                    onDragOver={isReadOnlyForSchool ? undefined : handleDragOver}
-                    onDragLeave={isReadOnlyForSchool ? undefined : handleDragLeave}
+                    onDragOver={
+                      isReadOnlyForSchool ? undefined : handleDragOver
+                    }
+                    onDragLeave={
+                      isReadOnlyForSchool ? undefined : handleDragLeave
+                    }
                     onDrop={isReadOnlyForSchool ? undefined : handleDrop}
-                    onClick={isReadOnlyForSchool ? undefined : () => fileInputRef.current?.click()}
+                    onClick={
+                      isReadOnlyForSchool
+                        ? undefined
+                        : () => fileInputRef.current?.click()
+                    }
                     role={isReadOnlyForSchool ? undefined : 'button'}
                     tabIndex={isReadOnlyForSchool ? undefined : 0}
-                    onKeyDown={isReadOnlyForSchool ? undefined : (e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        fileInputRef.current?.click();
-                      }
-                    }}
+                    onKeyDown={
+                      isReadOnlyForSchool
+                        ? undefined
+                        : (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              fileInputRef.current?.click();
+                            }
+                          }
+                    }
                   >
                     <div
                       className={cn(
@@ -934,12 +965,16 @@ export function BookDetailPage() {
   return (
     <main className='flex-1 overflow-auto'>
       <div className='mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8'>
-        {user?.role === 'SCHOOL' && book.status === 'READY' && (
-          <Alert variant="destructive" className="mb-6 bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-500 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-500">
-            <AlertCircle className="size-4" />
+        {user?.role === 'SCHOOL' && book.status === 'READY_FOR_SALE' && (
+          <Alert
+            variant='destructive'
+            className='mb-6 bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-500 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-500'
+          >
+            <AlertCircle className='size-4' />
             <AlertTitle>Modificações Desabilitadas</AlertTitle>
             <AlertDescription>
-              Este livro está finalizado (status Pronto). Usuários com perfil da escola não podem fazer modificações em livros finalizados.
+              Este livro está finalizado (status Pronto). Usuários com perfil da
+              escola não podem fazer modificações em livros finalizados.
             </AlertDescription>
           </Alert>
         )}

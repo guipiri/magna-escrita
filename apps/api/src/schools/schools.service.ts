@@ -123,7 +123,7 @@ export class SchoolsService {
 
               const isCompleted =
                 user.role === UserRole.ADMIN
-                  ? be.status === BookStatus.READY
+                  ? be.status === BookStatus.REVISED_BY_MAGNA
                   : be.status === BookStatus.REVISED_BY_SCHOOL;
 
               if (isCompleted) completedBookIds.add(be.id);

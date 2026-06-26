@@ -1,16 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
 import { AuthUser, UserRole } from '@repo/shared';
 import { AuthographsEventStatus, PageType } from '@prisma/client';
 import * as QRCode from 'qrcode';
 import PDFDocument from 'pdfkit';
+import { NotFoundBookException } from '../books/books.errors.js';
 import {
   ConflictMoreThanOneActiveEventException,
   NotFoundPdfClassException,
   NotFoundPdfNoActiveEventException,
   NotFoundPdfNoEligiblePagesException,
   NotFoundPdfNoStudentsException,
+  NotFoundPdfPageException,
 } from './pdf.errors.js';
+import { ForbiddenUserNotAdminException } from '../users/users.errors.js';
 
 const ELIGIBLE_PAGE_TYPES: PageType[] = [
   PageType.DRAW,
@@ -405,5 +408,297 @@ export class PdfService {
     }
 
     doc.restore();
+  }
+
+  private drawBookTextPage(
+    doc: InstanceType<typeof PDFDocument>,
+    title: string,
+    author: string,
+    text: string,
+    pageNumber: number,
+  ): void {
+    // Top line
+    doc
+      .moveTo(40, 70)
+      .lineTo(595.28 - 40, 70)
+      .lineWidth(2)
+      .strokeColor('#0a3a60')
+      .stroke();
+
+    // Top Header Text
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(12)
+      .fillColor('#0a3a60')
+      .text(title, 40, 52, { lineBreak: false });
+
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(12)
+      .fillColor('#0a3a60')
+      .text(author, 40, 52, { align: 'right', width: 595.28 - 80 });
+
+    // Text Content
+    const contentWidth = 595.28 - 120; // Margin of 60 on left/right
+    const availableHeight = 700; // between y=70 and y=770
+    const textHeight = doc.heightOfString(text, {
+      width: contentWidth,
+      lineGap: 6,
+    });
+    const startY = 70 + (availableHeight - textHeight) / 2;
+
+    doc
+      .font('Helvetica')
+      .fontSize(16)
+      .fillColor('#1f2937')
+      .text(text, 60, startY, {
+        align: 'left',
+        width: contentWidth,
+        lineGap: 6,
+      });
+
+    // Bottom line
+    doc
+      .moveTo(40, 770)
+      .lineTo(595.28 - 40, 770)
+      .lineWidth(2)
+      .strokeColor('#0a3a60')
+      .stroke();
+
+    // Page Number Oval
+    const boxWidth = 32;
+    const boxHeight = 20;
+    const boxX = (595.28 - boxWidth) / 2;
+    const boxY = 780;
+
+    doc
+      .roundedRect(boxX, boxY, boxWidth, boxHeight, 10)
+      .lineWidth(1)
+      .strokeColor('#0a3a60')
+      .stroke();
+
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(10)
+      .fillColor('#0a3a60')
+      .text(pageNumber.toString(), boxX, boxY + 5, {
+        align: 'center',
+        width: boxWidth,
+      });
+  }
+
+  private async drawBookDrawPage(
+    doc: InstanceType<typeof PDFDocument>,
+    drawImageUrl: string | null,
+  ): Promise<void> {
+    const drawSize = 450;
+    const drawX = (595.28 - drawSize) / 2;
+    const drawY = (841.89 - drawSize) / 2;
+
+    // Border
+    doc
+      .rect(drawX, drawY, drawSize, drawSize)
+      .lineWidth(2)
+      .strokeColor('#0a3a60')
+      .stroke();
+
+    if (drawImageUrl) {
+      try {
+        const response = await globalThis.fetch(drawImageUrl);
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          const imageBuffer = Buffer.from(arrayBuffer);
+          doc.image(imageBuffer, drawX + 2, drawY + 2, {
+            fit: [drawSize - 4, drawSize - 4],
+            align: 'center',
+            valign: 'center',
+          });
+        } else {
+          console.error(
+            `Failed to fetch image: status ${response.status} for URL ${drawImageUrl}`,
+          );
+          doc
+            .font('Helvetica')
+            .fontSize(14)
+            .fillColor('#9ca3af')
+            .text('Imagem não disponível', drawX, drawY + drawSize / 2 - 7, {
+              align: 'center',
+              width: drawSize,
+            });
+        }
+      } catch (error) {
+        console.error('Failed to fetch/draw page image:', error);
+        doc
+          .font('Helvetica')
+          .fontSize(14)
+          .fillColor('#9ca3af')
+          .text('Imagem não disponível', drawX, drawY + drawSize / 2 - 7, {
+            align: 'center',
+            width: drawSize,
+          });
+      }
+    } else {
+      doc
+        .font('Helvetica')
+        .fontSize(14)
+        .fillColor('#9ca3af')
+        .text('Sem desenho', drawX, drawY + drawSize / 2 - 7, {
+          align: 'center',
+          width: drawSize,
+        });
+    }
+  }
+
+  async generateBookPdf(bookId: string, user: AuthUser): Promise<Buffer> {
+    const book = await this.prisma.book.findUnique({
+      where: { id: bookId },
+      include: {
+        student: {
+          include: {
+            class: {
+              include: {
+                units: true,
+              },
+            },
+          },
+        },
+        pages: {
+          orderBy: { number: 'asc' },
+        },
+      },
+    });
+
+    if (!book) throw new NotFoundBookException();
+
+    if (user.role !== UserRole.ADMIN)
+      throw new ForbiddenUserNotAdminException();
+
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margins: {
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+        },
+        autoFirstPage: false,
+        bufferPages: true,
+      });
+
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      const render = async () => {
+        const title = book.title || 'Sem Título';
+        const author = (book.author || book.student.name).toUpperCase();
+
+        for (const page of book.pages) {
+          if (page.type === PageType.TEXT) {
+            doc.addPage();
+            this.drawBookTextPage(
+              doc,
+              title,
+              author,
+              page.textContent || '',
+              page.number,
+            );
+          } else if (page.type === PageType.DRAW) {
+            doc.addPage();
+            await this.drawBookDrawPage(doc, page.drawImageUrl);
+          }
+        }
+        doc.end();
+      };
+
+      render().catch(reject);
+    });
+  }
+
+  private async generateBookCoverPdf(bookId: string): Promise<Buffer> {
+    throw new BadRequestException('Método não implementado');
+  }
+
+  private async generateBookPagePdf(pageId: string): Promise<Buffer> {
+    const [bookId, pageNumberStr] = pageId.split('_');
+    if (!bookId || !pageNumberStr) {
+      throw new BadRequestException(
+        'Formato de pageId inválido. Use "bookId_pageNumber"',
+      );
+    }
+    const pageNumber = parseInt(pageNumberStr, 10);
+    if (isNaN(pageNumber)) {
+      throw new BadRequestException('Número da página inválido');
+    }
+
+    const page = await this.prisma.page.findUnique({
+      where: {
+        bookId_number: {
+          bookId,
+          number: pageNumber,
+        },
+      },
+      include: {
+        book: {
+          include: {
+            student: true,
+          },
+        },
+      },
+    });
+
+    if (!page) {
+      throw new NotFoundPdfPageException();
+    }
+
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margins: {
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+        },
+        autoFirstPage: false,
+        bufferPages: true,
+      });
+
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      const render = async () => {
+        const title = page.book.title || 'Sem Título';
+        const author = (
+          page.book.author || page.book.student.name
+        ).toUpperCase();
+
+        doc.addPage();
+        if (page.type === PageType.TEXT) {
+          this.drawBookTextPage(
+            doc,
+            title,
+            author,
+            page.textContent || '',
+            page.number,
+          );
+        } else if (page.type === PageType.DRAW) {
+          await this.drawBookDrawPage(doc, page.drawImageUrl);
+        } else {
+          doc
+            .font('Helvetica')
+            .fontSize(12)
+            .fillColor('#000000')
+            .text(`Página ${page.number}`, 40, 40);
+        }
+        doc.end();
+      };
+
+      render().catch(reject);
+    });
   }
 }

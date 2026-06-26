@@ -8,5 +8,6 @@ import { PdfService } from './pdf.service.js';
   imports: [DbModule, AuthModule],
   controllers: [PdfController],
   providers: [PdfService],
+  exports: [PdfService],
 })
 export class PdfModule {}

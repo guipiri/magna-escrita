@@ -64,3 +64,13 @@ export const scanBooks = async (files: File[]): Promise<ScanBooksResult> => {
   });
   return response.data;
 };
+
+export const generateFinalBookPdf = async (
+  bookId: string,
+): Promise<{ pdfUrl: string }> => {
+  const response = await api.post<{ pdfUrl: string }>(
+    `/books/backoffice/${bookId}/generate-pdf`,
+  );
+  return response.data;
+};
+
