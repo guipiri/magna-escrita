@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
 import { AuthUser, UserRole } from '@repo/shared';
-import { AuthographsEventStatus, PageType } from '@prisma/client';
+import { AuthographsEventStatus, BookStatus, PageType } from '@prisma/client';
 import * as QRCode from 'qrcode';
 import PDFDocument from 'pdfkit';
 import { NotFoundBookException } from '../books/books.errors.js';
@@ -417,35 +417,46 @@ export class PdfService {
     text: string,
     pageNumber: number,
   ): void {
+    const MM_TO_PT = 72 / 25.4;
+    const pageSize = 205 * MM_TO_PT;
+    const topY = 15 * MM_TO_PT;
+    const bottomY = 190 * MM_TO_PT;
+    const startX = 15 * MM_TO_PT;
+    const endX = 190 * MM_TO_PT;
+    const lineLength = 175 * MM_TO_PT;
+
     // Top line
     doc
-      .moveTo(40, 70)
-      .lineTo(595.28 - 40, 70)
+      .moveTo(startX, topY)
+      .lineTo(endX, topY)
       .lineWidth(2)
       .strokeColor('#0a3a60')
       .stroke();
 
-    // Top Header Text
+    // Top Header Text (just below the top line)
+    const headerY = topY + 10;
     doc
       .font('Helvetica-Bold')
       .fontSize(12)
       .fillColor('#0a3a60')
-      .text(title, 40, 52, { lineBreak: false });
+      .text(title, startX, headerY, { lineBreak: false });
 
     doc
       .font('Helvetica-Bold')
       .fontSize(12)
       .fillColor('#0a3a60')
-      .text(author, 40, 52, { align: 'right', width: 595.28 - 80 });
+      .text(author, startX, headerY, { align: 'right', width: lineLength });
 
     // Text Content
-    const contentWidth = 595.28 - 120; // Margin of 60 on left/right
-    const availableHeight = 700; // between y=70 and y=770
+    const contentWidth = pageSize - 120; // Margin of 60 on left/right
+    const contentTopY = topY + 30; // start below header text
+    const contentBottomY = bottomY - 10;
+    const availableHeight = contentBottomY - contentTopY;
     const textHeight = doc.heightOfString(text, {
       width: contentWidth,
       lineGap: 6,
     });
-    const startY = 70 + (availableHeight - textHeight) / 2;
+    const startY = contentTopY + (availableHeight - textHeight) / 2;
 
     doc
       .font('Helvetica')
@@ -459,8 +470,8 @@ export class PdfService {
 
     // Bottom line
     doc
-      .moveTo(40, 770)
-      .lineTo(595.28 - 40, 770)
+      .moveTo(startX, bottomY)
+      .lineTo(endX, bottomY)
       .lineWidth(2)
       .strokeColor('#0a3a60')
       .stroke();
@@ -468,8 +479,8 @@ export class PdfService {
     // Page Number Oval
     const boxWidth = 32;
     const boxHeight = 20;
-    const boxX = (595.28 - boxWidth) / 2;
-    const boxY = 780;
+    const boxX = (pageSize - boxWidth) / 2;
+    const boxY = bottomY + (pageSize - bottomY - boxHeight) / 2;
 
     doc
       .roundedRect(boxX, boxY, boxWidth, boxHeight, 10)
@@ -490,17 +501,13 @@ export class PdfService {
   private async drawBookDrawPage(
     doc: InstanceType<typeof PDFDocument>,
     drawImageUrl: string | null,
+    pageNumber: number,
   ): Promise<void> {
-    const drawSize = 450;
-    const drawX = (595.28 - drawSize) / 2;
-    const drawY = (841.89 - drawSize) / 2;
-
-    // Border
-    doc
-      .rect(drawX, drawY, drawSize, drawSize)
-      .lineWidth(2)
-      .strokeColor('#0a3a60')
-      .stroke();
+    const MM_TO_PT = 72 / 25.4;
+    const pageSize = 205 * MM_TO_PT;
+    const drawSize = 175 * MM_TO_PT;
+    const drawX = 15 * MM_TO_PT;
+    const drawY = 15 * MM_TO_PT;
 
     if (drawImageUrl) {
       try {
@@ -508,8 +515,8 @@ export class PdfService {
         if (response.ok) {
           const arrayBuffer = await response.arrayBuffer();
           const imageBuffer = Buffer.from(arrayBuffer);
-          doc.image(imageBuffer, drawX + 2, drawY + 2, {
-            fit: [drawSize - 4, drawSize - 4],
+          doc.image(imageBuffer, drawX, drawY, {
+            fit: [drawSize, drawSize],
             align: 'center',
             valign: 'center',
           });
@@ -547,6 +554,39 @@ export class PdfService {
           width: drawSize,
         });
     }
+
+    // Top and bottom borders (horizontal blue lines only) - Drawn on top of the image to preserve full line thickness
+    doc
+      .save()
+      .lineWidth(2)
+      .strokeColor('#0a3a60')
+      .moveTo(drawX, drawY)
+      .lineTo(drawX + drawSize, drawY)
+      .moveTo(drawX, drawY + drawSize)
+      .lineTo(drawX + drawSize, drawY + drawSize)
+      .stroke()
+      .restore();
+
+    // Page Number Oval
+    const boxWidth = 32;
+    const boxHeight = 20;
+    const boxX = (pageSize - boxWidth) / 2;
+    const boxY = drawY + drawSize + (pageSize - (drawY + drawSize) - boxHeight) / 2;
+
+    doc
+      .roundedRect(boxX, boxY, boxWidth, boxHeight, 10)
+      .lineWidth(1)
+      .strokeColor('#0a3a60')
+      .stroke();
+
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(10)
+      .fillColor('#0a3a60')
+      .text(pageNumber.toString(), boxX, boxY + 5, {
+        align: 'center',
+        width: boxWidth,
+      });
   }
 
   async generateBookPdf(bookId: string, user: AuthUser): Promise<Buffer> {
@@ -573,9 +613,24 @@ export class PdfService {
     if (user.role !== UserRole.ADMIN)
       throw new ForbiddenUserNotAdminException();
 
+    const forbiddenBookStatuses: BookStatus[] = [
+      BookStatus.DRAFT,
+      BookStatus.REVISED_BY_SCHOOL,
+    ];
+
+    if (forbiddenBookStatuses.includes(book.status)) {
+      throw new BadRequestException('Book is not ready for PDF generation');
+    }
+
+    const MM_TO_PT = 72 / 25.4;
+    const totalWidth = 415 * MM_TO_PT;
+    const totalHeight = 205 * MM_TO_PT;
+    const squareSize = 205 * MM_TO_PT;
+    const gap = 5 * MM_TO_PT;
+
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({
-        size: 'A4',
+        size: [totalWidth, totalHeight],
         margins: {
           top: 0,
           bottom: 0,
@@ -593,21 +648,50 @@ export class PdfService {
 
       const render = async () => {
         const title = book.title || 'Sem Título';
-        const author = (book.author || book.student.name).toUpperCase();
+        const author = book.author || book.student.name;
+        const totalPages = book.pages.length;
+        const half = Math.ceil(totalPages / 2);
 
-        for (const page of book.pages) {
-          if (page.type === PageType.TEXT) {
-            doc.addPage();
-            this.drawBookTextPage(
-              doc,
-              title,
-              author,
-              page.textContent || '',
-              page.number,
-            );
-          } else if (page.type === PageType.DRAW) {
-            doc.addPage();
-            await this.drawBookDrawPage(doc, page.drawImageUrl);
+        for (let i = 0; i < half; i++) {
+          const leftPage = book.pages[i];
+          const rightPage = book.pages[totalPages - 1 - i];
+
+          doc.addPage();
+
+          // Draw left page
+          if (leftPage) {
+            doc.save();
+            doc.translate(0, 0);
+            if (leftPage.type === PageType.TEXT) {
+              this.drawBookTextPage(
+                doc,
+                title,
+                author,
+                leftPage.textContent || '',
+                leftPage.number,
+              );
+            } else if (leftPage.type === PageType.DRAW) {
+              await this.drawBookDrawPage(doc, leftPage.drawImageUrl, leftPage.number);
+            }
+            doc.restore();
+          }
+
+          // Draw right page if not the same as left page
+          if (rightPage && totalPages - 1 - i !== i) {
+            doc.save();
+            doc.translate(squareSize + gap, 0);
+            if (rightPage.type === PageType.TEXT) {
+              this.drawBookTextPage(
+                doc,
+                title,
+                author,
+                rightPage.textContent || '',
+                rightPage.number,
+              );
+            } else if (rightPage.type === PageType.DRAW) {
+              await this.drawBookDrawPage(doc, rightPage.drawImageUrl, rightPage.number);
+            }
+            doc.restore();
           }
         }
         doc.end();
@@ -654,8 +738,11 @@ export class PdfService {
     }
 
     return new Promise((resolve, reject) => {
+      const MM_TO_PT = 72 / 25.4;
+      const pageSize = 205 * MM_TO_PT;
+
       const doc = new PDFDocument({
-        size: 'A4',
+        size: [pageSize, pageSize],
         margins: {
           top: 0,
           bottom: 0,
@@ -673,9 +760,7 @@ export class PdfService {
 
       const render = async () => {
         const title = page.book.title || 'Sem Título';
-        const author = (
-          page.book.author || page.book.student.name
-        ).toUpperCase();
+        const author = page.book.author || page.book.student.name;
 
         doc.addPage();
         if (page.type === PageType.TEXT) {
@@ -687,7 +772,7 @@ export class PdfService {
             page.number,
           );
         } else if (page.type === PageType.DRAW) {
-          await this.drawBookDrawPage(doc, page.drawImageUrl);
+          await this.drawBookDrawPage(doc, page.drawImageUrl, page.number);
         } else {
           doc
             .font('Helvetica')

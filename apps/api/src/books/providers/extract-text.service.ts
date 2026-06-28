@@ -23,7 +23,7 @@ export class GeminiTextExtractor implements ExtractTextService {
 
   async execute(file: Express.Multer.File): Promise<string> {
     const model = this.gemini.getGenerativeModel({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-2.5-flash',
     });
 
     const imagePart: Part = {
