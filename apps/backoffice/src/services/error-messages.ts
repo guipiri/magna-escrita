@@ -29,6 +29,8 @@ export const errorMessages: Record<ErrorKeys, string> = {
   NOT_FOUND_EVENT: 'Evento não encontrado.',
   NOT_FOUND_BOOK_TEMPLATE: 'Template de livro não encontrado.',
   NOT_FOUND_GRADE: 'Turma não encontrada.',
+  NOT_FOUND_UNIT_LOGO: 'Logo da unidade não encontrado.',
+  NOT_FOUND_COVER_TEMPLATE: 'Template de capa não encontrado.',
 
   BAD_REQUEST_GRADE_NAME: 'Nome da turma é obrigatório.',
   BAD_REQUEST_STUDENTS: 'Adicione pelo menos um aluno.',
@@ -81,6 +83,10 @@ export const errorMessages: Record<ErrorKeys, string> = {
   NOT_FOUND_PDF_NO_ACTIVE_EVENT:
     'Não há evento ativo para a unidade desta turma no ano letivo vigente.',
   NOT_FOUND_PDF_PAGE: 'Página do livro não encontrada.',
+  NOT_FOUND_COVER: 'Capa do livro não encontrada.',
+  NOT_FOUND_BACK_COVER: 'Contracapa do livro não encontrada.',
+  BAD_REQUEST_MISSING_COVER_DRAWING: 'Desenho da capa ausente.',
+  BAD_REQUEST_MISSING_BIOGRAPHY: 'Biografia do livro ausente.',
 
   CONFLICT_MORE_THAN_ONE_ACTIVE_EVENT: 'Mais de um evento ativo encontrado.',
   BAD_REQUEST_QR_CODE_NOT_READABLE: 'O QR Code da imagem não pode ser lido.',
@@ -94,6 +100,7 @@ export const errorMessages: Record<ErrorKeys, string> = {
   INTERNAL_GEMINI_RECOGNITION_FAILED: 'Erro no reconhecimento de imagem.',
   INTERNAL_GOOGLE_CLOUD_VISION_RECOGNITION_FAILED: 'Erro no Google Vision.',
   INTERNAL_QR_CODE_RECOGNITION_FAILED: 'Erro na leitura do QR Code.',
+  INTERNAL_CLOUDFLARE_GET_FILE_FAILED: 'Erro ao buscar arquivo no Cloudflare R2.',
 
   UNKNOWN_ERROR: 'Ocorreu um erro desconhecido. Tente novamente mais tarde.',
 };

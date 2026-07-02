@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { ErrorKeys } from '@repo/shared';
 import { HttpExceptionConstructor } from '../common/filters/http-exception.filter.js';
 
@@ -54,6 +54,60 @@ export class NotFoundPdfPageException extends NotFoundException {
     super({
       key: ErrorKeys.NOT_FOUND_PDF_PAGE,
       message: 'Page not found',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class NotFoundCoverException extends NotFoundException {
+  constructor() {
+    super({
+      key: ErrorKeys.NOT_FOUND_COVER,
+      message: 'Cover page not found for this book',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class NotFoundBackCoverException extends NotFoundException {
+  constructor() {
+    super({
+      key: ErrorKeys.NOT_FOUND_BACK_COVER,
+      message: 'Back cover not found for this book',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class BadRequestMissingCoverDrawingException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.BAD_REQUEST_MISSING_COVER_DRAWING,
+      message: 'Book has no cover drawing image',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class BadRequestMissingBiographyException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.BAD_REQUEST_MISSING_BIOGRAPHY,
+      message: 'Book has no biography',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class NotFoundCoverTemplateException extends NotFoundException {
+  constructor() {
+    super({
+      key: ErrorKeys.NOT_FOUND_COVER_TEMPLATE,
+      message: 'Cover template not found',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class NotFoundLogoException extends NotFoundException {
+  constructor() {
+    super({
+      key: ErrorKeys.NOT_FOUND_UNIT_LOGO,
+      message: 'Logo not found',
     } satisfies HttpExceptionConstructor);
   }
 }

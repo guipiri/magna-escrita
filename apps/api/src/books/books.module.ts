@@ -3,12 +3,15 @@ import { DbModule } from '../db/db.module.js';
 import { BooksController } from './books.controller.js';
 import { BooksService } from './books.service.js';
 import { AuthModule } from '../auth/auth.module.js';
-import { CloudflareR2Service } from '../common/cloudflare-r2.service.js';
+import { CloudflareR2Service } from '../common/bucket/providers/cloudflare-r2.service.js';
 import { PdfModule } from '../pdf/pdf.module.js';
 
 @Module({
   imports: [DbModule, AuthModule, PdfModule],
   controllers: [BooksController],
-  providers: [BooksService, CloudflareR2Service],
+  providers: [
+    BooksService,
+    { provide: 'BucketService', useClass: CloudflareR2Service },
+  ],
 })
 export class BooksModule {}

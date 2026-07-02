@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ForbiddenException,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
 import {
@@ -12,19 +13,21 @@ import {
 import type { GetBookDetailResponse, GetBooksListResponse } from '@repo/shared';
 import type { AuthUser } from '@repo/shared';
 import { UserRole } from '@repo/shared/dist/types/user.js';
-import { CloudflareR2Service } from '../common/cloudflare-r2.service.js';
 import { BookStatus, PageStatus, PageType } from '@prisma/client';
 import { PdfService } from '../pdf/pdf.service.js';
 import {
+  getBookInteriorBucketKey,
   getOriginalPageUploadBucketPath,
   getProcessedPageUploadBucketPath,
-} from './books.utils.js';
+} from '../common/bucket/bucket.utils.js';
+import type { BucketService } from '../common/bucket/bucket.contract.js';
 
 @Injectable()
 export class BooksService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly r2: CloudflareR2Service,
+    @Inject('BucketService')
+    private readonly bucketService: BucketService,
     private readonly pdfService: PdfService,
   ) {}
 
@@ -395,7 +398,7 @@ export class BooksService {
       ext,
     });
 
-    const drawImageUrl = await this.r2.upload({
+    const drawImageUrl = await this.bucketService.upload({
       key,
       body: image.buffer,
       contentType: image.mimetype,
@@ -412,7 +415,7 @@ export class BooksService {
         eventId: activeEvent.id,
         ext: origExt,
       });
-      originalImageUrl = await this.r2.upload({
+      originalImageUrl = await this.bucketService.upload({
         key: origKey,
         body: originalImage.buffer,
         contentType: originalImage.mimetype,
@@ -556,11 +559,19 @@ export class BooksService {
 
     if (!activeEvent) throw new Error('Active event not found');
 
-    const pdfBuffer = await this.pdfService.generateBookPdf(bookId, user);
+    const pdfBuffer = await this.pdfService.generateBookInteriorPdf(
+      bookId,
+      user,
+    );
 
-    const key = `units/${bookDetail.student.class.unitId}/events/${activeEvent.id}/students/${bookDetail.student.id}/books/${bookId}.pdf`;
+    const key = getBookInteriorBucketKey({
+      eventId: activeEvent.id,
+      unitId: bookDetail.student.class.unitId,
+      studentId: bookDetail.student.id,
+      bookId,
+    });
 
-    const pdfUrl = await this.r2.upload({
+    const pdfUrl = await this.bucketService.upload({
       key,
       body: pdfBuffer,
       contentType: 'application/pdf',

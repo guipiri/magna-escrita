@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DbModule } from '../db/db.module.js';
 import { AuthModule } from '../auth/auth.module.js';
-import { CloudflareR2Service } from '../common/cloudflare-r2.service.js';
+import { CloudflareR2Service } from '../common/bucket/providers/cloudflare-r2.service.js';
 import { BooksScanController } from './books-scan.controller.js';
 import { BooksScanService } from './books-scan.service.js';
 import { OpenCVDrawExtractor } from './providers/extract-draw.service.js';
@@ -13,7 +13,7 @@ import { JsqrQrCodeReader } from './providers/read-qr-code.service.js';
   controllers: [BooksScanController],
   providers: [
     BooksScanService,
-    CloudflareR2Service,
+    { provide: 'BucketService', useClass: CloudflareR2Service },
     { provide: 'ExtractDrawService', useClass: OpenCVDrawExtractor },
     {
       provide: 'ExtractTextService',

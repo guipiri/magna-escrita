@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BooksService } from './books.service.js';
 import { PrismaService } from '../db/db.service.js';
-import { CloudflareR2Service } from '../common/cloudflare-r2.service.js';
+import { CloudflareR2Service } from '../common/bucket/providers/cloudflare-r2.service.js';
 import { BadRequestException } from '@nestjs/common';
 import { UserRole } from '@repo/shared/dist/types/user.js';
 import { PageStatus, PageType } from '@prisma/client';
@@ -234,11 +234,7 @@ describe('BooksService', () => {
       mockPrisma.userUnit.findFirst.mockResolvedValue({ id: 'userUnit-1' });
 
       await expect(
-        service.updateBook(
-          bookId,
-          { title: 'Novo Titulo' },
-          user as any,
-        ),
+        service.updateBook(bookId, { title: 'Novo Titulo' }, user as any),
       ).rejects.toThrow(ForbiddenBookReadyException);
     });
   });

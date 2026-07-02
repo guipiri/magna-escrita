@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
-import { CloudflareR2Service } from '../common/cloudflare-r2.service.js';
 import type { ExtractDrawService } from './providers/extract-draw.service.js';
 import type { ExtractTextService } from './providers/extract-text.service.js';
 import type { ReadQrCodeService } from './providers/read-qr-code.service.js';
+import type{ BucketService } from '../common/bucket/bucket.contract.js';
 import {
   BadRequestBookTemplateMismatchException,
   BadRequestQrCodeNotReadableException,
@@ -11,17 +11,18 @@ import {
   NotFoundBookTemplatePageException,
   NotFoundStudentException,
 } from './books-scan.errors.js';
-import {
-  generateMagnificCode,
-  getOriginalPageUploadBucketPath,
-  getProcessedPageUploadBucketPath,
-} from './books.utils.js';
+
 import {
   $Enums,
   AuthographsEventStatus,
   PageStatus,
   PageType,
 } from '@prisma/client';
+import { generateMagnificCode } from './books.utils.js';
+import {
+  getOriginalPageUploadBucketPath,
+  getProcessedPageUploadBucketPath,
+} from '../common/bucket/bucket.utils.js';
 
 interface QrCodeData {
   studentId: string;
@@ -48,7 +49,8 @@ export interface ScanBooksResult {
 export class BooksScanService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly r2: CloudflareR2Service,
+    @Inject('BucketService')
+    private readonly bucketService: BucketService,
     @Inject('ExtractDrawService')
     private readonly processDrawService: ExtractDrawService,
     @Inject('ExtractTextService')
@@ -229,7 +231,7 @@ export class BooksScanService {
       pageNumber: qrData.page,
       ext: this.getExtension(file.mimetype),
     });
-    const originalImageUrl = await this.r2.upload({
+    const originalImageUrl = await this.bucketService.upload({
       key: originalFileBucketKey,
       body: file.buffer,
       contentType: file.mimetype,
@@ -264,7 +266,7 @@ export class BooksScanService {
         await processedDrawFile.arrayBuffer(),
       );
 
-      drawImageUrl = await this.r2.upload({
+      drawImageUrl = await this.bucketService.upload({
         key: processedDrawKey,
         body: processedDrawBuffer,
         contentType: processedDrawFile.type || file.mimetype,

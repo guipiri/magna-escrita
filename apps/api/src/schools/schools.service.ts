@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
 import {
   AuthUser,
@@ -15,7 +15,8 @@ import {
   SchoolYear as PrismaSchoolYear,
 } from '@prisma/client';
 import { CreateSchoolDto } from './dto/create-school.dto.js';
-import { CloudflareR2Service } from '../common/cloudflare-r2.service.js';
+import type { BucketService } from '../common/bucket/bucket.contract.js';
+import { getUnitLogoBucketKey } from '../common/bucket/bucket.utils.js';
 
 const selectSchoolUnits: Prisma.SchoolSelect = {
   id: true,
@@ -33,7 +34,8 @@ const selectSchoolUnits: Prisma.SchoolSelect = {
 export class SchoolsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly r2: CloudflareR2Service,
+    @Inject('BucketService')
+    private readonly bucketService: BucketService,
   ) {}
 
   async getSchoolUnits(user: AuthUser): Promise<GetSchoolsResponse[]> {
@@ -199,8 +201,8 @@ export class SchoolsService {
         : logo.mimetype === 'image/webp'
           ? 'webp'
           : 'jpg';
-    const key = `units/${unitId}/logo.${ext}`;
-    const logoUrl = await this.r2.upload({
+    const key = getUnitLogoBucketKey(unitId, ext);
+    const logoUrl = await this.bucketService.upload({
       key,
       body: logo.buffer,
       contentType: logo.mimetype,

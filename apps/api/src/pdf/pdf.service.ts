@@ -1,9 +1,10 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
 import { AuthUser, UserRole } from '@repo/shared';
 import { AuthographsEventStatus, BookStatus, PageType } from '@prisma/client';
 import * as QRCode from 'qrcode';
 import PDFDocument from 'pdfkit';
+import { PDFDocument as PdfLibDocument, rgb } from 'pdf-lib';
 import { NotFoundBookException } from '../books/books.errors.js';
 import {
   ConflictMoreThanOneActiveEventException,
@@ -11,9 +12,15 @@ import {
   NotFoundPdfNoActiveEventException,
   NotFoundPdfNoEligiblePagesException,
   NotFoundPdfNoStudentsException,
-  NotFoundPdfPageException,
+  NotFoundCoverException,
+  BadRequestMissingCoverDrawingException,
+  BadRequestMissingBiographyException,
+  NotFoundCoverTemplateException,
+  NotFoundLogoException,
 } from './pdf.errors.js';
 import { ForbiddenUserNotAdminException } from '../users/users.errors.js';
+import { getKeyFromUrl } from '../common/bucket/bucket.utils.js';
+import type { BucketService } from '../common/bucket/bucket.contract.js';
 
 const ELIGIBLE_PAGE_TYPES: PageType[] = [
   PageType.DRAW,
@@ -43,7 +50,11 @@ const TEXT_LINES_COUNT = 8;
 
 @Injectable()
 export class PdfService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject('BucketService')
+    private readonly bucketService: BucketService,
+  ) {}
 
   async generateClassPdf(classId: string, user: AuthUser): Promise<Buffer> {
     // 1. Fetch the class with template pages, unit and school
@@ -571,7 +582,8 @@ export class PdfService {
     const boxWidth = 32;
     const boxHeight = 20;
     const boxX = (pageSize - boxWidth) / 2;
-    const boxY = drawY + drawSize + (pageSize - (drawY + drawSize) - boxHeight) / 2;
+    const boxY =
+      drawY + drawSize + (pageSize - (drawY + drawSize) - boxHeight) / 2;
 
     doc
       .roundedRect(boxX, boxY, boxWidth, boxHeight, 10)
@@ -589,7 +601,10 @@ export class PdfService {
       });
   }
 
-  async generateBookPdf(bookId: string, user: AuthUser): Promise<Buffer> {
+  async generateBookInteriorPdf(
+    bookId: string,
+    user: AuthUser,
+  ): Promise<Buffer> {
     const book = await this.prisma.book.findUnique({
       where: { id: bookId },
       include: {
@@ -671,7 +686,11 @@ export class PdfService {
                 leftPage.number,
               );
             } else if (leftPage.type === PageType.DRAW) {
-              await this.drawBookDrawPage(doc, leftPage.drawImageUrl, leftPage.number);
+              await this.drawBookDrawPage(
+                doc,
+                leftPage.drawImageUrl,
+                leftPage.number,
+              );
             }
             doc.restore();
           }
@@ -689,7 +708,11 @@ export class PdfService {
                 rightPage.number,
               );
             } else if (rightPage.type === PageType.DRAW) {
-              await this.drawBookDrawPage(doc, rightPage.drawImageUrl, rightPage.number);
+              await this.drawBookDrawPage(
+                doc,
+                rightPage.drawImageUrl,
+                rightPage.number,
+              );
             }
             doc.restore();
           }
@@ -701,89 +724,301 @@ export class PdfService {
     });
   }
 
-  private async generateBookCoverPdf(bookId: string): Promise<Buffer> {
-    throw new BadRequestException('Método não implementado');
-  }
-
-  private async generateBookPagePdf(pageId: string): Promise<Buffer> {
-    const [bookId, pageNumberStr] = pageId.split('_');
-    if (!bookId || !pageNumberStr) {
-      throw new BadRequestException(
-        'Formato de pageId inválido. Use "bookId_pageNumber"',
-      );
-    }
-    const pageNumber = parseInt(pageNumberStr, 10);
-    if (isNaN(pageNumber)) {
-      throw new BadRequestException('Número da página inválido');
-    }
-
-    const page = await this.prisma.page.findUnique({
-      where: {
-        bookId_number: {
-          bookId,
-          number: pageNumber,
-        },
-      },
+  async generateBookCoverPdf(bookId: string): Promise<Buffer> {
+    const book = await this.prisma.book.findUnique({
+      where: { id: bookId },
       include: {
-        book: {
+        student: {
           include: {
-            student: true,
+            class: {
+              include: {
+                units: true,
+              },
+            },
           },
         },
+        pages: true,
       },
     });
 
-    if (!page) {
-      throw new NotFoundPdfPageException();
+    if (!book) throw new NotFoundBookException();
+
+    // 1. Find the cover page
+    const coverPage = book.pages.find((p) => p.type === PageType.COVER);
+    if (!coverPage) throw new NotFoundCoverException();
+
+    const coverImageUrl = coverPage.drawImageUrl;
+    if (!coverImageUrl) throw new BadRequestMissingCoverDrawingException();
+
+    // 2. Find the back cover page (for biography text and portrait photo)
+    const backCoverPage = book.pages.find(
+      (p) => p.type === PageType.BACK_COVER,
+    );
+    if (!backCoverPage) throw new NotFoundCoverException();
+
+    // Biography text comes from backCoverPage textContent and portrait image from backCoverPage drawImageUrl
+    const biographyText = backCoverPage.textContent;
+    if (!biographyText || !biographyText.trim())
+      throw new BadRequestMissingBiographyException();
+
+    const portraitImageUrl = backCoverPage.drawImageUrl;
+    if (!portraitImageUrl) throw new BadRequestMissingCoverDrawingException();
+
+    // 3. Load background template
+    // TODO: get the correct cover template based on the theme selected by the user
+    const templateBuffer = await this.bucketService.get(
+      'cover-templates/azul.pdf',
+    );
+
+    if (!templateBuffer || templateBuffer.length === 0)
+      throw new NotFoundCoverTemplateException();
+
+    const pdfDoc = await PdfLibDocument.load(templateBuffer);
+    const page = pdfDoc.getPages()[0]!;
+    const { height } = page.getSize();
+
+    const MM_TO_PT = 72 / 25.4;
+    const gapPt = 5 * MM_TO_PT;
+    const coverWidth = (page.getWidth() - gapPt) / 2;
+    const frontCoverCenterX = (coverWidth + gapPt + page.getWidth()) / 2;
+
+    // 4. Draw School Logo (Top center of front cover)
+    const schoolLogoUrl = book.student.class.units.logoUrl;
+    if (!schoolLogoUrl) throw new NotFoundLogoException();
+
+    try {
+      const logoKey = getKeyFromUrl(schoolLogoUrl);
+      const logoBuffer = await this.bucketService.get(logoKey);
+      console.log({ logoKey, logoBuffer });
+      if (!logoBuffer || logoBuffer.length === 0) {
+        throw new NotFoundLogoException();
+      }
+      const isPng =
+        logoBuffer[0] === 0x89 &&
+        logoBuffer[1] === 0x50 &&
+        logoBuffer[2] === 0x4e &&
+        logoBuffer[3] === 0x47;
+      const logoImage = isPng
+        ? await pdfDoc.embedPng(logoBuffer)
+        : await pdfDoc.embedJpg(logoBuffer);
+
+      const { width: logoImgW, height: logoImgH } = logoImage.scale(1);
+      const logoMaxWidth = 120;
+      const logoMaxHeight = 50;
+      const logoScale = Math.min(
+        logoMaxWidth / logoImgW,
+        logoMaxHeight / logoImgH,
+      );
+      const logoWidth = logoImgW * logoScale;
+      const logoHeight = logoImgH * logoScale;
+
+      const logoX = frontCoverCenterX - logoWidth / 2;
+      const logoY = height - 65 - logoHeight; // top = 65 pt
+
+      page.drawImage(logoImage, {
+        x: logoX,
+        y: logoY,
+        width: logoWidth,
+        height: logoHeight,
+      });
+    } catch (err) {
+      console.error('Failed to embed school logo:', err);
     }
 
-    return new Promise((resolve, reject) => {
-      const MM_TO_PT = 72 / 25.4;
-      const pageSize = 205 * MM_TO_PT;
+    // 5. Draw Cover Image inside the pre-existing white frame
+    // Inner frame: Left = 785.28 pt, Top = 181.44 pt, Width = 363.84 pt, Height = 322.08 pt
+    const coverImageKey = getKeyFromUrl(coverImageUrl);
+    const coverBuffer = await this.bucketService.get(coverImageKey);
+    if (!coverBuffer) throw new NotFoundCoverException();
 
-      const doc = new PDFDocument({
-        size: [pageSize, pageSize],
-        margins: {
-          top: 0,
-          bottom: 0,
-          left: 0,
-          right: 0,
-        },
-        autoFirstPage: false,
-        bufferPages: true,
-      });
+    const isCoverPng =
+      coverBuffer[0] === 0x89 &&
+      coverBuffer[1] === 0x50 &&
+      coverBuffer[2] === 0x4e &&
+      coverBuffer[3] === 0x47;
+    const coverImage = isCoverPng
+      ? await pdfDoc.embedPng(coverBuffer)
+      : await pdfDoc.embedJpg(coverBuffer);
 
-      const chunks: Buffer[] = [];
-      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
+    const { width: drawImgW, height: drawImgH } = coverImage.scale(1);
+    const coverMaxWidth = 363.84;
+    const coverMaxHeight = 322.08;
+    const coverScale = Math.min(
+      coverMaxWidth / drawImgW,
+      coverMaxHeight / drawImgH,
+    );
+    const drawWidth = drawImgW * coverScale;
+    const drawHeight = drawImgH * coverScale;
 
-      const render = async () => {
-        const title = page.book.title || 'Sem Título';
-        const author = page.book.author || page.book.student.name;
+    const drawX = 785.28 + (coverMaxWidth - drawWidth) / 2;
+    const drawY =
+      height - 181.44 - coverMaxHeight + (coverMaxHeight - drawHeight) / 2;
 
-        doc.addPage();
-        if (page.type === PageType.TEXT) {
-          this.drawBookTextPage(
-            doc,
-            title,
-            author,
-            page.textContent || '',
-            page.number,
-          );
-        } else if (page.type === PageType.DRAW) {
-          await this.drawBookDrawPage(doc, page.drawImageUrl, page.number);
-        } else {
-          doc
-            .font('Helvetica')
-            .fontSize(12)
-            .fillColor('#000000')
-            .text(`Página ${page.number}`, 40, 40);
-        }
-        doc.end();
-      };
-
-      render().catch(reject);
+    page.drawImage(coverImage, {
+      x: drawX,
+      y: drawY,
+      width: drawWidth,
+      height: drawHeight,
     });
+
+    // 6. Draw Student Portrait Photo (if available) inside pre-existing frame
+    // Tilted counter-clockwise. Rectangle 5: Left = 88.80 pt, Top = 217.44 pt, Width = 164.64 pt, Height = 233.76 pt
+    let hasPortrait = false;
+    try {
+      const portraitImageKey = getKeyFromUrl(portraitImageUrl);
+      const portraitBuffer = await this.bucketService.get(portraitImageKey);
+      if (!portraitBuffer) throw new BadRequestMissingCoverDrawingException();
+
+      const isPortraitPng =
+        portraitBuffer[0] === 0x89 &&
+        portraitBuffer[1] === 0x50 &&
+        portraitBuffer[2] === 0x4e &&
+        portraitBuffer[3] === 0x47;
+      const portraitImage = isPortraitPng
+        ? await pdfDoc.embedPng(portraitBuffer)
+        : await pdfDoc.embedJpg(portraitBuffer);
+
+      const photoWidth = 165;
+      const photoHeight = 235;
+      const photoX = 90;
+      const photoY = height - 217.44 - photoHeight;
+
+      page.drawImage(portraitImage, {
+        x: photoX,
+        y: photoY,
+        width: photoWidth,
+        height: photoHeight,
+      });
+      hasPortrait = true;
+    } catch (err) {
+      console.error('Failed to embed student portrait photo:', err);
+    }
+
+    // Embed fonts
+    const helveticaBold = await pdfDoc.embedFont('Helvetica-Bold');
+    const helvetica = await pdfDoc.embedFont('Helvetica');
+
+    // 7. Draw Biography Text
+    const bioFontSize = 11;
+    const bioLineHeight = 15;
+    const bioColor = rgb(31 / 255, 41 / 255, 55 / 255); // #1f2937
+
+    // Wrapping rules:
+    // Inner biography box starts at x = 174.24 pt, ends at 532.32 pt (width = 358.08 pt).
+    // Portrait photo occupies vertical space from top = 217.44 pt to 451.2 pt.
+    // If photo exists and current line y < 450 pt from top:
+    //   x_start = 265 pt, max_width = 267 pt
+    // Else:
+    //   x_start = 174.24 pt, max_width = 358.08 pt
+    const words = biographyText.split(/\s+/);
+    let currentY = 227; // top-down coordinate for text line top
+
+    let lineWords: string[] = [];
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i]!;
+      const isOverlappingPhoto = hasPortrait && currentY < 450;
+      const maxLineWidth = isOverlappingPhoto ? 267 : 358;
+
+      const testLine = [...lineWords, word].join(' ');
+      const testWidth = helvetica.widthOfTextAtSize(testLine, bioFontSize);
+
+      if (testWidth > maxLineWidth && lineWords.length > 0) {
+        const lineText = lineWords.join(' ');
+        const xStart = isOverlappingPhoto ? 265 : 174.24;
+        page.drawText(lineText, {
+          x: xStart,
+          y: height - currentY - bioFontSize,
+          size: bioFontSize,
+          font: helvetica,
+          color: bioColor,
+        });
+        currentY += bioLineHeight;
+        lineWords = [word];
+      } else {
+        lineWords.push(word);
+      }
+    }
+
+    if (lineWords.length > 0) {
+      const isOverlappingPhoto = hasPortrait && currentY < 450;
+      const xStart = isOverlappingPhoto ? 265 : 174.24;
+      page.drawText(lineWords.join(' '), {
+        x: xStart,
+        y: height - currentY - bioFontSize,
+        size: bioFontSize,
+        font: helvetica,
+        color: bioColor,
+      });
+    }
+
+    // 8. Draw Book Title, description, and Student Name (Bottom of front cover)
+    const titleText = book.title || 'Sem Título';
+    const titleFontSize = 20;
+    const titleY = height - 553.7 - titleFontSize;
+    const titleWidth = helveticaBold.widthOfTextAtSize(
+      titleText,
+      titleFontSize,
+    );
+
+    // Book title
+    page.drawText(titleText, {
+      x: frontCoverCenterX - titleWidth / 2,
+      y: titleY,
+      size: titleFontSize,
+      font: helveticaBold,
+      color: rgb(10 / 255, 58 / 255, 96 / 255), // #0a3a60
+    });
+
+    // "Texto e ilustração de"
+    const descText = 'Texto e ilustração de';
+    const descFontSize = 10;
+    const descY = height - 585 - descFontSize;
+    const descWidth = helvetica.widthOfTextAtSize(descText, descFontSize);
+    page.drawText(descText, {
+      x: frontCoverCenterX - descWidth / 2,
+      y: descY,
+      size: descFontSize,
+      font: helvetica,
+      color: rgb(10 / 255, 58 / 255, 96 / 255),
+    });
+
+    // Student Name
+    const nameText = (book.author || book.student.name).toUpperCase();
+    const nameFontSize = 14;
+    const nameY = height - 603 - nameFontSize;
+    const nameWidth = helveticaBold.widthOfTextAtSize(nameText, nameFontSize);
+    page.drawText(nameText, {
+      x: frontCoverCenterX - nameWidth / 2,
+      y: nameY,
+      size: nameFontSize,
+      font: helveticaBold,
+      color: rgb(10 / 255, 58 / 255, 96 / 255),
+    });
+
+    // 9. Draw magnificCode (Bottom of back cover)
+    const codeText = book.magnificCode;
+    const codeX = 501;
+    const codeY1 = height - 551 - 10;
+    const codeY2 = height - 566 - 11;
+
+    page.drawText('Código Magnífico', {
+      x: codeX,
+      y: codeY1,
+      size: 10,
+      font: helveticaBold,
+      color: rgb(31 / 255, 41 / 255, 55 / 255),
+    });
+
+    page.drawText(codeText.toUpperCase(), {
+      x: codeX,
+      y: codeY2,
+      size: 11,
+      font: helveticaBold,
+      color: rgb(31 / 255, 41 / 255, 55 / 255),
+    });
+
+    const pdfBytes = await pdfDoc.save();
+
+    return Buffer.from(pdfBytes);
   }
 }
