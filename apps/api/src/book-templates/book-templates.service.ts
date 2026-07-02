@@ -1,20 +1,80 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadGatewayException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
 import {
   type BookTemplateResponse,
+  type BookTemplateThemeResponse,
   type AuthUser,
   UserRole,
+  ErrorKeys,
 } from '@repo/shared';
 import { CreateBookTemplateDto } from './dto/create-book-template.dto.js';
 import { UpdateBookTemplateDto } from './dto/update-book-template.dto.js';
+import { CreateBookTemplateThemeDto } from './dto/create-book-template-theme.dto.js';
 import {
   ConflictRemoveUnitWithBooksException,
   ConflictChangePagesWithBooksException,
+  BookTemplateFirstPageMustBeCoverException,
+  BookTemplateLastPageMustBeBackCoverException,
+  BookTemplatePagesLengthInvalidException,
+  BookTemplatePagesSequentialException,
+  BookTemplateThemeRequiredException,
+  BookTemplateThemeNameRequiredException,
+  BookTemplateThemeColorRequiredException,
+  BookTemplateThemeFileRequiredException,
+  BookTemplateThemeNotFoundException,
 } from './book-templates.errors.js';
+import type { BucketService } from '../common/bucket/bucket.contract.js';
+import { getBookTemplateThemeCoverBucketKey } from '../common/bucket/bucket.utils.js';
+import { PageType } from '@prisma/client';
+import { HttpExceptionConstructor } from '../common/filters/http-exception.filter.js';
 
 @Injectable()
 export class BookTemplatesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject('BucketService')
+    private readonly bucketService: BucketService,
+  ) {}
+
+  private validateBookTemplatePages(
+    pages: { pageNumber: number; pageType: string }[],
+  ) {
+    const sortedPages = [...pages].sort((a, b) => a.pageNumber - b.pageNumber);
+
+    if (sortedPages.length === 0)
+      throw new BookTemplateFirstPageMustBeCoverException();
+
+    const firstPage = sortedPages[0];
+    if (
+      !firstPage ||
+      firstPage.pageNumber !== 0 ||
+      firstPage.pageType !== PageType.COVER
+    ) {
+      throw new BookTemplateFirstPageMustBeCoverException();
+    }
+
+    const lastPage = sortedPages[sortedPages.length - 1];
+    if (!lastPage || lastPage.pageType !== PageType.BACK_COVER) {
+      throw new BookTemplateLastPageMustBeBackCoverException();
+    }
+
+    const interiorLength = sortedPages.length - 2;
+    if (interiorLength < 0 || interiorLength % 4 !== 0) {
+      throw new BookTemplatePagesLengthInvalidException();
+    }
+
+    for (let i = 0; i < sortedPages.length; i++) {
+      const page = sortedPages[i];
+      if (!page || page.pageNumber !== i) {
+        throw new BookTemplatePagesSequentialException();
+      }
+    }
+  }
 
   private async getTemplatesBooksInfo(templateIds: string[]) {
     const classesWithBooks = await this.prisma.class.findMany({
@@ -75,11 +135,14 @@ export class BookTemplatesService {
         units: {
           select: { id: true },
         },
+        bookTemplateTheme: true,
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    const booksInfo = await this.getTemplatesBooksInfo(templates.map((t) => t.id));
+    const booksInfo = await this.getTemplatesBooksInfo(
+      templates.map((t) => t.id),
+    );
 
     const response: BookTemplateResponse[] = templates.map((t) => {
       const bookUnits = booksInfo.get(t.id) ?? new Set<string>();
@@ -96,6 +159,8 @@ export class BookTemplatesService {
         unitsWithBooks: Array.from(bookUnits),
         createdAt: t.createdAt,
         updatedAt: t.updatedAt,
+        bookTemplateThemeId: t.bookTemplateThemeId,
+        bookTemplateTheme: t.bookTemplateTheme,
       };
     });
 
@@ -103,11 +168,23 @@ export class BookTemplatesService {
   }
 
   async create(body: CreateBookTemplateDto): Promise<BookTemplateResponse> {
-    const { name, pages, units } = body;
+    const { name, pages, units, bookTemplateThemeId } = body;
+
+    if (!bookTemplateThemeId) {
+      throw new BookTemplateThemeRequiredException();
+    }
+
+    const themeExists = await this.prisma.bookTemplateTheme.findUnique({
+      where: { id: bookTemplateThemeId },
+    });
+    if (!themeExists) throw new BookTemplateThemeNotFoundException();
+
+    this.validateBookTemplatePages(pages);
 
     const template = await this.prisma.bookTemplate.create({
       data: {
         name,
+        bookTemplateThemeId,
         bookTemplatePages: {
           create: pages.map((p) => ({
             pageNumber: p.pageNumber,
@@ -127,6 +204,7 @@ export class BookTemplatesService {
         units: {
           select: { id: true },
         },
+        bookTemplateTheme: true,
       },
     });
 
@@ -143,6 +221,8 @@ export class BookTemplatesService {
       unitsWithBooks: [],
       createdAt: template.createdAt,
       updatedAt: template.updatedAt,
+      bookTemplateThemeId: template.bookTemplateThemeId,
+      bookTemplateTheme: template.bookTemplateTheme,
     };
   }
 
@@ -150,7 +230,7 @@ export class BookTemplatesService {
     id: string,
     body: UpdateBookTemplateDto,
   ): Promise<BookTemplateResponse> {
-    const { name, pages, units } = body;
+    const { name, pages, units, bookTemplateThemeId } = body;
 
     const template = await this.prisma.bookTemplate.findUnique({
       where: { id },
@@ -168,10 +248,19 @@ export class BookTemplatesService {
       throw new NotFoundException('Template não encontrado.');
     }
 
+    if (bookTemplateThemeId) {
+      const themeExists = await this.prisma.bookTemplateTheme.findUnique({
+        where: { id: bookTemplateThemeId },
+      });
+      if (!themeExists) throw new BookTemplateThemeNotFoundException();
+    }
+
     // Rule 2: Remove unit - when there is no book created in any class of the unit using the template in question
     if (units) {
       const currentUnitIds = template.units.map((u) => u.id);
-      const unitsToRemove = currentUnitIds.filter((uid) => !units.includes(uid));
+      const unitsToRemove = currentUnitIds.filter(
+        (uid) => !units.includes(uid),
+      );
 
       for (const unitId of unitsToRemove) {
         const bookExists = await this.prisma.book.findFirst({
@@ -193,6 +282,8 @@ export class BookTemplatesService {
 
     // Rule 3: Change template pages - when there are no books created in any class using the template of any unit associated with the template
     if (pages) {
+      this.validateBookTemplatePages(pages);
+
       const pagesChanged =
         template.bookTemplatePages.length !== pages.length ||
         template.bookTemplatePages.some((cp) => {
@@ -242,6 +333,7 @@ export class BookTemplatesService {
         where: { id },
         data: {
           name,
+          bookTemplateThemeId,
           units: unitUpdate,
         },
         include: {
@@ -251,6 +343,7 @@ export class BookTemplatesService {
           units: {
             select: { id: true },
           },
+          bookTemplateTheme: true,
         },
       });
     });
@@ -271,6 +364,58 @@ export class BookTemplatesService {
       unitsWithBooks: Array.from(bookUnits),
       createdAt: updatedTemplate.createdAt,
       updatedAt: updatedTemplate.updatedAt,
+      bookTemplateThemeId: updatedTemplate.bookTemplateThemeId,
+      bookTemplateTheme: updatedTemplate.bookTemplateTheme,
     };
+  }
+
+  async findAllThemes(): Promise<BookTemplateThemeResponse[]> {
+    return this.prisma.bookTemplateTheme.findMany({
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async createTheme(
+    body: CreateBookTemplateThemeDto,
+    file: Express.Multer.File,
+  ): Promise<BookTemplateThemeResponse> {
+    const { name, colorTheme } = body;
+
+    if (!name) {
+      throw new BookTemplateThemeNameRequiredException();
+    }
+    if (!colorTheme) {
+      throw new BookTemplateThemeColorRequiredException();
+    }
+    if (!file) {
+      throw new BookTemplateThemeFileRequiredException();
+    }
+
+    const theme = await this.prisma.bookTemplateTheme.create({
+      data: {
+        name,
+        colorTheme,
+      },
+    });
+
+    try {
+      const key = getBookTemplateThemeCoverBucketKey(theme.id);
+      const coverThemePdfUrl = await this.bucketService.upload({
+        key,
+        body: file.buffer,
+        contentType: file.mimetype,
+      });
+
+      return await this.prisma.bookTemplateTheme.update({
+        where: { id: theme.id },
+        data: { coverThemePdfUrl },
+      });
+    } catch (error) {
+      await this.prisma.bookTemplateTheme.delete({ where: { id: theme.id } });
+      throw new BadGatewayException({
+        key: ErrorKeys.BAD_GATEWAY_FAILED_TO_UPLOAD_BOOK_TEMPLATE_THEME_COVER,
+        message: 'Erro ao criar tema do template.',
+      } satisfies HttpExceptionConstructor);
+    }
   }
 }

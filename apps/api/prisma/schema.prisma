@@ -62,15 +62,16 @@ enum BookStatus {
 }
 
 model Book {
-  id           String  @id @default(cuid())
-  magnificCode String  @unique
-  title        String?
-  author       String?
-  synopsis     String?
-  pages        Page[]
-  pdfUrl       String?
-  priceId      String?
-  price        Price?  @relation(fields: [priceId], references: [id])
+  id             String  @id @default(cuid())
+  magnificCode   String  @unique
+  title          String?
+  author         String?
+  synopsis       String?
+  pages          Page[]
+  interiorPdfUrl String?
+  coverPdfUrl    String?
+  priceId        String?
+  price          Price?  @relation(fields: [priceId], references: [id])
 
   student   Student @relation(fields: [studentId], references: [id])
   studentId String
@@ -88,6 +89,18 @@ model Book {
   @@unique([studentId, authographsEventId])
 }
 
+model BookTemplateTheme {
+  id               String  @id @default(cuid())
+  name             String
+  coverThemePdfUrl String?
+  colorTheme       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookTemplates BookTemplate[]
+}
+
 model BookTemplate {
   id   String @id @default(cuid())
   name String
@@ -99,6 +112,9 @@ model BookTemplate {
 
   classes Class[]
   units   Unit[]  @relation("UnitBookTemplates")
+
+  bookTemplateTheme   BookTemplateTheme @relation(fields: [bookTemplateThemeId], references: [id])
+  bookTemplateThemeId String
 }
 
 model BookTemplatePage {

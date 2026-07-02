@@ -23,6 +23,11 @@ export class UpdateBookTemplateDto implements UpdateBookTemplateRequest {
   @IsNotEmpty({ each: true })
   units?: string[];
 
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  bookTemplateThemeId?: string;
+
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })

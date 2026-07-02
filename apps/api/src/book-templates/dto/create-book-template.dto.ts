@@ -29,6 +29,10 @@ export class CreateBookTemplateDto implements CreateBookTemplateRequest {
   @IsNotEmpty()
   name!: string;
 
+  @IsString()
+  @IsNotEmpty()
+  bookTemplateThemeId!: string;
+
   @IsOptional()
   @IsArray()
   @IsString({ each: true })

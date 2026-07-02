@@ -9,42 +9,47 @@ import {
   Plus,
   Trash2,
   X,
+  Palette,
+  FileText,
 } from 'lucide-react';
 import type {
+  BookPageType,
   BookTemplatePage,
   BookTemplateResponse,
   CreateBookTemplateRequest,
   UpdateBookTemplateRequest,
 } from '@repo/shared';
-import { BOOK_PAGE_TYPES } from '@repo/shared';
+import { BOOK_PAGE_TYPES, BookPageTypeEnum } from '@repo/shared';
 import {
   createBookTemplate,
   getBookTemplates,
   updateBookTemplate,
+  getBookTemplateThemes,
+  createBookTemplateTheme,
 } from '../services/book-templates-service';
 import { getSchoolUnits } from '../services/schools-service';
 import { getErrorMessage } from '../services/error-messages';
 
-const PAGE_TYPE_LABELS: Record<string, string> = {
-  COVER: 'Capa',
-  TEXT: 'Texto',
-  DRAW: 'Desenho',
-  DRAW_TEXT: 'Desenho + Texto',
-  BLANK: 'Em Branco',
-  PREFACE: 'Prefácio',
-  THANKS: 'Agradecimentos',
-  BACK_COVER: 'Contra-capa',
+const PAGE_TYPE_LABELS: Record<BookPageType, string> = {
+  [BookPageTypeEnum.COVER]: 'Capa',
+  [BookPageTypeEnum.TEXT]: 'Texto',
+  [BookPageTypeEnum.DRAW]: 'Desenho',
+  [BookPageTypeEnum.DRAW_TEXT]: 'Desenho + Texto',
+  [BookPageTypeEnum.BLANK]: 'Em Branco',
+  [BookPageTypeEnum.PREFACE]: 'Prefácio',
+  [BookPageTypeEnum.THANKS]: 'Agradecimentos',
+  [BookPageTypeEnum.BACK_COVER]: 'Contra-capa',
 };
 
-const PAGE_TYPE_COLORS: Record<string, string> = {
-  COVER: 'bg-violet-100 text-violet-700',
-  TEXT: 'bg-blue-100 text-blue-700',
-  DRAW: 'bg-green-100 text-green-700',
-  DRAW_TEXT: 'bg-teal-100 text-teal-700',
-  BLANK: 'bg-muted text-muted-foreground',
-  PREFACE: 'bg-orange-100 text-orange-700',
-  THANKS: 'bg-pink-100 text-pink-700',
-  BACK_COVER: 'bg-indigo-100 text-indigo-700',
+const PAGE_TYPE_COLORS: Record<BookPageType, string> = {
+  [BookPageTypeEnum.COVER]: 'bg-violet-100 text-violet-700',
+  [BookPageTypeEnum.TEXT]: 'bg-blue-100 text-blue-700',
+  [BookPageTypeEnum.DRAW]: 'bg-green-100 text-green-700',
+  [BookPageTypeEnum.DRAW_TEXT]: 'bg-teal-100 text-teal-700',
+  [BookPageTypeEnum.BLANK]: 'bg-muted text-muted-foreground',
+  [BookPageTypeEnum.PREFACE]: 'bg-orange-100 text-orange-700',
+  [BookPageTypeEnum.THANKS]: 'bg-pink-100 text-pink-700',
+  [BookPageTypeEnum.BACK_COVER]: 'bg-indigo-100 text-indigo-700',
 };
 
 function TemplateCard({
@@ -58,9 +63,10 @@ function TemplateCard({
 }) {
   const [expanded, setExpanded] = useState(false);
 
-  const unitNames = template.units
-    ?.map((uid) => allUnits.find((u) => u.id === uid)?.name)
-    .filter(Boolean) ?? [];
+  const unitNames =
+    template.units
+      ?.map((uid) => allUnits.find((u) => u.id === uid)?.name)
+      .filter(Boolean) ?? [];
 
   return (
     <div className='rounded-xl border border-border bg-card shadow-sm overflow-hidden'>
@@ -81,6 +87,32 @@ function TemplateCard({
               {template.pageCount} página
               {template.pageCount !== 1 ? 's' : ''}
             </p>
+            {template.bookTemplateTheme && (
+              <div className='flex items-center gap-1.5 mt-1'>
+                <span
+                  className='w-2.5 h-2.5 rounded-full border border-black/10 shrink-0'
+                  style={{
+                    backgroundColor:
+                      template.bookTemplateTheme.colorTheme || '#ccc',
+                  }}
+                />
+                <span className='text-xs text-muted-foreground font-medium truncate'>
+                  Tema: {template.bookTemplateTheme.name}
+                </span>
+                {template.bookTemplateTheme.coverThemePdfUrl && (
+                  <a
+                    href={template.bookTemplateTheme.coverThemePdfUrl}
+                    target='_blank'
+                    rel='noreferrer'
+                    onClick={(e) => e.stopPropagation()}
+                    className='text-[10px] text-primary hover:underline flex items-center gap-0.5 ml-2'
+                  >
+                    <FileText className='w-3 h-3' />
+                    PDF
+                  </a>
+                )}
+              </div>
+            )}
             {unitNames.length > 0 ? (
               <div className='flex flex-wrap gap-1 mt-1.5'>
                 {unitNames.map((name) => (
@@ -172,6 +204,15 @@ function TemplateCard({
 
 type NewPage = { pageNumber: number; pageType: string };
 
+const DEFAULT_INITIAL_PAGES: NewPage[] = [
+  { pageNumber: 0, pageType: BookPageTypeEnum.COVER },
+  { pageNumber: 1, pageType: BookPageTypeEnum.TEXT },
+  { pageNumber: 2, pageType: BookPageTypeEnum.DRAW },
+  { pageNumber: 3, pageType: BookPageTypeEnum.TEXT },
+  { pageNumber: 4, pageType: BookPageTypeEnum.DRAW },
+  { pageNumber: 5, pageType: BookPageTypeEnum.BACK_COVER },
+];
+
 function TemplatePanel({
   open,
   onClose,
@@ -182,10 +223,14 @@ function TemplatePanel({
   template?: BookTemplateResponse | null;
 }) {
   const [name, setName] = useState('');
-  const [pages, setPages] = useState<NewPage[]>([
-    { pageNumber: 1, pageType: 'COVER' },
-  ]);
+  const [pages, setPages] = useState<NewPage[]>(DEFAULT_INITIAL_PAGES);
   const [selectedUnits, setSelectedUnits] = useState<string[]>([]);
+  const [selectedThemeId, setSelectedThemeId] = useState('');
+  const [showCreateTheme, setShowCreateTheme] = useState(false);
+  const [newThemeName, setNewThemeName] = useState('');
+  const [newThemeColor, setNewThemeColor] = useState('#6366f1');
+  const [newThemeFile, setNewThemeFile] = useState<File | null>(null);
+  const [themeError, setThemeError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -194,12 +239,23 @@ function TemplatePanel({
     queryFn: getSchoolUnits,
   });
 
-  const allUnits = schools?.flatMap((school) =>
-    school.units.map((unit) => ({
-      id: unit.id,
-      name: `${school.name} - ${unit.name || 'Sem nome'}`,
-    })),
-  ) ?? [];
+  const { data: themes } = useQuery({
+    queryKey: ['book-templates-themes'],
+    queryFn: getBookTemplateThemes,
+    enabled: open,
+  });
+
+  const createThemeMutation = useMutation({
+    mutationFn: createBookTemplateTheme,
+  });
+
+  const allUnits =
+    schools?.flatMap((school) =>
+      school.units.map((unit) => ({
+        id: unit.id,
+        name: `${school.name} - ${unit.name || 'Sem nome'}`,
+      })),
+    ) ?? [];
 
   useEffect(() => {
     if (template) {
@@ -211,18 +267,31 @@ function TemplatePanel({
         })),
       );
       setSelectedUnits(template.units || []);
+      setSelectedThemeId(template.bookTemplateThemeId || '');
     } else {
       setName('');
-      setPages([{ pageNumber: 1, pageType: 'COVER' }]);
+      setPages(DEFAULT_INITIAL_PAGES);
       setSelectedUnits([]);
+      setSelectedThemeId('');
     }
+    setShowCreateTheme(false);
+    setNewThemeName('');
+    setNewThemeColor('#6366f1');
+    setNewThemeFile(null);
+    setThemeError(null);
     setFormError(null);
   }, [template, open]);
 
   const resetForm = () => {
     setName('');
-    setPages([{ pageNumber: 1, pageType: 'COVER' }]);
+    setPages(DEFAULT_INITIAL_PAGES);
     setSelectedUnits([]);
+    setSelectedThemeId('');
+    setShowCreateTheme(false);
+    setNewThemeName('');
+    setNewThemeColor('#6366f1');
+    setNewThemeFile(null);
+    setThemeError(null);
     setFormError(null);
   };
 
@@ -256,16 +325,23 @@ function TemplatePanel({
   });
 
   const addPage = () => {
-    const next = pages.length > 0 ? pages[pages.length - 1].pageNumber + 1 : 1;
-    setPages((prev) => [...prev, { pageNumber: next, pageType: 'TEXT' }]);
+    setPages((prev) => {
+      const newPages = [...prev];
+      const backCoverIndex = newPages.length - 1;
+      newPages.splice(backCoverIndex, 0, {
+        pageNumber: 0,
+        pageType: BookPageTypeEnum.TEXT,
+      });
+      return newPages.map((p, i) => ({ ...p, pageNumber: i }));
+    });
   };
 
   const removePage = (index: number) => {
-    setPages((prev) =>
-      prev
-        .filter((_, i) => i !== index)
-        .map((p, i) => ({ ...p, pageNumber: i + 1 })),
-    );
+    if (index === 0 || index === pages.length - 1) return;
+    setPages((prev) => {
+      const filtered = prev.filter((_, i) => i !== index);
+      return filtered.map((p, i) => ({ ...p, pageNumber: i }));
+    });
   };
 
   const updatePageType = (index: number, pageType: string) => {
@@ -274,7 +350,7 @@ function TemplatePanel({
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
@@ -287,10 +363,72 @@ function TemplatePanel({
       return;
     }
 
+    // Client-side page validations
+    if (pages[0].pageType !== BookPageTypeEnum.COVER) {
+      setFormError('A primeira página deve ser do tipo Capa.');
+      return;
+    }
+    if (pages[pages.length - 1].pageType !== BookPageTypeEnum.BACK_COVER) {
+      setFormError('A última página deve ser do tipo Contra-capa.');
+      return;
+    }
+    const interiorCount = pages.length - 2;
+    if (interiorCount < 0 || interiorCount % 4 !== 0) {
+      setFormError(
+        `O total de páginas internas (excluindo capa e contra-capa) deve ser múltiplo de 4. Atualmente há ${interiorCount} páginas internas.`,
+      );
+      return;
+    }
+
+    let themeIdToUse = selectedThemeId;
+
+    if (showCreateTheme) {
+      if (!newThemeName.trim()) {
+        setFormError('O nome do novo tema é obrigatório.');
+        return;
+      }
+      if (!newThemeColor.trim()) {
+        setFormError('A cor do novo tema é obrigatória.');
+        return;
+      }
+      if (!newThemeFile) {
+        setFormError('O PDF do tema é obrigatório.');
+        return;
+      }
+
+      try {
+        const formData = new FormData();
+        formData.append('name', newThemeName.trim());
+        formData.append('colorTheme', newThemeColor.trim());
+        formData.append('coverThemePdf', newThemeFile);
+
+        const newTheme = await createThemeMutation.mutateAsync(formData);
+        themeIdToUse = newTheme.id;
+        void queryClient.invalidateQueries({
+          queryKey: ['book-templates-themes'],
+        });
+
+        setShowCreateTheme(false);
+        setNewThemeName('');
+        setNewThemeColor('#6366f1');
+        setNewThemeFile(null);
+        setSelectedThemeId(newTheme.id);
+      } catch (err) {
+        setFormError(getErrorMessage(err) || 'Erro ao criar novo tema.');
+        return;
+      }
+    }
+
+    if (!themeIdToUse) {
+      setFormError('Selecione ou crie um tema para associar com o template.');
+      return;
+    }
+
     const payload = {
       name: name.trim(),
       pages: pages as BookTemplatePage[],
       units: selectedUnits,
+      bookTemplateThemeId: themeIdToUse,
     };
 
     if (template) {
@@ -300,7 +438,10 @@ function TemplatePanel({
     }
   };
 
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const isPending =
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    createThemeMutation.isPending;
 
   return (
     <AnimatePresence>
@@ -357,6 +498,126 @@ function TemplatePanel({
                     placeholder='Ex: Livro Infantil 20 páginas'
                     className='w-full px-3 py-2 rounded-lg border border-border bg-input-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm'
                   />
+                </div>
+
+                {/* Theme Selection */}
+                <div className='space-y-2'>
+                  <div className='flex items-center justify-between'>
+                    <label
+                      htmlFor='template-theme'
+                      className='block text-sm font-medium text-foreground'
+                    >
+                      Tema do Template
+                    </label>
+                    <button
+                      type='button'
+                      onClick={() => {
+                        setShowCreateTheme((prev) => !prev);
+                        setThemeError(null);
+                      }}
+                      className='text-xs text-primary font-medium hover:underline flex items-center gap-1'
+                    >
+                      <Palette className='w-3 h-3' />
+                      {showCreateTheme
+                        ? 'Selecionar existente'
+                        : '+ Criar Novo Tema'}
+                    </button>
+                  </div>
+
+                  {!showCreateTheme ? (
+                    <select
+                      id='template-theme'
+                      value={selectedThemeId}
+                      onChange={(e) => setSelectedThemeId(e.target.value)}
+                      className='w-full px-3 py-2 rounded-lg border border-border bg-input-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm'
+                    >
+                      <option value=''>Selecione um tema...</option>
+                      {themes?.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className='border border-border rounded-lg p-3.5 space-y-3 bg-muted/10'>
+                      <div className='flex items-center justify-between border-b border-border pb-1.5'>
+                        <h4 className='text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5'>
+                          <Palette className='w-3.5 h-3.5 text-primary' />
+                          Novo Tema
+                        </h4>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor='new-theme-name'
+                          className='block text-xs font-medium text-muted-foreground mb-1'
+                        >
+                          Nome do Tema
+                        </label>
+                        <input
+                          id='new-theme-name'
+                          type='text'
+                          value={newThemeName}
+                          onChange={(e) => setNewThemeName(e.target.value)}
+                          placeholder='Ex: Selva Mágica'
+                          className='w-full px-3 py-1.5 rounded-md border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-xs'
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor='new-theme-color'
+                          className='block text-xs font-medium text-muted-foreground mb-1'
+                        >
+                          Cor do Tema (Hexadecimal)
+                        </label>
+                        <div className='flex gap-2 items-center'>
+                          <input
+                            id='new-theme-color'
+                            type='text'
+                            value={newThemeColor}
+                            onChange={(e) => setNewThemeColor(e.target.value)}
+                            placeholder='Ex: #6366f1'
+                            className='flex-1 px-3 py-1.5 rounded-md border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-xs'
+                          />
+                          <input
+                            type='color'
+                            value={
+                              newThemeColor.startsWith('#') &&
+                              newThemeColor.length === 7
+                                ? newThemeColor
+                                : '#6366f1'
+                            }
+                            onChange={(e) => setNewThemeColor(e.target.value)}
+                            className='w-8 h-8 rounded border border-border cursor-pointer bg-transparent'
+                            aria-label='Seletor de cor do tema'
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor='new-theme-file'
+                          className='block text-xs font-medium text-muted-foreground mb-1'
+                        >
+                          PDF da Capa (.pdf)
+                        </label>
+                        <input
+                          id='new-theme-file'
+                          type='file'
+                          accept='.pdf'
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            setNewThemeFile(file);
+                          }}
+                          className='w-full text-xs text-muted-foreground file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer'
+                        />
+                      </div>
+                      {themeError && (
+                        <p className='text-xs text-destructive flex items-center gap-1 mt-1'>
+                          <AlertCircle className='w-3.5 h-3.5 shrink-0' />
+                          {themeError}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Units selection */}
@@ -434,40 +695,45 @@ function TemplatePanel({
                   )}
 
                   <div className='space-y-2'>
-                    {pages.map((page, idx) => (
-                      <div
-                        key={idx}
-                        className='flex items-center gap-2 p-2 rounded-lg border border-border bg-muted/30'
-                      >
-                        <span className='w-7 text-center text-xs font-mono text-muted-foreground shrink-0'>
-                          {page.pageNumber}
-                        </span>
-                        <select
-                          value={page.pageType}
-                          disabled={template?.hasBooks}
-                          onChange={(e) => updatePageType(idx, e.target.value)}
-                          className='flex-1 text-sm px-2 py-1.5 rounded-md border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-75 disabled:bg-muted/40'
-                          aria-label={`Tipo da página ${page.pageNumber}`}
+                    {pages.map((page, idx) => {
+                      const isFirstOrLast =
+                        idx === 0 || idx === pages.length - 1;
+                      return (
+                        <div
+                          key={idx}
+                          className='flex items-center gap-2 p-2 rounded-lg border border-border bg-muted/30'
                         >
-                          {BOOK_PAGE_TYPES.map((type) => (
-                            <option key={type} value={type}>
-                              {PAGE_TYPE_LABELS[type] ?? type}
-                            </option>
-                          ))}
-                        </select>
-                        {!template?.hasBooks && (
-                          <button
-                            type='button'
-                            onClick={() => removePage(idx)}
-                            disabled={pages.length <= 1}
-                            className='p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-30 disabled:cursor-not-allowed'
-                            aria-label={`Remover página ${page.pageNumber}`}
+                          <span className='w-7 text-center text-xs font-mono text-muted-foreground shrink-0'>
+                            {page.pageNumber}
+                          </span>
+                          <select
+                            value={page.pageType}
+                            disabled={template?.hasBooks || isFirstOrLast}
+                            onChange={(e) =>
+                              updatePageType(idx, e.target.value)
+                            }
+                            className='flex-1 text-sm px-2 py-1.5 rounded-md border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-75 disabled:bg-muted/40'
+                            aria-label={`Tipo da página ${page.pageNumber}`}
                           >
-                            <Trash2 className='w-4 h-4' />
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                            {BOOK_PAGE_TYPES.map((type) => (
+                              <option key={type} value={type}>
+                                {PAGE_TYPE_LABELS[type] ?? type}
+                              </option>
+                            ))}
+                          </select>
+                          {!template?.hasBooks && !isFirstOrLast && (
+                            <button
+                              type='button'
+                              onClick={() => removePage(idx)}
+                              className='p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors'
+                              aria-label={`Remover página ${page.pageNumber}`}
+                            >
+                              <Trash2 className='w-4 h-4' />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -504,9 +770,8 @@ function TemplatePanel({
 
 export function BookTemplatesPage() {
   const [panelOpen, setPanelOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<BookTemplateResponse | null>(
-    null,
-  );
+  const [editingTemplate, setEditingTemplate] =
+    useState<BookTemplateResponse | null>(null);
 
   const { data, isLoading, error } = useQuery<BookTemplateResponse[]>({
     queryKey: ['book-templates'],
@@ -521,12 +786,13 @@ export function BookTemplatesPage() {
     queryFn: getSchoolUnits,
   });
 
-  const allUnits = schools?.flatMap((school) =>
-    school.units.map((unit) => ({
-      id: unit.id,
-      name: `${school.name} - ${unit.name || 'Sem nome'}`,
-    })),
-  ) ?? [];
+  const allUnits =
+    schools?.flatMap((school) =>
+      school.units.map((unit) => ({
+        id: unit.id,
+        name: `${school.name} - ${unit.name || 'Sem nome'}`,
+      })),
+    ) ?? [];
 
   const templates = data ?? [];
 
@@ -616,4 +882,3 @@ export function BookTemplatesPage() {
     </main>
   );
 }
-

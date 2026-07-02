@@ -9,7 +9,18 @@ export const BOOK_PAGE_TYPES = [
   'BACK_COVER',
 ] as const;
 
-export type BookPageType = (typeof BOOK_PAGE_TYPES)[number];
+export enum BookPageTypeEnum {
+  COVER = 'COVER',
+  TEXT = 'TEXT',
+  DRAW = 'DRAW',
+  DRAW_TEXT = 'DRAW_TEXT',
+  BLANK = 'BLANK',
+  PREFACE = 'PREFACE',
+  THANKS = 'THANKS',
+  BACK_COVER = 'BACK_COVER',
+}
+
+export type BookPageType = keyof typeof BookPageTypeEnum;
 
 export enum BookStatusEnum {
   DRAFT = 'DRAFT',
@@ -58,7 +69,8 @@ export interface GetBooksListResponse {
     name: string | null;
     schoolName: string;
   };
-  pdfUrl: string | null;
+  coverPdfUrl: string | null;
+  interiorPdfUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -117,7 +129,8 @@ export interface GetBookDetailResponse {
     logoUrl: string | null;
   };
   pages: BookDetailPage[];
-  pdfUrl: string | null;
+  coverPdfUrl: string | null;
+  interiorPdfUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }

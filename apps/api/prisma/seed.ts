@@ -84,15 +84,35 @@ async function main() {
 
   console.log(`✅ ${prices.length} preços criados/atualizados`);
 
+  console.log('🎨 Criando tema padrão de template...');
+  const defaultTheme = await prisma.bookTemplateTheme.upsert({
+    where: { id: 'theme-default' },
+    update: {
+      name: 'Tema Padrão',
+      colorTheme: '#6366f1',
+      coverThemePdfUrl:
+        'https://pub-6d810a7ef2fe4536b448d0a5086ec6ab.r2.dev/cover-templates/theme-default.pdf',
+    },
+    create: {
+      id: 'theme-default',
+      name: 'Tema Padrão',
+      colorTheme: '#6366f1',
+      coverThemePdfUrl:
+        'https://pub-6d810a7ef2fe4536b448d0a5086ec6ab.r2.dev/cover-templates/theme-default.pdf',
+    },
+  });
+
   console.log('📑 Criando modelo padrão de turma...');
   const defaultClassBookTemplate = await prisma.bookTemplate.upsert({
     where: { id: DEFAULT_CLASS_BOOK_TEMPLATE_ID },
     update: {
       name: 'Modelo padrão de turma',
+      bookTemplateThemeId: defaultTheme.id,
     },
     create: {
       id: DEFAULT_CLASS_BOOK_TEMPLATE_ID,
       name: 'Modelo padrão de turma',
+      bookTemplateThemeId: defaultTheme.id,
     },
   });
 

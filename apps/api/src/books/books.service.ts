@@ -16,11 +16,13 @@ import { UserRole } from '@repo/shared/dist/types/user.js';
 import { BookStatus, PageStatus, PageType } from '@prisma/client';
 import { PdfService } from '../pdf/pdf.service.js';
 import {
+  getBookCoverBucketKey,
   getBookInteriorBucketKey,
   getOriginalPageUploadBucketPath,
   getProcessedPageUploadBucketPath,
 } from '../common/bucket/bucket.utils.js';
 import type { BucketService } from '../common/bucket/bucket.contract.js';
+import { NotFoundActiveEventForStudentException } from './books-scan.errors.js';
 
 @Injectable()
 export class BooksService {
@@ -50,7 +52,8 @@ export class BooksService {
         magnificCode: true,
         title: true,
         status: true,
-        pdfUrl: true,
+        coverPdfUrl: true,
+        interiorPdfUrl: true,
         createdAt: true,
         updatedAt: true,
         student: {
@@ -96,7 +99,8 @@ export class BooksService {
         name: book.student.class.units.name,
         schoolName: book.student.class.units.school.name,
       },
-      pdfUrl: book.pdfUrl,
+      coverPdfUrl: book.coverPdfUrl,
+      interiorPdfUrl: book.interiorPdfUrl,
       createdAt: book.createdAt.toISOString(),
       updatedAt: book.updatedAt.toISOString(),
     })) satisfies GetBooksListResponse[];
@@ -112,7 +116,8 @@ export class BooksService {
         author: true,
         synopsis: true,
         status: true,
-        pdfUrl: true,
+        coverPdfUrl: true,
+        interiorPdfUrl: true,
         createdAt: true,
         updatedAt: true,
         pages: {
@@ -194,7 +199,8 @@ export class BooksService {
         originalImageUrl: p.originalImageUrl,
         status: p.status as any,
       })),
-      pdfUrl: book.pdfUrl,
+      coverPdfUrl: book.coverPdfUrl,
+      interiorPdfUrl: book.interiorPdfUrl,
       createdAt: book.createdAt.toISOString(),
       updatedAt: book.updatedAt.toISOString(),
     } satisfies GetBookDetailResponse;
@@ -514,7 +520,7 @@ export class BooksService {
   async generateFinalBookPdf(
     bookId: string,
     user: AuthUser,
-  ): Promise<{ pdfUrl: string }> {
+  ): Promise<{ interiorPdfUrl: string; coverPdfUrl: string }> {
     const bookDetail = await this.prisma.book.findUnique({
       where: { id: bookId },
       select: {
@@ -557,31 +563,45 @@ export class BooksService {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (!activeEvent) throw new Error('Active event not found');
+    if (!activeEvent) throw new NotFoundActiveEventForStudentException();
 
-    const pdfBuffer = await this.pdfService.generateBookInteriorPdf(
-      bookId,
-      user,
-    );
+    const [interiorBookPdf, coverBookPdf] = await Promise.all([
+      this.pdfService.generateBookInteriorPdf(bookId, user),
+      this.pdfService.generateBookCoverPdf(bookId),
+    ]);
 
-    const key = getBookInteriorBucketKey({
+    const interiorBookKey = getBookInteriorBucketKey({
       eventId: activeEvent.id,
       unitId: bookDetail.student.class.unitId,
       studentId: bookDetail.student.id,
       bookId,
     });
 
-    const pdfUrl = await this.bucketService.upload({
-      key,
-      body: pdfBuffer,
-      contentType: 'application/pdf',
+    const coverBookKey = getBookCoverBucketKey({
+      unitId: bookDetail.student.class.unitId,
+      eventId: activeEvent.id,
+      studentId: bookDetail.student.id,
+      bookId,
     });
+
+    const [interiorPdfUrl, coverPdfUrl] = await Promise.all([
+      this.bucketService.upload({
+        key: interiorBookKey,
+        body: interiorBookPdf,
+        contentType: 'application/pdf',
+      }),
+      this.bucketService.upload({
+        key: coverBookKey,
+        body: coverBookPdf,
+        contentType: 'application/pdf',
+      }),
+    ]);
 
     await this.prisma.book.update({
       where: { id: bookId },
-      data: { pdfUrl },
+      data: { interiorPdfUrl, coverPdfUrl },
     });
 
-    return { pdfUrl };
+    return { interiorPdfUrl, coverPdfUrl };
   }
 }

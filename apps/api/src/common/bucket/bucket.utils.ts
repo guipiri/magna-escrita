@@ -79,3 +79,7 @@ export function getKeyFromUrl(url: string): string {
   const urlSplitted = url.split('/');
   return urlSplitted.slice(3).join('/');
 }
+
+export function getBookTemplateThemeCoverBucketKey(themeId: string): string {
+  return `cover-templates/${themeId}.pdf`;
+}

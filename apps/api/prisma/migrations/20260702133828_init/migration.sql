@@ -57,6 +57,8 @@ CREATE TABLE "Book" (
     "title" TEXT,
     "author" TEXT,
     "synopsis" TEXT,
+    "interiorPdfUrl" TEXT,
+    "coverPdfUrl" TEXT,
     "priceId" TEXT,
     "studentId" TEXT NOT NULL,
     "authographsEventId" TEXT NOT NULL,
@@ -68,11 +70,24 @@ CREATE TABLE "Book" (
 );
 
 -- CreateTable
+CREATE TABLE "BookTemplateTheme" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "coverThemePdfUrl" TEXT,
+    "colorTheme" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "BookTemplateTheme_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "BookTemplate" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "bookTemplateThemeId" TEXT NOT NULL,
 
     CONSTRAINT "BookTemplate_pkey" PRIMARY KEY ("id")
 );
@@ -255,6 +270,9 @@ ALTER TABLE "Book" ADD CONSTRAINT "Book_studentId_fkey" FOREIGN KEY ("studentId"
 
 -- AddForeignKey
 ALTER TABLE "Book" ADD CONSTRAINT "Book_authographsEventId_fkey" FOREIGN KEY ("authographsEventId") REFERENCES "AuthographsEvent"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "BookTemplate" ADD CONSTRAINT "BookTemplate_bookTemplateThemeId_fkey" FOREIGN KEY ("bookTemplateThemeId") REFERENCES "BookTemplateTheme"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "BookTemplatePage" ADD CONSTRAINT "BookTemplatePage_bookTemplateId_fkey" FOREIGN KEY ("bookTemplateId") REFERENCES "BookTemplate"("id") ON DELETE CASCADE ON UPDATE CASCADE;

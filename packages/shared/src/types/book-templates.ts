@@ -1,5 +1,14 @@
 import type { BookPageType } from './books';
 
+export interface BookTemplateThemeResponse {
+  id: string;
+  name: string;
+  coverThemePdfUrl: string | null;
+  colorTheme: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface BookTemplatePage {
   pageNumber: number;
   pageType: BookPageType;
@@ -9,6 +18,7 @@ export interface CreateBookTemplateRequest {
   name: string;
   units?: string[];
   pages: BookTemplatePage[];
+  bookTemplateThemeId: string;
 }
 
 export interface BookTemplateResponse {
@@ -21,10 +31,13 @@ export interface BookTemplateResponse {
   unitsWithBooks?: string[];
   createdAt?: Date;
   updatedAt?: Date;
+  bookTemplateThemeId: string;
+  bookTemplateTheme?: BookTemplateThemeResponse;
 }
 
 export interface UpdateBookTemplateRequest {
   name?: string;
   units?: string[];
   pages?: BookTemplatePage[];
+  bookTemplateThemeId?: string;
 }

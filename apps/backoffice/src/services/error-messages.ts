@@ -102,6 +102,15 @@ export const errorMessages: Record<ErrorKeys, string> = {
   INTERNAL_QR_CODE_RECOGNITION_FAILED: 'Erro na leitura do QR Code.',
   INTERNAL_CLOUDFLARE_GET_FILE_FAILED: 'Erro ao buscar arquivo no Cloudflare R2.',
 
+  BAD_REQUEST_BOOK_TEMPLATE_FIRST_PAGE_MUST_BE_COVER: 'A primeira página do template (Página 0) deve ser do tipo Capa.',
+  BAD_REQUEST_BOOK_TEMPLATE_LAST_PAGE_MUST_BE_BACK_COVER: 'A última página do template deve ser do tipo Contra-capa.',
+  BAD_REQUEST_BOOK_TEMPLATE_PAGES_COUNT_MUST_BE_MULTIPLE_OF_4: 'O número de páginas do miolo (excluindo capa e contra-capa) deve ser múltiplo de 4.',
+  BAD_REQUEST_BOOK_TEMPLATE_PAGES_NOT_SEQUENTIAL: 'As páginas do template devem ser sequenciais.',
+  BAD_REQUEST_BOOK_TEMPLATE_THEME_REQUIRED: 'O tema do template é obrigatório.',
+  BAD_REQUEST_BOOK_TEMPLATE_THEME_NAME_REQUIRED: 'O nome do tema é obrigatório.',
+  BAD_REQUEST_BOOK_TEMPLATE_THEME_COLOR_REQUIRED: 'A cor do tema é obrigatória.',
+  BAD_REQUEST_BOOK_TEMPLATE_THEME_FILE_REQUIRED: 'O PDF do tema é obrigatório.',
+
   UNKNOWN_ERROR: 'Ocorreu um erro desconhecido. Tente novamente mais tarde.',
 };
 

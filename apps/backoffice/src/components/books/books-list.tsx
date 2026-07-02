@@ -173,12 +173,15 @@ export function BooksList({ books }: BooksListProps) {
                     Ver livro
                   </DropdownMenuItem>
 
-                  {book.pdfUrl ? (
+                  {book.interiorPdfUrl && book.coverPdfUrl ? (
                     <DropdownMenuItem
-                      onClick={() => window.open(book.pdfUrl!, '_blank')}
+                      onClick={() => {
+                        window.open(book.interiorPdfUrl!, '_blank');
+                        window.open(book.coverPdfUrl!, '_blank');
+                      }}
                     >
                       <FileDown className='mr-2 h-4 w-4' />
-                      Baixar PDF
+                      Baixar PDFs
                     </DropdownMenuItem>
                   ) : (
                     <DropdownMenuItem
@@ -191,7 +194,7 @@ export function BooksList({ books }: BooksListProps) {
                       ) : (
                         <Sparkles className='mr-2 h-4 w-4' />
                       )}
-                      Gerar PDF
+                      Gerar PDFs
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
