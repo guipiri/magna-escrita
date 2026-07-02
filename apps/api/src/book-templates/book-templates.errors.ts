@@ -102,3 +102,12 @@ export class BookTemplateThemeNotFoundException extends NotFoundException {
     } satisfies HttpExceptionConstructor);
   }
 }
+
+export class BookTemplateInteriorCannotHaveCoversException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.BAD_REQUEST_BOOK_TEMPLATE_INTERIOR_CANNOT_HAVE_COVERS,
+      message: 'O miolo do livro não pode conter páginas do tipo Capa ou Contra-capa.',
+    } satisfies HttpExceptionConstructor);
+  }
+}

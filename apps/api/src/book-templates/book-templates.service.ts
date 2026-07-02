@@ -27,6 +27,7 @@ import {
   BookTemplateThemeColorRequiredException,
   BookTemplateThemeFileRequiredException,
   BookTemplateThemeNotFoundException,
+  BookTemplateInteriorCannotHaveCoversException,
 } from './book-templates.errors.js';
 import type { BucketService } from '../common/bucket/bucket.contract.js';
 import { getBookTemplateThemeCoverBucketKey } from '../common/bucket/bucket.utils.js';
@@ -72,6 +73,16 @@ export class BookTemplatesService {
       const page = sortedPages[i];
       if (!page || page.pageNumber !== i) {
         throw new BookTemplatePagesSequentialException();
+      }
+
+      // Do not allow COVER or BACK_COVER in interior pages
+      if (i > 0 && i < sortedPages.length - 1) {
+        if (
+          page.pageType === PageType.COVER ||
+          page.pageType === PageType.BACK_COVER
+        ) {
+          throw new BookTemplateInteriorCannotHaveCoversException();
+        }
       }
     }
   }

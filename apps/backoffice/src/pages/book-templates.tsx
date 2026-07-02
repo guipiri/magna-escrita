@@ -380,6 +380,19 @@ function TemplatePanel({
       return;
     }
 
+    // Verify intermediate pages do not contain COVER or BACK_COVER
+    for (let i = 1; i < pages.length - 1; i++) {
+      if (
+        pages[i].pageType === BookPageTypeEnum.COVER ||
+        pages[i].pageType === BookPageTypeEnum.BACK_COVER
+      ) {
+        setFormError(
+          'O miolo do livro não pode conter páginas do tipo Capa ou Contra-capa.',
+        );
+        return;
+      }
+    }
+
     let themeIdToUse = selectedThemeId;
 
     if (showCreateTheme) {
@@ -715,7 +728,13 @@ function TemplatePanel({
                             className='flex-1 text-sm px-2 py-1.5 rounded-md border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-75 disabled:bg-muted/40'
                             aria-label={`Tipo da página ${page.pageNumber}`}
                           >
-                            {BOOK_PAGE_TYPES.map((type) => (
+                            {BOOK_PAGE_TYPES.filter((type) => {
+                              if (isFirstOrLast) return true;
+                              return (
+                                type !== BookPageTypeEnum.COVER &&
+                                type !== BookPageTypeEnum.BACK_COVER
+                              );
+                            }).map((type) => (
                               <option key={type} value={type}>
                                 {PAGE_TYPE_LABELS[type] ?? type}
                               </option>
