@@ -52,6 +52,15 @@ export class BadRequestInvalidRoleForUserCreationException extends BadRequestExc
   }
 }
 
+export class BadRequestBookIsNotReadyException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.BAD_REQUEST_BOOK_NOT_READY_FOR_PDF_GENERATION,
+      message: 'Book is not ready for PDF generation',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
 export class ForbiddenUserNotAdminException extends ForbiddenException {
   constructor() {
     super({

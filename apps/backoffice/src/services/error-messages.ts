@@ -18,7 +18,8 @@ export const errorMessages: Record<ErrorKeys, string> = {
   FORBIDDEN_INSUFFICIENT_PERMISSIONS: 'Permissões insuficientes.',
   FORBIDDEN_BOOK_READY:
     'Este livro está finalizado (status Pronto). Usuários com perfil da escola não podem fazer modificações em livros finalizados.',
-  FORBIDDEN_USER_NOT_ADMIN: 'Apenas administradores têm permissão para realizar esta ação.',
+  FORBIDDEN_USER_NOT_ADMIN:
+    'Apenas administradores têm permissão para realizar esta ação.',
   NOT_FOUND_BOOK_NOT_FOUND: 'Livro não encontrado.',
   HTTP_ERROR: 'Ocorreu um erro na requisição.',
   INTERNAL_ERROR: 'Ocorreu um erro interno no servidor.',
@@ -46,7 +47,6 @@ export const errorMessages: Record<ErrorKeys, string> = {
   BAD_REQUEST_TIMELINE_PAST:
     'Nenhuma data modificada da timeline pode estar no passado.',
 
-
   UNAUTHORIZED_USER_NO_ACCESS_TO_UNIT:
     'Usuário não tem acesso à unidade selecionada.',
 
@@ -58,8 +58,7 @@ export const errorMessages: Record<ErrorKeys, string> = {
     'Perfil inválido para criação de usuário.',
   CONFLICT_EMAIL_ALREADY_EXISTS:
     'Já existe um usuário cadastrado com este e-mail.',
-  NOT_FOUND_USER:
-    'Usuário não encontrado.',
+  NOT_FOUND_USER: 'Usuário não encontrado.',
   BAD_REQUEST_CANNOT_DELETE_SELF:
     'Você não pode excluir sua própria conta de usuário.',
 
@@ -100,19 +99,30 @@ export const errorMessages: Record<ErrorKeys, string> = {
   INTERNAL_GEMINI_RECOGNITION_FAILED: 'Erro no reconhecimento de imagem.',
   INTERNAL_GOOGLE_CLOUD_VISION_RECOGNITION_FAILED: 'Erro no Google Vision.',
   INTERNAL_QR_CODE_RECOGNITION_FAILED: 'Erro na leitura do QR Code.',
-  INTERNAL_CLOUDFLARE_GET_FILE_FAILED: 'Erro ao buscar arquivo no Cloudflare R2.',
+  INTERNAL_CLOUDFLARE_GET_FILE_FAILED:
+    'Erro ao buscar arquivo no Cloudflare R2.',
 
-  BAD_REQUEST_BOOK_TEMPLATE_FIRST_PAGE_MUST_BE_COVER: 'A primeira página do template (Página 0) deve ser do tipo Capa.',
-  BAD_REQUEST_BOOK_TEMPLATE_LAST_PAGE_MUST_BE_BACK_COVER: 'A última página do template deve ser do tipo Contra-capa.',
-  BAD_REQUEST_BOOK_TEMPLATE_PAGES_COUNT_MUST_BE_MULTIPLE_OF_4: 'O número de páginas do miolo (excluindo capa e contra-capa) deve ser múltiplo de 4.',
-  BAD_REQUEST_BOOK_TEMPLATE_INTERIOR_CANNOT_HAVE_COVERS: 'O miolo do livro não pode conter páginas do tipo Capa ou Contra-capa.',
-  BAD_REQUEST_BOOK_TEMPLATE_PAGES_NOT_SEQUENTIAL: 'As páginas do template devem ser sequenciais.',
+  BAD_REQUEST_BOOK_TEMPLATE_FIRST_PAGE_MUST_BE_COVER:
+    'A primeira página do template (Página 0) deve ser do tipo Capa.',
+  BAD_REQUEST_BOOK_TEMPLATE_LAST_PAGE_MUST_BE_BACK_COVER:
+    'A última página do template deve ser do tipo Contra-capa.',
+  BAD_REQUEST_BOOK_TEMPLATE_PAGES_COUNT_MUST_BE_MULTIPLE_OF_4:
+    'O número de páginas do miolo (excluindo capa e contra-capa) deve ser múltiplo de 4.',
+  BAD_REQUEST_BOOK_TEMPLATE_INTERIOR_CANNOT_HAVE_COVERS:
+    'O miolo do livro não pode conter páginas do tipo Capa ou Contra-capa.',
+  BAD_REQUEST_BOOK_TEMPLATE_PAGES_NOT_SEQUENTIAL:
+    'As páginas do template devem ser sequenciais.',
   BAD_REQUEST_BOOK_TEMPLATE_THEME_REQUIRED: 'O tema do template é obrigatório.',
-  BAD_REQUEST_BOOK_TEMPLATE_THEME_NAME_REQUIRED: 'O nome do tema é obrigatório.',
-  BAD_REQUEST_BOOK_TEMPLATE_THEME_COLOR_REQUIRED: 'A cor do tema é obrigatória.',
+  BAD_REQUEST_BOOK_TEMPLATE_THEME_NAME_REQUIRED:
+    'O nome do tema é obrigatório.',
+  BAD_REQUEST_BOOK_TEMPLATE_THEME_COLOR_REQUIRED:
+    'A cor do tema é obrigatória.',
   BAD_REQUEST_BOOK_TEMPLATE_THEME_FILE_REQUIRED: 'O PDF do tema é obrigatório.',
+  BAD_REQUEST_BOOK_NOT_READY_FOR_PDF_GENERATION:
+    'O livro não está pronto para a geração do PDF.',
   NOT_FOUND_BOOK_TEMPLATE_THEME: 'Tema do template não encontrado.',
-  BAD_GATEWAY_FAILED_TO_UPLOAD_BOOK_TEMPLATE_THEME_COVER: 'Erro ao fazer upload do PDF da capa do tema.',
+  BAD_GATEWAY_FAILED_TO_UPLOAD_BOOK_TEMPLATE_THEME_COVER:
+    'Erro ao fazer upload do PDF da capa do tema.',
 
   UNKNOWN_ERROR: 'Ocorreu um erro desconhecido. Tente novamente mais tarde.',
 };

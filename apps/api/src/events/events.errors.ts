@@ -1,4 +1,8 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ErrorKeys } from '@repo/shared';
 import { HttpExceptionConstructor } from '../common/filters/http-exception.filter.js';
 
@@ -27,7 +31,8 @@ export class BadRequestTimelinePastException extends BadRequestException {
   constructor() {
     super({
       key: ErrorKeys.BAD_REQUEST_TIMELINE_PAST,
-      message: 'A data inicial da timeline não pode estar no passado. O evento mais antigo deve ser hoje ou no futuro.',
+      message:
+        'A data inicial da timeline não pode estar no passado. O evento mais antigo deve ser hoje ou no futuro.',
     } satisfies HttpExceptionConstructor);
   }
 }
@@ -45,8 +50,8 @@ export class ConflictEventWithExistingBooksException extends BadRequestException
   constructor() {
     super({
       key: ErrorKeys.CONFLICT_EVENT_WITH_EXISTING_BOOKS,
-      message: 'Não é possível alterar a unidade ou o ano letivo de um evento que já possui livros vinculados.',
+      message:
+        'Não é possível alterar a unidade ou o ano letivo de um evento que já possui livros vinculados.',
     } satisfies HttpExceptionConstructor);
   }
 }
-

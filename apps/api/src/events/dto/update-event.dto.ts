@@ -1,4 +1,12 @@
-import { IsDateString, IsEnum, IsNotEmpty, IsString, IsBoolean, IsArray, IsOptional } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  IsBoolean,
+  IsArray,
+  IsOptional,
+} from 'class-validator';
 import { UpdateEventRequest, SchoolYear } from '@repo/shared';
 import { AuthographsEventStatus } from '@prisma/client';
 

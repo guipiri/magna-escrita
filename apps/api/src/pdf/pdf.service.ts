@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, Inject } from '@nestjs/common';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
+import { Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
 import { AuthUser, UserRole } from '@repo/shared';
 import { AuthographsEventStatus, BookStatus, PageType } from '@prisma/client';
@@ -18,9 +22,15 @@ import {
   NotFoundCoverTemplateException,
   NotFoundLogoException,
 } from './pdf.errors.js';
-import { ForbiddenUserNotAdminException } from '../users/users.errors.js';
+import {
+  BadRequestBookIsNotReadyException,
+  ForbiddenUserNotAdminException,
+} from '../users/users.errors.js';
 import { getKeyFromUrl } from '../common/bucket/bucket.utils.js';
 import type { BucketService } from '../common/bucket/bucket.contract.js';
+
+const require = createRequire(import.meta.url);
+const fontkit = require('@pdf-lib/fontkit');
 
 const ELIGIBLE_PAGE_TYPES: PageType[] = [
   PageType.DRAW,
@@ -634,7 +644,7 @@ export class PdfService {
     ];
 
     if (forbiddenBookStatuses.includes(book.status)) {
-      throw new BadRequestException('Book is not ready for PDF generation');
+      throw new BadRequestBookIsNotReadyException();
     }
 
     const MM_TO_PT = 72 / 25.4;
@@ -733,6 +743,11 @@ export class PdfService {
             class: {
               include: {
                 units: true,
+                bookTemplate: {
+                  include: {
+                    bookTemplateTheme: true,
+                  },
+                },
               },
             },
           },
@@ -764,25 +779,67 @@ export class PdfService {
     const portraitImageUrl = backCoverPage.drawImageUrl;
     if (!portraitImageUrl) throw new BadRequestMissingCoverDrawingException();
 
+    const bookThemePdfKey = getKeyFromUrl(
+      book.student.class.bookTemplate.bookTemplateTheme.coverThemePdfUrl,
+    );
+
     // 3. Load background template
     // TODO: get the correct cover template based on the theme selected by the user
-    const templateBuffer = await this.bucketService.get(
-      'cover-templates/azul.pdf',
-    );
+    const templateBuffer = await this.bucketService.get(bookThemePdfKey);
 
     if (!templateBuffer || templateBuffer.length === 0)
       throw new NotFoundCoverTemplateException();
 
     const pdfDoc = await PdfLibDocument.load(templateBuffer);
+    pdfDoc.registerFontkit(fontkit);
     const page = pdfDoc.getPages()[0]!;
     const { height } = page.getSize();
 
-    const MM_TO_PT = 72 / 25.4;
-    const gapPt = 5 * MM_TO_PT;
-    const coverWidth = (page.getWidth() - gapPt) / 2;
-    const frontCoverCenterX = (coverWidth + gapPt + page.getWidth()) / 2;
+    // Setup helper to resolve fonts in ESM in both src/ and dist/
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const getFontPath = (fontName: string) => {
+      let fontPath = path.join(
+        __dirname,
+        '../../../../packages/shared/fonts',
+        fontName,
+      );
+      if (fs.existsSync(fontPath)) return fontPath;
 
-    // 4. Draw School Logo (Top center of front cover)
+      fontPath = path.join(
+        process.cwd(),
+        '../../packages/shared/fonts',
+        fontName,
+      );
+      if (fs.existsSync(fontPath)) return fontPath;
+
+      fontPath = path.join(process.cwd(), 'packages/shared/fonts', fontName);
+      if (fs.existsSync(fontPath)) return fontPath;
+
+      throw new Error(`Font file not found: ${fontName}`);
+    };
+
+    // Embed fonts
+    const semiboldFontBuffer = fs.readFileSync(
+      getFontPath('MyriadPro-Semibold.ttf'),
+    );
+    const regularFontBuffer = fs.readFileSync(
+      getFontPath('MyriadPro-Regular.ttf'),
+    );
+
+    const myriadSemibold = await pdfDoc.embedFont(semiboldFontBuffer, {
+      subset: true,
+    });
+    const myriadRegular = await pdfDoc.embedFont(regularFontBuffer, {
+      subset: true,
+    });
+    const helveticaBold = await pdfDoc.embedFont('Helvetica-Bold');
+
+    // Horizontal center based on the cover drawing frame (not the geometric center of the front cover)
+    // Cover Frame: Left = 785.28 pt, Width = 363.84 pt
+    const coverCenterX = 785.28 + 363.84 / 2; // 967.2 pt
+
+    // 4. Draw School Logo (Centered horizontally on cover drawing frame)
     const schoolLogoUrl = book.student.class.units.logoUrl;
     if (!schoolLogoUrl) throw new NotFoundLogoException();
 
@@ -812,7 +869,7 @@ export class PdfService {
       const logoWidth = logoImgW * logoScale;
       const logoHeight = logoImgH * logoScale;
 
-      const logoX = frontCoverCenterX - logoWidth / 2;
+      const logoX = coverCenterX - logoWidth / 2;
       const logoY = height - 65 - logoHeight; // top = 65 pt
 
       page.drawImage(logoImage, {
@@ -894,104 +951,120 @@ export class PdfService {
       console.error('Failed to embed student portrait photo:', err);
     }
 
-    // Embed fonts
-    const helveticaBold = await pdfDoc.embedFont('Helvetica-Bold');
-    const helvetica = await pdfDoc.embedFont('Helvetica');
-
-    // 7. Draw Biography Text
-    const bioFontSize = 11;
-    const bioLineHeight = 15;
+    // 7. Draw Biography Text (Myriad Pro Regular size between 14 and 20, depending on text length)
     const bioColor = rgb(31 / 255, 41 / 255, 55 / 255); // #1f2937
 
-    // Wrapping rules:
-    // Inner biography box starts at x = 174.24 pt, ends at 532.32 pt (width = 358.08 pt).
-    // Portrait photo occupies vertical space from top = 217.44 pt to 451.2 pt.
-    // If photo exists and current line y < 450 pt from top:
-    //   x_start = 265 pt, max_width = 267 pt
-    // Else:
-    //   x_start = 174.24 pt, max_width = 358.08 pt
-    const words = biographyText.split(/\s+/);
-    let currentY = 227; // top-down coordinate for text line top
+    // Wrapping rules helper to check if a font size fits
+    const getBioLayout = (fontSize: number) => {
+      const wordsList = biographyText.split(/\s+/);
+      const lineHeight = Math.round(fontSize * 1.35);
+      let testY = 227;
+      const lines: Array<{ text: string; x: number; y: number }> = [];
+      let lineWords: string[] = [];
 
-    let lineWords: string[] = [];
-    for (let i = 0; i < words.length; i++) {
-      const word = words[i]!;
-      const isOverlappingPhoto = hasPortrait && currentY < 450;
-      const maxLineWidth = isOverlappingPhoto ? 267 : 358;
+      for (let i = 0; i < wordsList.length; i++) {
+        const word = wordsList[i]!;
+        const isOverlappingPhoto = hasPortrait && testY < 450;
+        const maxLineWidth = isOverlappingPhoto ? 267 : 358;
 
-      const testLine = [...lineWords, word].join(' ');
-      const testWidth = helvetica.widthOfTextAtSize(testLine, bioFontSize);
+        const testLine = [...lineWords, word].join(' ');
+        const testWidth = myriadRegular.widthOfTextAtSize(testLine, fontSize);
 
-      if (testWidth > maxLineWidth && lineWords.length > 0) {
-        const lineText = lineWords.join(' ');
+        if (testWidth > maxLineWidth && lineWords.length > 0) {
+          const lineText = lineWords.join(' ');
+          const xStart = isOverlappingPhoto ? 265 : 174.24;
+          lines.push({
+            text: lineText,
+            x: xStart,
+            y: height - testY - fontSize,
+          });
+          testY += lineHeight;
+          lineWords = [word];
+        } else {
+          lineWords.push(word);
+        }
+      }
+
+      if (lineWords.length > 0) {
+        const isOverlappingPhoto = hasPortrait && testY < 450;
         const xStart = isOverlappingPhoto ? 265 : 174.24;
-        page.drawText(lineText, {
+        lines.push({
+          text: lineWords.join(' '),
           x: xStart,
-          y: height - currentY - bioFontSize,
-          size: bioFontSize,
-          font: helvetica,
-          color: bioColor,
+          y: height - testY - fontSize,
         });
-        currentY += bioLineHeight;
-        lineWords = [word];
-      } else {
-        lineWords.push(word);
+        testY += lineHeight;
+      }
+
+      return { lines, finalY: testY };
+    };
+
+    // Find the largest font size between 14 and 20 that fits without overlapping the magnific code (Y <= 540)
+    let chosenFontSize = 14;
+    let bioLayout = getBioLayout(chosenFontSize);
+
+    for (let size = 20; size >= 14; size--) {
+      const testLayout = getBioLayout(size);
+      if (testLayout.finalY <= 540) {
+        chosenFontSize = size;
+        bioLayout = testLayout;
+        break;
       }
     }
 
-    if (lineWords.length > 0) {
-      const isOverlappingPhoto = hasPortrait && currentY < 450;
-      const xStart = isOverlappingPhoto ? 265 : 174.24;
-      page.drawText(lineWords.join(' '), {
-        x: xStart,
-        y: height - currentY - bioFontSize,
-        size: bioFontSize,
-        font: helvetica,
+    // Draw the calculated biography lines
+    for (const line of bioLayout.lines) {
+      page.drawText(line.text, {
+        x: line.x,
+        y: line.y,
+        size: chosenFontSize,
+        font: myriadSemibold,
         color: bioColor,
       });
     }
 
     // 8. Draw Book Title, description, and Student Name (Bottom of front cover)
+    // Título da Obra - Myriad Pro Semi bold 24pt
     const titleText = book.title || 'Sem Título';
-    const titleFontSize = 20;
+    const titleFontSize = 24;
     const titleY = height - 553.7 - titleFontSize;
-    const titleWidth = helveticaBold.widthOfTextAtSize(
+    const titleWidth = myriadSemibold.widthOfTextAtSize(
       titleText,
       titleFontSize,
     );
 
     // Book title
     page.drawText(titleText, {
-      x: frontCoverCenterX - titleWidth / 2,
+      x: coverCenterX - titleWidth / 2,
       y: titleY,
       size: titleFontSize,
-      font: helveticaBold,
+      font: myriadSemibold,
       color: rgb(10 / 255, 58 / 255, 96 / 255), // #0a3a60
     });
 
-    // "Texto e ilustração de"
-    const descText = 'Texto e ilustração de';
-    const descFontSize = 10;
-    const descY = height - 585 - descFontSize;
-    const descWidth = helvetica.widthOfTextAtSize(descText, descFontSize);
-    page.drawText(descText, {
-      x: frontCoverCenterX - descWidth / 2,
-      y: descY,
-      size: descFontSize,
-      font: helvetica,
-      color: rgb(10 / 255, 58 / 255, 96 / 255),
-    });
+    // // "Texto e ilustração de"
+    // const descText = 'Texto e ilustração de';
+    // const descFontSize = 12;
+    // const descY = height - 585 - descFontSize;
+    // const descWidth = myriadRegular.widthOfTextAtSize(descText, descFontSize);
+    // page.drawText(descText, {
+    //   x: coverCenterX - descWidth / 2,
+    //   y: descY,
+    //   size: descFontSize,
+    //   font: myriadRegular,
+    //   color: rgb(10 / 255, 58 / 255, 96 / 255),
+    // });
 
-    // Student Name
+    // Nome do Autor - Myriad Pro Regular 22pt
     const nameText = (book.author || book.student.name).toUpperCase();
-    const nameFontSize = 14;
+    const nameFontSize = 22;
     const nameY = height - 603 - nameFontSize;
-    const nameWidth = helveticaBold.widthOfTextAtSize(nameText, nameFontSize);
+    const nameWidth = myriadRegular.widthOfTextAtSize(nameText, nameFontSize);
     page.drawText(nameText, {
-      x: frontCoverCenterX - nameWidth / 2,
+      x: coverCenterX - nameWidth / 2,
       y: nameY,
       size: nameFontSize,
-      font: helveticaBold,
+      font: myriadRegular,
       color: rgb(10 / 255, 58 / 255, 96 / 255),
     });
 

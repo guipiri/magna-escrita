@@ -18,7 +18,13 @@ import {
   UnauthorizedUserIsNotAdminException,
   UnauthorizedUserNoAccessToUnitException,
 } from '../schools/schools.errors.js';
-import { ConflictEventAlreadyActiveException, BadRequestTimelineOrderException, BadRequestTimelinePastException, NotFoundEventException, ConflictEventWithExistingBooksException } from './events.errors.js';
+import {
+  ConflictEventAlreadyActiveException,
+  BadRequestTimelineOrderException,
+  BadRequestTimelinePastException,
+  NotFoundEventException,
+  ConflictEventWithExistingBooksException,
+} from './events.errors.js';
 
 const TIMELINE_ORDER = [
   'Início do período para realização da atividade em sala de aula',
@@ -35,12 +41,29 @@ const TIMELINE_ORDER = [
 ];
 
 const DEFAULT_TIMELINE_TEMPLATES = [
-  { details: 'Início do período para realização da atividade em sala de aula', offsetDays: 70 },
-  { details: 'Prazo final para realização da atividade em sala de aula', offsetDays: 56 },
-  { details: 'Início do período para upload das folhas e revisão da escola na plataforma', offsetDays: 56 },
-  { details: 'Prazo final para upload das folhas e revisão da escola na plataforma', offsetDays: 42 },
+  {
+    details: 'Início do período para realização da atividade em sala de aula',
+    offsetDays: 70,
+  },
+  {
+    details: 'Prazo final para realização da atividade em sala de aula',
+    offsetDays: 56,
+  },
+  {
+    details:
+      'Início do período para upload das folhas e revisão da escola na plataforma',
+    offsetDays: 56,
+  },
+  {
+    details:
+      'Prazo final para upload das folhas e revisão da escola na plataforma',
+    offsetDays: 42,
+  },
   { details: 'Início da revisão da Magna', offsetDays: 42 },
-  { details: 'Prazo para Magna finalizar revisão dos livros na plataforma', offsetDays: 28 },
+  {
+    details: 'Prazo para Magna finalizar revisão dos livros na plataforma',
+    offsetDays: 28,
+  },
   { details: 'Início das vendas', offsetDays: 28 },
   { details: 'Fim das vendas', offsetDays: 14 },
   { details: 'Início da produção', offsetDays: 14 },
@@ -245,7 +268,10 @@ export class EventsService {
         where: {
           unitId: body.unitId,
           status: {
-            in: [AuthographsEventStatus.PLANNED, AuthographsEventStatus.ONGOING],
+            in: [
+              AuthographsEventStatus.PLANNED,
+              AuthographsEventStatus.ONGOING,
+            ],
           },
           id: { not: id },
         },
@@ -264,7 +290,10 @@ export class EventsService {
           where: {
             unitId: event.unitId,
             status: {
-              in: [AuthographsEventStatus.PLANNED, AuthographsEventStatus.ONGOING],
+              in: [
+                AuthographsEventStatus.PLANNED,
+                AuthographsEventStatus.ONGOING,
+              ],
             },
             id: { not: id },
           },
@@ -284,7 +313,7 @@ export class EventsService {
     const targetEventDate = body.date ? new Date(body.date) : event.date;
 
     const useDefaultTimeline =
-      body.useDefaultTimeline ?? (body.timelineDates === undefined);
+      body.useDefaultTimeline ?? body.timelineDates === undefined;
 
     let proposedTimelineDates: Date[] = [];
 
@@ -346,7 +375,7 @@ export class EventsService {
       };
     });
 
-    const updatedEvent = (await this.prisma.$transaction(async (tx) => {
+    const updatedEvent = await this.prisma.$transaction(async (tx) => {
       await tx.authographsEventTimeline.deleteMany({
         where: { eventId: id },
       });
@@ -365,7 +394,7 @@ export class EventsService {
         },
         include: eventInclude,
       });
-    })) as EventRecord;
+    });
 
     return this.serializeEvent(updatedEvent);
   }
@@ -409,4 +438,3 @@ export class EventsService {
     };
   }
 }
-

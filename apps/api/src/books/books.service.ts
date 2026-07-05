@@ -525,6 +525,7 @@ export class BooksService {
       where: { id: bookId },
       select: {
         id: true,
+        status: true,
         student: {
           select: {
             id: true,

@@ -1,4 +1,11 @@
-import { IsEmail, IsNotEmpty, IsEnum, IsArray, IsString, IsOptional } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsEnum,
+  IsArray,
+  IsString,
+  IsOptional,
+} from 'class-validator';
 import { CreateUserRequest, UserRole } from '@repo/shared';
 
 export class CreateUserDto implements CreateUserRequest {

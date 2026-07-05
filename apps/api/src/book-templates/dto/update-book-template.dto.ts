@@ -1,6 +1,4 @@
-import {
-  UpdateBookTemplateRequest,
-} from '@repo/shared';
+import { UpdateBookTemplateRequest } from '@repo/shared';
 import { Type } from 'class-transformer';
 import {
   IsArray,

@@ -3,7 +3,7 @@ import { PrismaService } from '../db/db.service.js';
 import type { ExtractDrawService } from './providers/extract-draw.service.js';
 import type { ExtractTextService } from './providers/extract-text.service.js';
 import type { ReadQrCodeService } from './providers/read-qr-code.service.js';
-import type{ BucketService } from '../common/bucket/bucket.contract.js';
+import type { BucketService } from '../common/bucket/bucket.contract.js';
 import {
   BadRequestBookTemplateMismatchException,
   BadRequestQrCodeNotReadableException,
@@ -188,38 +188,34 @@ export class BooksScanService {
       select: { id: true, pages: { select: { number: true } } },
     });
 
-    template.bookTemplatePages.forEach(async (p) => {
-      const pageTypesToCreateWithStatusReady: $Enums.PageType[] = [
-        $Enums.PageType.BLANK,
-        $Enums.PageType.PREFACE,
-        $Enums.PageType.THANKS,
-      ];
-      const status = pageTypesToCreateWithStatusReady.includes(p.pageType)
-        ? PageStatus.READY
-        : PageStatus.NOT_STARTED;
+    await Promise.all(
+      template.bookTemplatePages.map(async (p) => {
+        const pageTypesToCreateWithStatusReady: $Enums.PageType[] = [
+          $Enums.PageType.BLANK,
+          $Enums.PageType.PREFACE,
+          $Enums.PageType.THANKS,
+        ];
+        const status = pageTypesToCreateWithStatusReady.includes(p.pageType)
+          ? PageStatus.READY
+          : PageStatus.NOT_STARTED;
 
-      const pageStatusToIgnore: PageStatus[] = [
-        PageStatus.READY,
-        PageStatus.REVISED_BY_SCHOOL,
-      ];
-
-      await this.prisma.page.upsert({
-        where: {
-          bookId_number: {
+        await this.prisma.page.upsert({
+          where: {
+            bookId_number: {
+              bookId: book.id,
+              number: p.pageNumber,
+            },
+          },
+          create: {
             bookId: book.id,
             number: p.pageNumber,
+            type: p.pageType,
+            status,
           },
-          status: { notIn: pageStatusToIgnore },
-        },
-        create: {
-          bookId: book.id,
-          number: p.pageNumber,
-          type: p.pageType,
-          status,
-        },
-        update: {},
-      });
-    });
+          update: {},
+        });
+      }),
+    );
     console.debug('Book upserted:', book.id);
 
     // 6. Save the file to R2 before any processing to ensure we have the original image available in case of errors.

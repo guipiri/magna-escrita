@@ -406,6 +406,7 @@ export class BookTemplatesService {
       data: {
         name,
         colorTheme,
+        coverThemePdfUrl: '',
       },
     });
 

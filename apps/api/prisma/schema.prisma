@@ -90,10 +90,10 @@ model Book {
 }
 
 model BookTemplateTheme {
-  id               String  @id @default(cuid())
+  id               String @id @default(cuid())
   name             String
-  coverThemePdfUrl String?
-  colorTheme       String?
+  coverThemePdfUrl String
+  colorTheme       String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -26,7 +26,8 @@ export class BookTemplateFirstPageMustBeCoverException extends BadRequestExcepti
   constructor() {
     super({
       key: ErrorKeys.BAD_REQUEST_BOOK_TEMPLATE_FIRST_PAGE_MUST_BE_COVER,
-      message: 'A primeira página do template (Página 0) deve ser do tipo Capa.',
+      message:
+        'A primeira página do template (Página 0) deve ser do tipo Capa.',
     } satisfies HttpExceptionConstructor);
   }
 }
@@ -44,7 +45,8 @@ export class BookTemplatePagesLengthInvalidException extends BadRequestException
   constructor() {
     super({
       key: ErrorKeys.BAD_REQUEST_BOOK_TEMPLATE_PAGES_COUNT_MUST_BE_MULTIPLE_OF_4,
-      message: 'O número de páginas internas (excluindo capa e contra-capa) deve ser múltiplo de 4.',
+      message:
+        'O número de páginas internas (excluindo capa e contra-capa) deve ser múltiplo de 4.',
     } satisfies HttpExceptionConstructor);
   }
 }
@@ -107,7 +109,8 @@ export class BookTemplateInteriorCannotHaveCoversException extends BadRequestExc
   constructor() {
     super({
       key: ErrorKeys.BAD_REQUEST_BOOK_TEMPLATE_INTERIOR_CANNOT_HAVE_COVERS,
-      message: 'O miolo do livro não pode conter páginas do tipo Capa ou Contra-capa.',
+      message:
+        'O miolo do livro não pode conter páginas do tipo Capa ou Contra-capa.',
     } satisfies HttpExceptionConstructor);
   }
 }

@@ -1,4 +1,12 @@
-import { IsDateString, IsEnum, IsNotEmpty, IsString, IsBoolean, IsArray, IsOptional } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  IsBoolean,
+  IsArray,
+  IsOptional,
+} from 'class-validator';
 import { CreateEventRequest, SchoolYear } from '@repo/shared';
 
 export class CreateEventDto implements CreateEventRequest {
@@ -24,4 +32,3 @@ export class CreateEventDto implements CreateEventRequest {
   @IsDateString({}, { each: true })
   timelineDates?: string[];
 }
-

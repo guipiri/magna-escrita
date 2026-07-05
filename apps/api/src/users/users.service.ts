@@ -1,10 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
-import {
-  AuthUser,
-  UserListResponse,
-  UserRole,
-} from '@repo/shared';
+import { AuthUser, UserListResponse, UserRole } from '@repo/shared';
 import { Role } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
@@ -58,7 +54,10 @@ export class UsersService {
     }));
   }
 
-  async createUser(data: CreateUserDto, currentUser: AuthUser): Promise<UserListResponse> {
+  async createUser(
+    data: CreateUserDto,
+    currentUser: AuthUser,
+  ): Promise<UserListResponse> {
     const email = data.email.trim().toLowerCase();
 
     // 1. Check if email already exists
@@ -75,7 +74,10 @@ export class UsersService {
     }
 
     // 3. Validate units for SCHOOL role
-    if (data.role === UserRole.SCHOOL && (!data.unitIds || data.unitIds.length === 0)) {
+    if (
+      data.role === UserRole.SCHOOL &&
+      (!data.unitIds || data.unitIds.length === 0)
+    ) {
       throw new BadRequestSchoolUserWithoutUnitsException();
     }
 
@@ -89,13 +91,14 @@ export class UsersService {
         role: prismaRole,
         name: null,
         picture: null,
-        units: data.role === UserRole.SCHOOL && data.unitIds
-          ? {
-              create: data.unitIds.map((unitId) => ({
-                unitId,
-              })),
-            }
-          : undefined,
+        units:
+          data.role === UserRole.SCHOOL && data.unitIds
+            ? {
+                create: data.unitIds.map((unitId) => ({
+                  unitId,
+                })),
+              }
+            : undefined,
       },
       include: {
         units: {
@@ -159,7 +162,8 @@ export class UsersService {
     }
 
     if (newRole === UserRole.SCHOOL) {
-      const newUnitIds = data.unitIds ?? existingUser.units.map((u) => u.unitId);
+      const newUnitIds =
+        data.unitIds ?? existingUser.units.map((u) => u.unitId);
       if (!newUnitIds || newUnitIds.length === 0) {
         throw new BadRequestSchoolUserWithoutUnitsException();
       }
@@ -167,7 +171,10 @@ export class UsersService {
 
     const prismaRole = newRole === UserRole.ADMIN ? Role.ADMIN : Role.SCHOOL;
     let googleIdUpdate: string | undefined = undefined;
-    if (existingUser.googleId.startsWith('pending-') && email !== existingUser.email) {
+    if (
+      existingUser.googleId.startsWith('pending-') &&
+      email !== existingUser.email
+    ) {
       googleIdUpdate = `pending-${email}`;
     }
 
@@ -224,7 +231,10 @@ export class UsersService {
     };
   }
 
-  async deleteUser(id: string, currentUser: AuthUser): Promise<{ success: boolean }> {
+  async deleteUser(
+    id: string,
+    currentUser: AuthUser,
+  ): Promise<{ success: boolean }> {
     const existingUser = await this.prisma.user.findUnique({
       where: { id },
     });
