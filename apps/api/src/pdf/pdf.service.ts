@@ -58,6 +58,14 @@ const WRITING_LINE_HEIGHT = 34;
 // Number of writing lines rendered for DRAW_TEXT and TEXT pages.
 const TEXT_LINES_COUNT = 8;
 
+const parseHexToRgb = (hex: string) => {
+  const cleanHex = hex.replace('#', '');
+  const r = parseInt(cleanHex.substring(0, 2), 16) / 255;
+  const g = parseInt(cleanHex.substring(2, 4), 16) / 255;
+  const b = parseInt(cleanHex.substring(4, 6), 16) / 255;
+  return rgb(r, g, b);
+};
+
 @Injectable()
 export class PdfService {
   constructor(
@@ -65,6 +73,30 @@ export class PdfService {
     @Inject('BucketService')
     private readonly bucketService: BucketService,
   ) {}
+
+  private getFontPath(fontName: string): string {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+
+    let fontPath = path.join(
+      __dirname,
+      '../../../../packages/shared/fonts',
+      fontName,
+    );
+    if (fs.existsSync(fontPath)) return fontPath;
+
+    fontPath = path.join(
+      process.cwd(),
+      '../../packages/shared/fonts',
+      fontName,
+    );
+    if (fs.existsSync(fontPath)) return fontPath;
+
+    fontPath = path.join(process.cwd(), 'packages/shared/fonts', fontName);
+    if (fs.existsSync(fontPath)) return fontPath;
+
+    throw new Error(`Font file not found: ${fontName}`);
+  }
 
   async generateClassPdf(classId: string, user: AuthUser): Promise<Buffer> {
     // 1. Fetch the class with template pages, unit and school
@@ -431,12 +463,37 @@ export class PdfService {
     doc.restore();
   }
 
+  private drawPageNumber(
+    doc: InstanceType<typeof PDFDocument>,
+    pageNumber: number,
+    colorTheme: string,
+  ): void {
+    const MM_TO_PT = 72 / 25.4;
+    const pageSize = 205 * MM_TO_PT;
+    const bottomY = 190 * MM_TO_PT;
+    const textY = bottomY + 12;
+
+    doc.save();
+
+    doc
+      .font('MyriadPro-Semibold')
+      .fontSize(10)
+      .fillColor(colorTheme)
+      .text(pageNumber.toString(), 0, textY, {
+        align: 'center',
+        width: pageSize,
+      });
+
+    doc.restore();
+  }
+
   private drawBookTextPage(
     doc: InstanceType<typeof PDFDocument>,
     title: string,
     author: string,
     text: string,
     pageNumber: number,
+    colorTheme: string,
   ): void {
     const MM_TO_PT = 72 / 25.4;
     const pageSize = 205 * MM_TO_PT;
@@ -451,21 +508,21 @@ export class PdfService {
       .moveTo(startX, topY)
       .lineTo(endX, topY)
       .lineWidth(2)
-      .strokeColor('#0a3a60')
+      .strokeColor(colorTheme)
       .stroke();
 
     // Top Header Text (just below the top line)
     const headerY = topY + 10;
     doc
-      .font('Helvetica-Bold')
+      .font('MyriadPro-Semibold')
       .fontSize(12)
-      .fillColor('#0a3a60')
+      .fillColor(colorTheme)
       .text(title, startX, headerY, { lineBreak: false });
 
     doc
-      .font('Helvetica-Bold')
+      .font('MyriadPro-Semibold')
       .fontSize(12)
-      .fillColor('#0a3a60')
+      .fillColor(colorTheme)
       .text(author, startX, headerY, { align: 'right', width: lineLength });
 
     // Text Content
@@ -480,7 +537,7 @@ export class PdfService {
     const startY = contentTopY + (availableHeight - textHeight) / 2;
 
     doc
-      .font('Helvetica')
+      .font('MyriadPro')
       .fontSize(16)
       .fillColor('#1f2937')
       .text(text, 60, startY, {
@@ -494,35 +551,18 @@ export class PdfService {
       .moveTo(startX, bottomY)
       .lineTo(endX, bottomY)
       .lineWidth(2)
-      .strokeColor('#0a3a60')
+      .strokeColor(colorTheme)
       .stroke();
 
-    // Page Number Oval
-    const boxWidth = 32;
-    const boxHeight = 20;
-    const boxX = (pageSize - boxWidth) / 2;
-    const boxY = bottomY + (pageSize - bottomY - boxHeight) / 2;
-
-    doc
-      .roundedRect(boxX, boxY, boxWidth, boxHeight, 10)
-      .lineWidth(1)
-      .strokeColor('#0a3a60')
-      .stroke();
-
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(10)
-      .fillColor('#0a3a60')
-      .text(pageNumber.toString(), boxX, boxY + 5, {
-        align: 'center',
-        width: boxWidth,
-      });
+    // Page Number
+    this.drawPageNumber(doc, pageNumber, colorTheme);
   }
 
   private async drawBookDrawPage(
     doc: InstanceType<typeof PDFDocument>,
     drawImageUrl: string | null,
     pageNumber: number,
+    colorTheme: string,
   ): Promise<void> {
     const MM_TO_PT = 72 / 25.4;
     const pageSize = 205 * MM_TO_PT;
@@ -546,7 +586,7 @@ export class PdfService {
             `Failed to fetch image: status ${response.status} for URL ${drawImageUrl}`,
           );
           doc
-            .font('Helvetica')
+            .font('MyriadPro')
             .fontSize(14)
             .fillColor('#9ca3af')
             .text('Imagem não disponível', drawX, drawY + drawSize / 2 - 7, {
@@ -557,7 +597,7 @@ export class PdfService {
       } catch (error) {
         console.error('Failed to fetch/draw page image:', error);
         doc
-          .font('Helvetica')
+          .font('MyriadPro')
           .fontSize(14)
           .fillColor('#9ca3af')
           .text('Imagem não disponível', drawX, drawY + drawSize / 2 - 7, {
@@ -567,7 +607,7 @@ export class PdfService {
       }
     } else {
       doc
-        .font('Helvetica')
+        .font('MyriadPro')
         .fontSize(14)
         .fillColor('#9ca3af')
         .text('Sem desenho', drawX, drawY + drawSize / 2 - 7, {
@@ -580,7 +620,7 @@ export class PdfService {
     doc
       .save()
       .lineWidth(2)
-      .strokeColor('#0a3a60')
+      .strokeColor(colorTheme)
       .moveTo(drawX, drawY)
       .lineTo(drawX + drawSize, drawY)
       .moveTo(drawX, drawY + drawSize)
@@ -588,27 +628,64 @@ export class PdfService {
       .stroke()
       .restore();
 
-    // Page Number Oval
-    const boxWidth = 32;
-    const boxHeight = 20;
-    const boxX = (pageSize - boxWidth) / 2;
-    const boxY =
-      drawY + drawSize + (pageSize - (drawY + drawSize) - boxHeight) / 2;
+    // Page Number
+    this.drawPageNumber(doc, pageNumber, colorTheme);
+  }
 
+  private drawCropMarks(
+    doc: InstanceType<typeof PDFDocument>,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    MM_TO_PT: number,
+  ): void {
+    const offset = 2 * MM_TO_PT;
+    const length = 5 * MM_TO_PT;
+
+    doc.save().strokeColor('#000000').lineWidth(0.5);
+
+    // Top-Left Corner
     doc
-      .roundedRect(boxX, boxY, boxWidth, boxHeight, 10)
-      .lineWidth(1)
-      .strokeColor('#0a3a60')
+      .moveTo(x1 - offset, y1)
+      .lineTo(x1 - offset - length, y1)
+      .stroke();
+    doc
+      .moveTo(x1, y1 - offset)
+      .lineTo(x1, y1 - offset - length)
       .stroke();
 
+    // Top-Right Corner
     doc
-      .font('Helvetica-Bold')
-      .fontSize(10)
-      .fillColor('#0a3a60')
-      .text(pageNumber.toString(), boxX, boxY + 5, {
-        align: 'center',
-        width: boxWidth,
-      });
+      .moveTo(x2 + offset, y1)
+      .lineTo(x2 + offset + length, y1)
+      .stroke();
+    doc
+      .moveTo(x2, y1 - offset)
+      .lineTo(x2, y1 - offset - length)
+      .stroke();
+
+    // Bottom-Left Corner
+    doc
+      .moveTo(x1 - offset, y2)
+      .lineTo(x1 - offset - length, y2)
+      .stroke();
+    doc
+      .moveTo(x1, y2 + offset)
+      .lineTo(x1, y2 + offset + length)
+      .stroke();
+
+    // Bottom-Right Corner
+    doc
+      .moveTo(x2 + offset, y2)
+      .lineTo(x2 + offset + length, y2)
+      .stroke();
+    doc
+      .moveTo(x2, y2 + offset)
+      .lineTo(x2, y2 + offset + length)
+      .stroke();
+
+    doc.restore();
   }
 
   async generateBookInteriorPdf(
@@ -622,6 +699,7 @@ export class PdfService {
           include: {
             class: {
               include: {
+                bookTemplate: { include: { bookTemplateTheme: true } },
                 units: true,
               },
             },
@@ -648,10 +726,15 @@ export class PdfService {
     }
 
     const MM_TO_PT = 72 / 25.4;
-    const totalWidth = 415 * MM_TO_PT;
-    const totalHeight = 205 * MM_TO_PT;
+    const originalWidth = 415 * MM_TO_PT;
+    const originalHeight = 205 * MM_TO_PT;
+    const totalWidth = 430.6 * MM_TO_PT;
+    const totalHeight = 225.5 * MM_TO_PT;
     const squareSize = 205 * MM_TO_PT;
     const gap = 5 * MM_TO_PT;
+
+    const offsetX = (totalWidth - originalWidth) / 2;
+    const offsetY = (totalHeight - originalHeight) / 2;
 
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({
@@ -672,14 +755,31 @@ export class PdfService {
       doc.on('error', reject);
 
       const render = async () => {
+        // Register custom fonts on the doc (PDFDocument from pdfkit)
+        const regularFontPath = this.getFontPath('MyriadPro-Regular.ttf');
+        const semiboldFontPath = this.getFontPath('MyriadPro-Semibold.ttf');
+        doc.registerFont('MyriadPro', regularFontPath);
+        doc.registerFont('MyriadPro-Semibold', semiboldFontPath);
+
+        const colorTheme =
+          book.student.class.bookTemplate.bookTemplateTheme.colorTheme;
+
         const title = book.title || 'Sem Título';
         const author = book.author || book.student.name;
         const totalPages = book.pages.length;
         const half = Math.ceil(totalPages / 2);
 
         for (let i = 0; i < half; i++) {
-          const leftPage = book.pages[i];
-          const rightPage = book.pages[totalPages - 1 - i];
+          let leftPage: (typeof book.pages)[0] | undefined;
+          let rightPage: (typeof book.pages)[0] | undefined;
+          // Even pages are always on the left and odd pages are always on the right
+          if (i % 2 === 0) {
+            leftPage = book.pages[i];
+            rightPage = book.pages[totalPages - 1 - i];
+          } else {
+            leftPage = book.pages[totalPages - 1 - i];
+            rightPage = book.pages[i];
+          }
 
           if (!leftPage || !rightPage) continue;
 
@@ -701,7 +801,7 @@ export class PdfService {
           // Draw left page
           if (leftPage) {
             doc.save();
-            doc.translate(0, 0);
+            doc.translate(offsetX, offsetY);
             if (leftPage.type === PageType.TEXT) {
               this.drawBookTextPage(
                 doc,
@@ -709,12 +809,14 @@ export class PdfService {
                 author,
                 leftPage.textContent || '',
                 leftPage.number,
+                colorTheme,
               );
             } else if (leftPage.type === PageType.DRAW) {
               await this.drawBookDrawPage(
                 doc,
                 leftPage.drawImageUrl,
                 leftPage.number,
+                colorTheme,
               );
             }
             doc.restore();
@@ -723,7 +825,7 @@ export class PdfService {
           // Draw right page if not the same as left page
           if (rightPage && totalPages - 1 - i !== i) {
             doc.save();
-            doc.translate(squareSize + gap, 0);
+            doc.translate(offsetX + squareSize + gap, offsetY);
             if (rightPage.type === PageType.TEXT) {
               this.drawBookTextPage(
                 doc,
@@ -731,16 +833,28 @@ export class PdfService {
                 author,
                 rightPage.textContent || '',
                 rightPage.number,
+                colorTheme,
               );
             } else if (rightPage.type === PageType.DRAW) {
               await this.drawBookDrawPage(
                 doc,
                 rightPage.drawImageUrl,
                 rightPage.number,
+                colorTheme,
               );
             }
             doc.restore();
           }
+
+          // Draw crop marks for the outer boundary of the original size (415x205 mm)
+          this.drawCropMarks(
+            doc,
+            offsetX,
+            offsetY,
+            offsetX + originalWidth,
+            offsetY + originalHeight,
+            MM_TO_PT,
+          );
         }
         doc.end();
       };
@@ -810,36 +924,12 @@ export class PdfService {
     const page = pdfDoc.getPages()[0]!;
     const { height } = page.getSize();
 
-    // Setup helper to resolve fonts in ESM in both src/ and dist/
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-    const getFontPath = (fontName: string) => {
-      let fontPath = path.join(
-        __dirname,
-        '../../../../packages/shared/fonts',
-        fontName,
-      );
-      if (fs.existsSync(fontPath)) return fontPath;
-
-      fontPath = path.join(
-        process.cwd(),
-        '../../packages/shared/fonts',
-        fontName,
-      );
-      if (fs.existsSync(fontPath)) return fontPath;
-
-      fontPath = path.join(process.cwd(), 'packages/shared/fonts', fontName);
-      if (fs.existsSync(fontPath)) return fontPath;
-
-      throw new Error(`Font file not found: ${fontName}`);
-    };
-
-    // Embed fonts
+    // Embed fonts using class helper
     const semiboldFontBuffer = fs.readFileSync(
-      getFontPath('MyriadPro-Semibold.ttf'),
+      this.getFontPath('MyriadPro-Semibold.ttf'),
     );
     const regularFontBuffer = fs.readFileSync(
-      getFontPath('MyriadPro-Regular.ttf'),
+      this.getFontPath('MyriadPro-Regular.ttf'),
     );
 
     const myriadSemibold = await pdfDoc.embedFont(semiboldFontBuffer, {
@@ -848,7 +938,6 @@ export class PdfService {
     const myriadRegular = await pdfDoc.embedFont(regularFontBuffer, {
       subset: true,
     });
-    const helveticaBold = await pdfDoc.embedFont('Helvetica-Bold');
 
     // Horizontal center based on the cover drawing frame (not the geometric center of the front cover)
     // Cover Frame: Left = 785.28 pt, Width = 363.84 pt
@@ -957,8 +1046,9 @@ export class PdfService {
       const finalWidth = imgW * scale;
       const finalHeight = imgH * scale;
 
-      const photoX = 88.80 + (frameWidth - finalWidth) / 2;
-      const photoY = height - 217.44 - frameHeight + (frameHeight - finalHeight) / 2;
+      const photoX = 88.8 + (frameWidth - finalWidth) / 2;
+      const photoY =
+        height - 217.44 - frameHeight + (frameHeight - finalHeight) / 2;
 
       page.drawImage(portraitImage, {
         x: photoX,
@@ -1057,13 +1147,17 @@ export class PdfService {
       titleFontSize,
     );
 
+    const colorTheme =
+      book.student.class.bookTemplate.bookTemplateTheme.colorTheme;
+    const themeColorRgb = parseHexToRgb(colorTheme);
+
     // Book title
     page.drawText(titleText, {
       x: coverCenterX - titleWidth / 2,
       y: titleY,
       size: titleFontSize,
       font: myriadSemibold,
-      color: rgb(10 / 255, 58 / 255, 96 / 255), // #0a3a60
+      color: themeColorRgb,
     });
 
     // Nome do Autor - Myriad Pro Regular 22pt
@@ -1076,7 +1170,7 @@ export class PdfService {
       y: nameY,
       size: nameFontSize,
       font: myriadRegular,
-      color: rgb(10 / 255, 58 / 255, 96 / 255),
+      color: themeColorRgb,
     });
 
     // 9. Draw magnificCode (Bottom of back cover)
@@ -1089,7 +1183,7 @@ export class PdfService {
       x: codeX,
       y: codeY1,
       size: 10,
-      font: helveticaBold,
+      font: myriadSemibold,
       color: rgb(31 / 255, 41 / 255, 55 / 255),
     });
 
@@ -1097,7 +1191,7 @@ export class PdfService {
       x: codeX,
       y: codeY2,
       size: 11,
-      font: helveticaBold,
+      font: myriadSemibold,
       color: rgb(31 / 255, 41 / 255, 55 / 255),
     });
 
