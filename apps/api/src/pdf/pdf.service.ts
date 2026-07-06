@@ -681,6 +681,21 @@ export class PdfService {
           const leftPage = book.pages[i];
           const rightPage = book.pages[totalPages - 1 - i];
 
+          if (!leftPage || !rightPage) continue;
+
+          const notInteriorPageTypes: PageType[] = [
+            PageType.COVER,
+            PageType.BACK_COVER,
+            PageType.PREFACE,
+            PageType.THANKS,
+          ];
+
+          if (
+            notInteriorPageTypes.includes(leftPage.type) &&
+            notInteriorPageTypes.includes(rightPage.type)
+          )
+            continue;
+
           doc.addPage();
 
           // Draw left page
@@ -935,16 +950,21 @@ export class PdfService {
         ? await pdfDoc.embedPng(portraitBuffer)
         : await pdfDoc.embedJpg(portraitBuffer);
 
-      const photoWidth = 165;
-      const photoHeight = 235;
-      const photoX = 90;
-      const photoY = height - 217.44 - photoHeight;
+      const { width: imgW, height: imgH } = portraitImage.scale(1);
+      const frameWidth = 164.64;
+      const frameHeight = 233.76;
+      const scale = Math.min(frameWidth / imgW, frameHeight / imgH);
+      const finalWidth = imgW * scale;
+      const finalHeight = imgH * scale;
+
+      const photoX = 88.80 + (frameWidth - finalWidth) / 2;
+      const photoY = height - 217.44 - frameHeight + (frameHeight - finalHeight) / 2;
 
       page.drawImage(portraitImage, {
         x: photoX,
         y: photoY,
-        width: photoWidth,
-        height: photoHeight,
+        width: finalWidth,
+        height: finalHeight,
       });
       hasPortrait = true;
     } catch (err) {
@@ -965,10 +985,10 @@ export class PdfService {
       for (let i = 0; i < wordsList.length; i++) {
         const word = wordsList[i]!;
         const isOverlappingPhoto = hasPortrait && testY < 450;
-        const maxLineWidth = isOverlappingPhoto ? 267 : 358;
+        const maxLineWidth = isOverlappingPhoto ? 247 : 338;
 
         const testLine = [...lineWords, word].join(' ');
-        const testWidth = myriadRegular.widthOfTextAtSize(testLine, fontSize);
+        const testWidth = myriadSemibold.widthOfTextAtSize(testLine, fontSize);
 
         if (testWidth > maxLineWidth && lineWords.length > 0) {
           const lineText = lineWords.join(' ');
@@ -1003,7 +1023,7 @@ export class PdfService {
     let chosenFontSize = 14;
     let bioLayout = getBioLayout(chosenFontSize);
 
-    for (let size = 20; size >= 14; size--) {
+    for (let size = 18; size >= 14; size--) {
       const testLayout = getBioLayout(size);
       if (testLayout.finalY <= 540) {
         chosenFontSize = size;
@@ -1012,11 +1032,15 @@ export class PdfService {
       }
     }
 
+    const bioHeight = bioLayout.finalY - 227;
+    const targetStartY = Math.max(227, 334.32 - bioHeight / 2);
+    const yOffset = targetStartY - 227;
+
     // Draw the calculated biography lines
     for (const line of bioLayout.lines) {
       page.drawText(line.text, {
         x: line.x,
-        y: line.y,
+        y: line.y - yOffset,
         size: chosenFontSize,
         font: myriadSemibold,
         color: bioColor,
@@ -1042,23 +1066,10 @@ export class PdfService {
       color: rgb(10 / 255, 58 / 255, 96 / 255), // #0a3a60
     });
 
-    // // "Texto e ilustração de"
-    // const descText = 'Texto e ilustração de';
-    // const descFontSize = 12;
-    // const descY = height - 585 - descFontSize;
-    // const descWidth = myriadRegular.widthOfTextAtSize(descText, descFontSize);
-    // page.drawText(descText, {
-    //   x: coverCenterX - descWidth / 2,
-    //   y: descY,
-    //   size: descFontSize,
-    //   font: myriadRegular,
-    //   color: rgb(10 / 255, 58 / 255, 96 / 255),
-    // });
-
     // Nome do Autor - Myriad Pro Regular 22pt
     const nameText = (book.author || book.student.name).toUpperCase();
-    const nameFontSize = 22;
-    const nameY = height - 603 - nameFontSize;
+    const nameFontSize = 20;
+    const nameY = height - 590 - nameFontSize;
     const nameWidth = myriadRegular.widthOfTextAtSize(nameText, nameFontSize);
     page.drawText(nameText, {
       x: coverCenterX - nameWidth / 2,
@@ -1074,7 +1085,7 @@ export class PdfService {
     const codeY1 = height - 551 - 10;
     const codeY2 = height - 566 - 11;
 
-    page.drawText('Código Magnífico', {
+    page.drawText('Código', {
       x: codeX,
       y: codeY1,
       size: 10,

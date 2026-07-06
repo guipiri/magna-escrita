@@ -37,6 +37,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import { generateFinalBookPdf } from '../../services/books-service';
 import { getErrorMessage } from '../../services/error-messages';
+import { routes } from '../../main';
 
 interface BookStatusConfig {
   label: string;
@@ -167,36 +168,42 @@ export function BooksList({ books }: BooksListProps) {
                   onCloseAutoFocus={(e) => e.preventDefault()}
                 >
                   <DropdownMenuItem
-                    onClick={() => navigate(`/livros/${book.id}`)}
+                    onClick={() => navigate(`${routes.books.path}/${book.id}`)}
                   >
                     <Eye className='mr-2 h-4 w-4' />
                     Ver livro
                   </DropdownMenuItem>
 
-                  {book.interiorPdfUrl && book.coverPdfUrl ? (
+                  {book.interiorPdfUrl && (
                     <DropdownMenuItem
-                      onClick={() => {
-                        window.open(book.interiorPdfUrl!, '_blank');
-                        window.open(book.coverPdfUrl!, '_blank');
-                      }}
+                      onClick={() =>
+                        window.open(book.interiorPdfUrl!, '_blank')
+                      }
                     >
                       <FileDown className='mr-2 h-4 w-4' />
-                      Baixar PDFs
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem
-                      disabled={generatePdfMutation.isPending}
-                      onClick={() => generatePdfMutation.mutate(book.id)}
-                    >
-                      {generatePdfMutation.isPending &&
-                      generatePdfMutation.variables === book.id ? (
-                        <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                      ) : (
-                        <Sparkles className='mr-2 h-4 w-4' />
-                      )}
-                      Gerar PDFs
+                      Ver miolo (PDF)
                     </DropdownMenuItem>
                   )}
+                  {book.coverPdfUrl && (
+                    <DropdownMenuItem
+                      onClick={() => window.open(book.coverPdfUrl!, '_blank')}
+                    >
+                      <FileDown className='mr-2 h-4 w-4' />
+                      Ver capa (PDF)
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    disabled={generatePdfMutation.isPending}
+                    onClick={() => generatePdfMutation.mutate(book.id)}
+                  >
+                    {generatePdfMutation.isPending &&
+                    generatePdfMutation.variables === book.id ? (
+                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                    ) : (
+                      <Sparkles className='mr-2 h-4 w-4' />
+                    )}
+                    Gerar PDFs
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </DataListHeader>
@@ -264,7 +271,7 @@ export function BooksList({ books }: BooksListProps) {
                 <Button
                   variant='outline'
                   size='sm'
-                  onClick={() => navigate(`/livros/${book.id}`)}
+                  onClick={() => navigate(`${routes.books.path}/${book.id}`)}
                 >
                   <Eye className='h-4 w-4' />
                   Ver livro
