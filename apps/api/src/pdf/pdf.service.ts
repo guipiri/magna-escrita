@@ -632,6 +632,351 @@ export class PdfService {
     this.drawPageNumber(doc, pageNumber, colorTheme);
   }
 
+  private async drawBookPrefacePage(
+    doc: InstanceType<typeof PDFDocument>,
+    classRecord: any,
+    title: string,
+    author: string,
+    colorTheme: string,
+  ): Promise<void> {
+    const MM_TO_PT = 72 / 25.4;
+    const pageSize = 205 * MM_TO_PT;
+    const topY = 15 * MM_TO_PT;
+    const bottomY = 190 * MM_TO_PT;
+    const startX = 15 * MM_TO_PT;
+    const endX = 190 * MM_TO_PT;
+
+    // 1. Draw top & bottom lines
+    doc
+      .save()
+      .moveTo(startX, topY)
+      .lineTo(endX, topY)
+      .moveTo(startX, bottomY)
+      .lineTo(endX, bottomY)
+      .lineWidth(2)
+      .strokeColor(colorTheme)
+      .stroke()
+      .restore();
+
+    // 2. Draw School Logo
+    const schoolLogoUrl = classRecord.units?.logoUrl;
+    if (schoolLogoUrl) {
+      try {
+        const response = await globalThis.fetch(schoolLogoUrl);
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          const logoBuffer = Buffer.from(arrayBuffer);
+          
+          doc.image(logoBuffer, 0, topY + 10, {
+            fit: [pageSize, 50],
+            align: 'center',
+            valign: 'center',
+          });
+        }
+      } catch (err) {
+        console.error('Failed to draw school logo in preface page:', err);
+      }
+    }
+
+    // 3. Draw Text Genre
+    const genreText = classRecord.bookGenre || '';
+    const genreY = topY + 70;
+    doc
+      .font('MyriadPro-Semibold')
+      .fontSize(18)
+      .fillColor(colorTheme)
+      .text(genreText, 0, genreY, {
+        align: 'center',
+        width: pageSize,
+      });
+
+    // 4. Draw Explanation
+    const explanationText = classRecord.bookGenreExplanation || '';
+    const explanationY = genreY + 30;
+    doc
+      .font('MyriadPro')
+      .fontSize(12)
+      .fillColor('#1f2937')
+      .text(explanationText, 30, explanationY, {
+        align: 'center',
+        width: pageSize - 60,
+        lineGap: 4,
+      });
+
+    // 5. Draw Book Title
+    const titleY = bottomY - 110;
+    doc
+      .font('MyriadPro-Semibold')
+      .fontSize(22)
+      .fillColor('#1f2937')
+      .text(title, 0, titleY, {
+        align: 'center',
+        width: pageSize,
+      });
+
+    // 6. Draw Author
+    const authorRoleY = titleY + 35;
+    doc
+      .font('MyriadPro')
+      .fontSize(11)
+      .fillColor('#4b5563')
+      .text('Escrito e ilustrado por', 0, authorRoleY, {
+        align: 'center',
+        width: pageSize,
+      });
+
+    const authorNameY = authorRoleY + 15;
+    doc
+      .font('MyriadPro-Semibold')
+      .fontSize(12)
+      .fillColor(colorTheme)
+      .text(author.toUpperCase(), 0, authorNameY, {
+        align: 'center',
+        width: pageSize,
+      });
+
+    // 7. Draw Publisher Info
+    const pubY = bottomY - 35;
+    const magnaWidth = doc.font('MyriadPro-Semibold').fontSize(12).widthOfString('MAGNA');
+    const printiWidth = doc.font('MyriadPro-Semibold').fontSize(12).widthOfString(' PRINTI');
+    const totalPubWidth = magnaWidth + printiWidth;
+    const pubX = (pageSize - totalPubWidth) / 2;
+
+    doc
+      .font('MyriadPro-Semibold')
+      .fontSize(12)
+      .fillColor('#b91c1c')
+      .text('MAGNA', pubX, pubY, { lineBreak: false })
+      .fillColor('#4b5563')
+      .text(' PRINTI');
+
+    doc
+      .font('MyriadPro')
+      .fontSize(7)
+      .fillColor('#9ca3af')
+      .text('conveniência gráfica', 0, pubY + 14, {
+        align: 'center',
+        width: pageSize,
+      });
+
+    const yearText = classRecord.schoolYear === 'YEAR_2026' ? '2026' : '2027';
+    doc
+      .font('MyriadPro-Semibold')
+      .fontSize(8)
+      .fillColor('#4b5563')
+      .text(yearText, 0, pubY + 23, {
+        align: 'center',
+        width: pageSize,
+      });
+  }
+
+  private async drawBookThanksPage(
+    doc: InstanceType<typeof PDFDocument>,
+    classRecord: any,
+    pageNumber: number,
+    colorTheme: string,
+  ): Promise<void> {
+    const MM_TO_PT = 72 / 25.4;
+    const pageSize = 205 * MM_TO_PT;
+    const topY = 15 * MM_TO_PT;
+    const bottomY = 190 * MM_TO_PT;
+    const startX = 15 * MM_TO_PT;
+    const endX = 190 * MM_TO_PT;
+
+    // 1. Draw top & bottom lines
+    doc
+      .save()
+      .moveTo(startX, topY)
+      .lineTo(endX, topY)
+      .moveTo(startX, bottomY)
+      .lineTo(endX, bottomY)
+      .lineWidth(2)
+      .strokeColor(colorTheme)
+      .stroke()
+      .restore();
+
+    // 2. Draw School Logo
+    const schoolLogoUrl = classRecord.units?.logoUrl;
+    if (schoolLogoUrl) {
+      try {
+        const response = await globalThis.fetch(schoolLogoUrl);
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          const logoBuffer = Buffer.from(arrayBuffer);
+          doc.image(logoBuffer, 0, topY + 10, {
+            fit: [pageSize, 50],
+            align: 'center',
+            valign: 'center',
+          });
+        }
+      } catch (err) {
+        console.error('Failed to draw school logo in thanks page:', err);
+      }
+    }
+
+    // 3. Draw School Message if present
+    const schoolMsgText = classRecord.schoolMessage || '';
+    const schoolMsgY = topY + 65;
+    let schoolMsgHeight = 0;
+    if (schoolMsgText) {
+      doc
+        .font('MyriadPro')
+        .fontSize(11)
+        .fillColor('#1f2937')
+        .text(schoolMsgText, 30, schoolMsgY, {
+          align: 'center',
+          width: pageSize - 60,
+          lineGap: 4,
+        });
+      schoolMsgHeight = doc.heightOfString(schoolMsgText, {
+        width: pageSize - 60,
+        lineGap: 4,
+      }) + 15;
+    }
+
+    // 4. Draw Title: "Agradecimentos"
+    const titleY = schoolMsgY + schoolMsgHeight;
+    doc
+      .font('MyriadPro-Semibold')
+      .fontSize(18)
+      .fillColor(colorTheme)
+      .text('Agradecimentos', 0, titleY, {
+        align: 'center',
+        width: pageSize,
+      });
+
+    // 5. Draw Thanks Message
+    const thanksText = classRecord.thanksMessage || '';
+    const thanksY = titleY + 30;
+    doc
+      .font('MyriadPro')
+      .fontSize(11)
+      .fillColor('#1f2937')
+      .text(thanksText, 30, thanksY, {
+        align: 'center',
+        width: pageSize - 60,
+        lineGap: 4,
+      });
+
+    const thanksHeight = doc.heightOfString(thanksText, {
+      width: pageSize - 60,
+      lineGap: 4,
+    });
+
+    // 6. Draw School Team (Staff List)
+    const staffStartY = thanksY + thanksHeight + 20;
+    const staffLines = (classRecord.schoolTeam || '')
+      .split('\n')
+      .map((line: string) => line.trim())
+      .filter((line: string) => line.length > 0);
+
+    const staffItems: { role: string; name: string }[] = [];
+    for (const line of staffLines) {
+      const parts = line.split(':');
+      if (parts.length >= 2) {
+        staffItems.push({
+          role: parts[0].trim(),
+          name: parts.slice(1).join(':').trim(),
+        });
+      } else {
+        staffItems.push({
+          role: '',
+          name: line.trim(),
+        });
+      }
+    }
+
+    const leftColX = 30;
+    const rightColX = pageSize / 2 + 10;
+    const colWidth = pageSize / 2 - 40;
+
+    const hasCenterItem = staffItems.length % 2 !== 0;
+    const sideItemsCount = hasCenterItem ? staffItems.length - 1 : staffItems.length;
+
+    let leftY = staffStartY;
+    let rightY = staffStartY;
+
+    for (let idx = 0; idx < sideItemsCount; idx++) {
+      const item = staffItems[idx]!;
+      const isLeft = idx % 2 === 0;
+      const x = isLeft ? leftColX : rightColX;
+      const y = isLeft ? leftY : rightY;
+
+      if (item.role) {
+        doc
+          .font('MyriadPro-Semibold')
+          .fontSize(9)
+          .fillColor(colorTheme)
+          .text(item.role, x, y, { align: 'left', width: colWidth });
+        doc
+          .font('MyriadPro')
+          .fontSize(9)
+          .fillColor('#1f2937')
+          .text(item.name, x, y + 11, { align: 'left', width: colWidth });
+      } else {
+        doc
+          .font('MyriadPro')
+          .fontSize(9)
+          .fillColor('#1f2937')
+          .text(item.name, x, y, { align: 'left', width: colWidth });
+      }
+
+      if (isLeft) {
+        leftY += 28;
+      } else {
+        rightY += 28;
+      }
+    }
+
+    let finalStaffY = Math.max(leftY, rightY);
+
+    if (hasCenterItem) {
+      const lastItem = staffItems[staffItems.length - 1]!;
+      const y = finalStaffY + 5;
+      if (lastItem.role) {
+        doc
+          .font('MyriadPro-Semibold')
+          .fontSize(9)
+          .fillColor(colorTheme)
+          .text(lastItem.role, 0, y, { align: 'center', width: pageSize });
+        doc
+          .font('MyriadPro')
+          .fontSize(9)
+          .fillColor('#1f2937')
+          .text(lastItem.name, 0, y + 11, { align: 'center', width: pageSize });
+      } else {
+        doc
+          .font('MyriadPro')
+          .fontSize(9)
+          .fillColor('#1f2937')
+          .text(lastItem.name, 0, y, { align: 'center', width: pageSize });
+      }
+    }
+
+    // 6. Draw Page Number Pill
+    const pillY = bottomY + 12;
+    const pageNumText = pageNumber.toString();
+
+    doc.save();
+    // Draw pill border
+    doc
+      .roundedRect(pageSize / 2 - 18, pillY - 4, 36, 16, 8)
+      .lineWidth(0.5)
+      .strokeColor('#d1d5db')
+      .stroke();
+
+    // Draw text inside pill
+    doc
+      .font('MyriadPro-Semibold')
+      .fontSize(9)
+      .fillColor(colorTheme)
+      .text(pageNumText, 0, pillY, {
+        align: 'center',
+        width: pageSize,
+      });
+    doc.restore();
+  }
+
   private drawCropMarks(
     doc: InstanceType<typeof PDFDocument>,
     x1: number,
@@ -786,8 +1131,6 @@ export class PdfService {
           const notInteriorPageTypes: PageType[] = [
             PageType.COVER,
             PageType.BACK_COVER,
-            PageType.PREFACE,
-            PageType.THANKS,
           ];
 
           if (
@@ -818,6 +1161,21 @@ export class PdfService {
                 leftPage.number,
                 colorTheme,
               );
+            } else if (leftPage.type === PageType.PREFACE) {
+              await this.drawBookPrefacePage(
+                doc,
+                book.student.class,
+                title,
+                author,
+                colorTheme,
+              );
+            } else if (leftPage.type === PageType.THANKS) {
+              await this.drawBookThanksPage(
+                doc,
+                book.student.class,
+                leftPage.number,
+                colorTheme,
+              );
             }
             doc.restore();
           }
@@ -839,6 +1197,21 @@ export class PdfService {
               await this.drawBookDrawPage(
                 doc,
                 rightPage.drawImageUrl,
+                rightPage.number,
+                colorTheme,
+              );
+            } else if (rightPage.type === PageType.PREFACE) {
+              await this.drawBookPrefacePage(
+                doc,
+                book.student.class,
+                title,
+                author,
+                colorTheme,
+              );
+            } else if (rightPage.type === PageType.THANKS) {
+              await this.drawBookThanksPage(
+                doc,
+                book.student.class,
                 rightPage.number,
                 colorTheme,
               );

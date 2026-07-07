@@ -121,6 +121,11 @@ export interface GetBookDetailResponse {
     id: string;
     name: string;
     schoolYear: string;
+    bookGenre?: string | null;
+    bookGenreExplanation?: string | null;
+    thanksMessage?: string | null;
+    schoolMessage?: string | null;
+    schoolTeam?: string | null;
   };
   unit: {
     id: string;
@@ -138,4 +143,9 @@ export interface GetBookDetailResponse {
 export interface UpdatePageRequest {
   textContent?: string | null;
   status?: PageStatus;
+  bookGenre?: string | null;
+  bookGenreExplanation?: string | null;
+  thanksMessage?: string | null;
+  schoolMessage?: string | null;
+  schoolTeam?: string | null;
 }

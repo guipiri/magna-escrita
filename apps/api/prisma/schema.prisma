@@ -222,6 +222,12 @@ model Class {
   bookTemplateId String
   bookTemplate   BookTemplate @relation(fields: [bookTemplateId], references: [id])
 
+  bookGenre            String?
+  bookGenreExplanation String?
+  thanksMessage        String?
+  schoolMessage        String?
+  schoolTeam           String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

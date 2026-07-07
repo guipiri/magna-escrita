@@ -192,8 +192,6 @@ export class BooksScanService {
       template.bookTemplatePages.map(async (p) => {
         const pageTypesToCreateWithStatusReady: $Enums.PageType[] = [
           $Enums.PageType.BLANK,
-          $Enums.PageType.PREFACE,
-          $Enums.PageType.THANKS,
         ];
         const status = pageTypesToCreateWithStatusReady.includes(p.pageType)
           ? PageStatus.READY

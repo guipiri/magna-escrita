@@ -40,6 +40,7 @@ import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Textarea } from '../components/ui/textarea';
+import { Input } from '../components/ui/input';
 import { cn } from '../components/ui/utils';
 import { useSnackbar } from 'notistack';
 import { BookImageEditorDialog } from '../components/books/book-image-editor-dialog';
@@ -115,6 +116,21 @@ function PageCard({ page, book, isActive }: PageCardProps) {
   const [isImageEditorOpen, setIsImageEditorOpen] = useState(false);
   const [draft, setDraft] = useState(page.textContent ?? '');
   const [titleDraft, setTitleDraft] = useState(book.title ?? '');
+  const [bookGenreDraft, setBookGenreDraft] = useState(
+    book.class.bookGenre ?? '',
+  );
+  const [bookGenreExplanationDraft, setBookGenreExplanationDraft] = useState(
+    book.class.bookGenreExplanation ?? '',
+  );
+  const [thanksMessageDraft, setThanksMessageDraft] = useState(
+    book.class.thanksMessage ?? '',
+  );
+  const [schoolMessageDraft, setSchoolMessageDraft] = useState(
+    book.class.schoolMessage ?? '',
+  );
+  const [schoolTeamDraft, setSchoolTeamDraft] = useState(
+    book.class.schoolTeam ?? '',
+  );
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const { user } = useAuth();
@@ -149,13 +165,40 @@ function PageCard({ page, book, isActive }: PageCardProps) {
     if (!isEditing) {
       setDraft(page.textContent ?? '');
       setTitleDraft(book.title ?? '');
+      setBookGenreDraft(book.class.bookGenre ?? '');
+      setBookGenreExplanationDraft(book.class.bookGenreExplanation ?? '');
+      setThanksMessageDraft(book.class.thanksMessage ?? '');
+      setSchoolMessageDraft(book.class.schoolMessage ?? '');
+      setSchoolTeamDraft(book.class.schoolTeam ?? '');
     }
-  }, [page.textContent, book.title, isEditing]);
+  }, [
+    page.textContent,
+    book.title,
+    book.class.bookGenre,
+    book.class.bookGenreExplanation,
+    book.class.thanksMessage,
+    book.class.schoolMessage,
+    book.class.schoolTeam,
+    isEditing,
+  ]);
 
   const saveMutation = useMutation({
     mutationFn: () => {
       if (page.type === 'COVER') {
         return updateBook(bookId, { title: titleDraft || null });
+      }
+      if (page.type === 'PREFACE') {
+        return updateBookPage(bookId, page.number, {
+          bookGenre: bookGenreDraft || null,
+          bookGenreExplanation: bookGenreExplanationDraft || null,
+        });
+      }
+      if (page.type === 'THANKS') {
+        return updateBookPage(bookId, page.number, {
+          thanksMessage: thanksMessageDraft || null,
+          schoolMessage: schoolMessageDraft || null,
+          schoolTeam: schoolTeamDraft || null,
+        });
       }
       return updateBookPage(bookId, page.number, {
         textContent: draft || null,
@@ -165,7 +208,11 @@ function PageCard({ page, book, isActive }: PageCardProps) {
       enqueueSnackbar(
         page.type === 'COVER'
           ? 'Capa salva com sucesso!'
-          : 'Página salva com sucesso!',
+          : page.type === 'PREFACE'
+            ? 'Prefácio salvo com sucesso!'
+            : page.type === 'THANKS'
+              ? 'Agradecimentos salvos com sucesso!'
+              : 'Página salva com sucesso!',
         { variant: 'success' },
       );
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
@@ -515,13 +562,150 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                 )}
               </div>
               {isEditing ? (
-                <Textarea
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  placeholder='Digite o conteúdo desta página...'
-                  className='min-h-40 flex-1 resize-none text-sm'
-                  autoFocus
-                />
+                page.type === 'PREFACE' ? (
+                  <div className='flex flex-col gap-4 w-full'>
+                    <div className='flex flex-col gap-1.5'>
+                      <label className='text-xs font-semibold text-muted-foreground'>
+                        Gênero Textual
+                      </label>
+                      <Input
+                        value={bookGenreDraft}
+                        onChange={(e) => setBookGenreDraft(e.target.value)}
+                        placeholder='Ex: Fábula, Poesia...'
+                        className='text-sm'
+                        autoFocus
+                      />
+                    </div>
+                    <div className='flex flex-col gap-1.5'>
+                      <label className='text-xs font-semibold text-muted-foreground'>
+                        Explicação do Gênero
+                      </label>
+                      <Textarea
+                        value={bookGenreExplanationDraft}
+                        onChange={(e) =>
+                          setBookGenreExplanationDraft(e.target.value)
+                        }
+                        placeholder='Explicação curta sobre o gênero textual...'
+                        className='min-h-32 resize-none text-sm'
+                      />
+                    </div>
+                  </div>
+                ) : page.type === 'THANKS' ? (
+                  <div className='flex flex-col gap-4 w-full'>
+                    <div className='flex flex-col gap-1.5'>
+                      <label className='text-xs font-semibold text-muted-foreground'>
+                        Mensagem da Escola
+                      </label>
+                      <Textarea
+                        value={schoolMessageDraft}
+                        onChange={(e) => setSchoolMessageDraft(e.target.value)}
+                        placeholder='Mensagem introdutória da escola...'
+                        className='min-h-24 resize-none text-sm'
+                        autoFocus
+                      />
+                    </div>
+                    <div className='flex flex-col gap-1.5'>
+                      <label className='text-xs font-semibold text-muted-foreground'>
+                        Agradecimentos
+                      </label>
+                      <Textarea
+                        value={thanksMessageDraft}
+                        onChange={(e) => setThanksMessageDraft(e.target.value)}
+                        placeholder='Mensagem de agradecimento...'
+                        className='min-h-24 resize-none text-sm'
+                      />
+                    </div>
+                    <div className='flex flex-col gap-1.5'>
+                      <label className='text-xs font-semibold text-muted-foreground'>
+                        Equipe Escolar (Formato Cargo: Nome, um por linha)
+                      </label>
+                      <Textarea
+                        value={schoolTeamDraft}
+                        onChange={(e) => setSchoolTeamDraft(e.target.value)}
+                        placeholder='Ex: Professora: Keila Marli&#10;Coordenadora: Flávia Nobre'
+                        className='min-h-32 resize-none text-sm'
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <Textarea
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    placeholder='Digite o conteúdo desta página...'
+                    className='min-h-40 flex-1 resize-none text-sm'
+                    autoFocus
+                  />
+                )
+              ) : page.type === 'PREFACE' ? (
+                book.class.bookGenre || book.class.bookGenreExplanation ? (
+                  <div className='space-y-4 rounded-xl border border-border/70 bg-muted/20 p-4 text-sm text-foreground w-full'>
+                    {book.class.bookGenre && (
+                      <div>
+                        <h4 className='font-semibold text-primary text-xs uppercase tracking-wider mb-1'>
+                          Gênero Textual
+                        </h4>
+                        <p>{book.class.bookGenre}</p>
+                      </div>
+                    )}
+                    {book.class.bookGenreExplanation && (
+                      <div>
+                        <h4 className='font-semibold text-primary text-xs uppercase tracking-wider mb-1'>
+                          Explicação do Gênero
+                        </h4>
+                        <p className='whitespace-pre-wrap'>
+                          {book.class.bookGenreExplanation}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className='flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/20 text-muted-foreground w-full'>
+                    <FileText className='size-5' />
+                    <p className='text-xs'>Sem conteúdo de prefácio</p>
+                  </div>
+                )
+              ) : page.type === 'THANKS' ? (
+                book.class.schoolMessage ||
+                book.class.thanksMessage ||
+                book.class.schoolTeam ? (
+                  <div className='space-y-4 rounded-xl border border-border/70 bg-muted/20 p-4 text-sm text-foreground w-full'>
+                    {book.class.schoolMessage && (
+                      <div>
+                        <h4 className='font-semibold text-primary text-xs uppercase tracking-wider mb-1'>
+                          Mensagem da Escola
+                        </h4>
+                        <p className='whitespace-pre-wrap'>
+                          {book.class.schoolMessage}
+                        </p>
+                      </div>
+                    )}
+                    {book.class.thanksMessage && (
+                      <div>
+                        <h4 className='font-semibold text-primary text-xs uppercase tracking-wider mb-1'>
+                          Agradecimentos
+                        </h4>
+                        <p className='whitespace-pre-wrap'>
+                          {book.class.thanksMessage}
+                        </p>
+                      </div>
+                    )}
+                    {book.class.schoolTeam && (
+                      <div>
+                        <h4 className='font-semibold text-primary text-xs uppercase tracking-wider mb-1'>
+                          Equipe Escolar
+                        </h4>
+                        <p className='whitespace-pre-wrap'>
+                          {book.class.schoolTeam}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className='flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/20 text-muted-foreground w-full'>
+                    <FileText className='size-5' />
+                    <p className='text-xs'>Sem conteúdo de agradecimentos</p>
+                  </div>
+                )
               ) : page.textContent ? (
                 <p className='whitespace-pre-wrap rounded-xl border border-border/70 bg-muted/20 p-4 text-sm text-foreground'>
                   {page.textContent}

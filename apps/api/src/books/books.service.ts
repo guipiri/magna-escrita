@@ -141,6 +141,11 @@ export class BooksService {
                 id: true,
                 name: true,
                 schoolYear: true,
+                bookGenre: true,
+                bookGenreExplanation: true,
+                thanksMessage: true,
+                schoolMessage: true,
+                schoolTeam: true,
                 units: {
                   select: {
                     id: true,
@@ -183,6 +188,11 @@ export class BooksService {
         id: book.student.class.id,
         name: book.student.class.name,
         schoolYear: book.student.class.schoolYear,
+        bookGenre: book.student.class.bookGenre,
+        bookGenreExplanation: book.student.class.bookGenreExplanation,
+        thanksMessage: book.student.class.thanksMessage,
+        schoolMessage: book.student.class.schoolMessage,
+        schoolTeam: book.student.class.schoolTeam,
       },
       unit: {
         id: book.student.class.units.id,
@@ -209,7 +219,15 @@ export class BooksService {
   async updatePage(
     bookId: string,
     pageNumber: number,
-    data: { textContent?: string | null; status?: PageStatus },
+    data: {
+      textContent?: string | null;
+      status?: PageStatus;
+      bookGenre?: string | null;
+      bookGenreExplanation?: string | null;
+      thanksMessage?: string | null;
+      schoolMessage?: string | null;
+      schoolTeam?: string | null;
+    },
     user: AuthUser,
   ): Promise<void> {
     // Ensure user has access to this book
@@ -242,9 +260,53 @@ export class BooksService {
       statusWithContent.includes(finalStatus) &&
       page.type !== PageType.BLANK
     ) {
-      const finalContent =
-        data.textContent !== undefined ? data.textContent : page.textContent;
-      const hasTextContent = !!finalContent?.trim();
+      let hasTextContent = false;
+      if (page.type === PageType.PREFACE) {
+        const bookRecord = await this.prisma.book.findUnique({
+          where: { id: bookId },
+          select: { student: { select: { class: { select: { bookGenreExplanation: true } } } } },
+        });
+        const explanation =
+          data.bookGenreExplanation !== undefined
+            ? data.bookGenreExplanation
+            : bookRecord?.student?.class?.bookGenreExplanation;
+        hasTextContent = !!explanation?.trim();
+      } else if (page.type === PageType.THANKS) {
+        const bookRecord = await this.prisma.book.findUnique({
+          where: { id: bookId },
+          select: {
+            student: {
+              select: {
+                class: {
+                  select: {
+                    thanksMessage: true,
+                    schoolMessage: true,
+                    schoolTeam: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+        const msg =
+          data.thanksMessage !== undefined
+            ? data.thanksMessage
+            : bookRecord?.student?.class?.thanksMessage;
+        const schoolMsg =
+          data.schoolMessage !== undefined
+            ? data.schoolMessage
+            : bookRecord?.student?.class?.schoolMessage;
+        const team =
+          data.schoolTeam !== undefined
+            ? data.schoolTeam
+            : bookRecord?.student?.class?.schoolTeam;
+        hasTextContent = !!msg?.trim() || !!schoolMsg?.trim() || !!team?.trim();
+      } else {
+        const finalContent =
+          data.textContent !== undefined ? data.textContent : page.textContent;
+        hasTextContent = !!finalContent?.trim();
+      }
+
       const hasImageContent =
         !!page.drawImageUrl || !!page.imageUrl || !!page.originalImageUrl;
 
@@ -300,6 +362,43 @@ export class BooksService {
       where: { bookId_number: { bookId, number: pageNumber } },
       data: updateData,
     });
+
+    if (page.type === PageType.PREFACE) {
+      const bookRecord = await this.prisma.book.findUnique({
+        where: { id: bookId },
+        select: { student: { select: { classId: true } } },
+      });
+      if (bookRecord?.student?.classId) {
+        await this.prisma.class.update({
+          where: { id: bookRecord.student.classId },
+          data: {
+            bookGenre: data.bookGenre !== undefined ? data.bookGenre : undefined,
+            bookGenreExplanation:
+              data.bookGenreExplanation !== undefined
+                ? data.bookGenreExplanation
+                : undefined,
+          },
+        });
+      }
+    } else if (page.type === PageType.THANKS) {
+      const bookRecord = await this.prisma.book.findUnique({
+        where: { id: bookId },
+        select: { student: { select: { classId: true } } },
+      });
+      if (bookRecord?.student?.classId) {
+        await this.prisma.class.update({
+          where: { id: bookRecord.student.classId },
+          data: {
+            thanksMessage:
+              data.thanksMessage !== undefined ? data.thanksMessage : undefined,
+            schoolMessage:
+              data.schoolMessage !== undefined ? data.schoolMessage : undefined,
+            schoolTeam:
+              data.schoolTeam !== undefined ? data.schoolTeam : undefined,
+          },
+        });
+      }
+    }
 
     if (data.status !== undefined) {
       const allPages = await this.prisma.page.findMany({
