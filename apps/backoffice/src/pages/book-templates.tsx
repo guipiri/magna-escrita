@@ -584,14 +584,6 @@ function TemplatePanel({
                         </label>
                         <div className='flex gap-2 items-center'>
                           <input
-                            id='new-theme-color'
-                            type='text'
-                            value={newThemeColor}
-                            onChange={(e) => setNewThemeColor(e.target.value)}
-                            placeholder='Ex: #6366f1'
-                            className='flex-1 px-3 py-1.5 rounded-md border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-xs'
-                          />
-                          <input
                             type='color'
                             value={
                               newThemeColor.startsWith('#') &&
@@ -602,6 +594,14 @@ function TemplatePanel({
                             onChange={(e) => setNewThemeColor(e.target.value)}
                             className='w-8 h-8 rounded border border-border cursor-pointer bg-transparent'
                             aria-label='Seletor de cor do tema'
+                          />
+                          <input
+                            id='new-theme-color'
+                            type='text'
+                            value={newThemeColor}
+                            onChange={(e) => setNewThemeColor(e.target.value)}
+                            placeholder='Ex: #6366f1'
+                            className='flex-1 px-3 py-1.5 rounded-md border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-xs'
                           />
                         </div>
                       </div>

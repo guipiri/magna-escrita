@@ -73,8 +73,8 @@ CREATE TABLE "Book" (
 CREATE TABLE "BookTemplateTheme" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "coverThemePdfUrl" TEXT,
-    "colorTheme" TEXT,
+    "coverThemePdfUrl" TEXT NOT NULL,
+    "colorTheme" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -159,6 +159,11 @@ CREATE TABLE "Class" (
     "unitId" TEXT NOT NULL,
     "schoolYear" "SchoolYear" NOT NULL,
     "bookTemplateId" TEXT NOT NULL,
+    "bookGenre" TEXT,
+    "bookGenreExplanation" TEXT,
+    "thanksMessage" TEXT,
+    "schoolMessage" TEXT,
+    "schoolTeam" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
