@@ -23,6 +23,8 @@ export function CartPage() {
     items,
     totalQuantity,
     subtotal,
+    originalSubtotal,
+    totalDiscount,
     checkoutDisabledReason,
     increaseBook,
     decreaseBook,
@@ -153,11 +155,36 @@ export function CartPage() {
                         <p className='text-sm text-gray-500 mt-1'>
                           {item.author}
                         </p>
-                        <p className='text-sm text-gray-600 mt-3'>
-                          {item.isAvailable
-                            ? `R$ ${item.price.toFixed(2)} cada`
-                            : 'Remova este item para continuar.'}
-                        </p>
+                        {item.studentName && (
+                          <p className='text-xs text-purple-600 font-medium mt-1'>
+                            Aluno: {item.studentName}
+                          </p>
+                        )}
+                        <div className='mt-3'>
+                          {item.isAvailable ? (
+                            item.discountPerUnit > 0 ? (
+                              <div className='flex flex-wrap items-center gap-2 text-sm'>
+                                <span className='line-through text-gray-400'>
+                                  R$ {item.originalPrice.toFixed(2)}
+                                </span>
+                                <span className='font-semibold text-purple-700'>
+                                  R$ {item.price.toFixed(2)} cada
+                                </span>
+                                <span className='text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full'>
+                                  Economia de R$ {item.lineDiscount.toFixed(2)}
+                                </span>
+                              </div>
+                            ) : (
+                              <p className='text-sm text-gray-600'>
+                                R$ {item.price.toFixed(2)} cada
+                              </p>
+                            )
+                          ) : (
+                            <p className='text-sm text-pink-600'>
+                              Remova este item para continuar.
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -188,9 +215,14 @@ export function CartPage() {
                             ? `R$ ${item.lineTotal.toFixed(2)}`
                             : '--'}
                         </div>
+                        {item.isAvailable && item.lineDiscount > 0 && (
+                          <div className='text-xs text-gray-400 line-through'>
+                            R$ {item.originalLineTotal.toFixed(2)}
+                          </div>
+                        )}
                         <button
                           onClick={() => removeBook(item.bookId)}
-                          className='text-sm text-gray-500 hover:text-pink-600 transition-colors'
+                          className='text-sm text-gray-500 hover:text-pink-600 transition-colors block ml-auto mt-1'
                         >
                           Remover
                         </button>
@@ -222,8 +254,14 @@ export function CartPage() {
               </div>
               <div className='flex items-center justify-between'>
                 <span>Subtotal</span>
-                <span>R$ {subtotal.toFixed(2)}</span>
+                <span>R$ {originalSubtotal.toFixed(2)}</span>
               </div>
+              {totalDiscount > 0 && (
+                <div className='flex items-center justify-between text-green-600 font-medium'>
+                  <span>Desconto</span>
+                  <span>- R$ {totalDiscount.toFixed(2)}</span>
+                </div>
+              )}
               <div className='pt-3 border-t border-purple-100 flex items-center justify-between text-lg font-semibold text-gray-800'>
                 <span>Total</span>
                 <span className='text-purple-700'>

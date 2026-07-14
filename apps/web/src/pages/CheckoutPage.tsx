@@ -13,6 +13,8 @@ export function CheckoutPage() {
     items,
     totalQuantity,
     subtotal,
+    originalSubtotal,
+    totalDiscount,
     checkoutDisabledReason,
     isLoadingBookDetails,
     clearCart,
@@ -101,6 +103,16 @@ export function CheckoutPage() {
                 <span>Itens</span>
                 <span>{totalQuantity}</span>
               </div>
+              <div className='flex items-center justify-between'>
+                <span>Subtotal</span>
+                <span>R$ {originalSubtotal.toFixed(2)}</span>
+              </div>
+              {totalDiscount > 0 && (
+                <div className='flex items-center justify-between text-green-600 font-medium'>
+                  <span>Desconto</span>
+                  <span>- R$ {totalDiscount.toFixed(2)}</span>
+                </div>
+              )}
               <div className='pt-3 border-t border-purple-100 flex items-center justify-between text-lg font-semibold text-gray-800'>
                 <span>Total</span>
                 <span className='text-purple-700'>
@@ -110,7 +122,7 @@ export function CheckoutPage() {
             </div>
 
             <div className='divide-y divide-purple-100 rounded-xl border border-purple-100 overflow-hidden'>
-              {items.map((item) => (
+               {items.map((item) => (
                 <div
                   key={item.bookId}
                   className='flex items-start gap-3 bg-white/70 p-3'
@@ -120,11 +132,21 @@ export function CheckoutPage() {
                   </div>
 
                   <div className='min-w-0 flex-1'>
-                    <h3 className='text-sm font-semibold text-gray-800'>
+                    <h3 className='text-sm font-semibold text-gray-800 truncate'>
                       {item.title}
                     </h3>
+                    {item.studentName && (
+                      <p className='text-[10px] text-purple-600 font-medium mt-0.5'>
+                        Aluno: {item.studentName}
+                      </p>
+                    )}
                     <p className='mt-1 text-xs text-gray-500'>
                       {item.quantity} x R$ {item.price.toFixed(2)}
+                      {item.discountPerUnit > 0 && (
+                        <span className='ml-1 line-through text-gray-400 text-[10px]'>
+                          (R$ {item.originalPrice.toFixed(2)})
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>

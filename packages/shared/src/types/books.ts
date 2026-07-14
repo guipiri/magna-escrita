@@ -1,3 +1,5 @@
+import type { PriceTierResponse } from './prices.js';
+
 export const BOOK_PAGE_TYPES = [
   'COVER',
   'TEXT',
@@ -39,6 +41,9 @@ export interface BookPageData {
   author: string;
   synopsis: string | null;
   price: number;
+  studentId: string;
+  studentName: string;
+  priceTiers: PriceTierResponse[];
   pages: Array<{
     number: number;
     type: string;

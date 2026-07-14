@@ -547,6 +547,9 @@ export class BooksService {
       author: string | null;
       synopsis: string | null;
       price: number;
+      studentId: string;
+      studentName: string;
+      priceTiers: Array<{ id: string; minQuantity: number; unitPrice: number }>;
     }>
   > {
     const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
@@ -565,6 +568,8 @@ export class BooksService {
         synopsis: true,
         student: {
           select: {
+            id: true,
+            name: true,
             class: {
               select: {
                 price: {
@@ -601,6 +606,13 @@ export class BooksService {
         author: book.author,
         synopsis: book.synopsis,
         price: priceVal,
+        studentId: book.student?.id || '',
+        studentName: book.student?.name || '',
+        priceTiers: tiers.map((t) => ({
+          id: t.id,
+          minQuantity: t.minQuantity,
+          unitPrice: Number(t.unitPrice),
+        })),
       };
     });
 
@@ -616,6 +628,9 @@ export class BooksService {
     author: string | null;
     synopsis: string | null;
     price: number;
+    studentId: string;
+    studentName: string;
+    priceTiers: Array<{ id: string; minQuantity: number; unitPrice: number }>;
     pages: Array<{
       number: number;
       type: PageType;
@@ -634,6 +649,8 @@ export class BooksService {
         synopsis: true,
         student: {
           select: {
+            id: true,
+            name: true,
             class: {
               select: {
                 price: {
@@ -676,6 +693,13 @@ export class BooksService {
       synopsis: book.synopsis,
       pages: book.pages,
       price: priceVal,
+      studentId: book.student?.id || '',
+      studentName: book.student?.name || '',
+      priceTiers: tiers.map((t) => ({
+        id: t.id,
+        minQuantity: t.minQuantity,
+        unitPrice: Number(t.unitPrice),
+      })),
     };
   }
 

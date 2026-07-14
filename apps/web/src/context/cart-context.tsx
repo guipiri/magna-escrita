@@ -17,15 +17,23 @@ export interface CartItem extends StoredCartItem {
   title: string;
   author: string;
   price: number;
+  originalPrice: number;
+  discountPerUnit: number;
   lineTotal: number;
+  originalLineTotal: number;
+  lineDiscount: number;
   isAvailable: boolean;
   isLoading: boolean;
+  studentId?: string;
+  studentName?: string;
 }
 
 interface CartContextValue {
   items: CartItem[];
   totalQuantity: number;
   subtotal: number;
+  originalSubtotal: number;
+  totalDiscount: number;
   isLoadingBookDetails: boolean;
   isBookDetailsError: boolean;
   hasUnavailableItems: boolean;
@@ -69,6 +77,21 @@ const loadCart = (): StoredCartItem[] => {
   }
 };
 
+function getBookUnitPrice(
+  book: { price: number; priceTiers?: Array<{ minQuantity: number; unitPrice: number }> } | undefined,
+  quantity: number,
+): number {
+  if (!book) return 0;
+  const tiers = book.priceTiers || [];
+  if (tiers.length === 0) return book.price;
+
+  const sortedTiers = [...tiers].sort((a, b) => b.minQuantity - a.minQuantity);
+  const matchingTier = sortedTiers.find((t) => quantity >= t.minQuantity);
+  const activeTier = matchingTier || sortedTiers[sortedTiers.length - 1];
+
+  return activeTier ? Number(activeTier.unitPrice) : book.price;
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [storedItems, setStoredItems] = useState<StoredCartItem[]>(() =>
     loadCart(),
@@ -95,16 +118,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const items = storedItems.map((item): CartItem => {
     const book = booksById.get(item.bookId);
-    const price = book?.price ?? 0;
+    
+    // Apply per-book quantity tiered pricing rule
+    const originalPrice = book?.price ?? 0;
+    const price = book ? getBookUnitPrice(book, item.quantity) : 0;
+    
+    const discountPerUnit = Math.max(0, originalPrice - price);
+    const lineTotal = price * item.quantity;
+    const originalLineTotal = originalPrice * item.quantity;
+    const lineDiscount = discountPerUnit * item.quantity;
 
     return {
       ...item,
       title: book?.title ?? 'Livro indisponível',
       author: book?.author ?? 'Não encontramos este livro no banco de dados.',
       price,
-      lineTotal: price * item.quantity,
+      originalPrice,
+      discountPerUnit,
+      lineTotal,
+      originalLineTotal,
+      lineDiscount,
       isAvailable: Boolean(book),
       isLoading: isLoadingBookDetails,
+      studentId: book?.studentId,
+      studentName: book?.studentName,
     };
   });
 
@@ -152,6 +189,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
+  const originalSubtotal = items.reduce((sum, item) => sum + item.originalLineTotal, 0);
+  const totalDiscount = items.reduce((sum, item) => sum + item.lineDiscount, 0);
   const hasUnavailableItems =
     items.length > 0 &&
     !isLoadingBookDetails &&
@@ -171,6 +210,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         items,
         totalQuantity,
         subtotal,
+        originalSubtotal,
+        totalDiscount,
         isLoadingBookDetails,
         isBookDetailsError,
         hasUnavailableItems,
