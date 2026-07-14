@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCog,
+  Coins,
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { motion } from 'motion/react';
@@ -83,6 +84,12 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
       icon: UserCog,
       label: 'Usuários',
       path: routes.users.path,
+      shouldBeVisible: isAdmin,
+    },
+    {
+      icon: Coins,
+      label: 'Preço',
+      path: routes.prices.path,
       shouldBeVisible: isAdmin,
     },
   ];

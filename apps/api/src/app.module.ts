@@ -14,6 +14,7 @@ import { ClassesModule } from './classes/classes.module.js';
 import { EventsModule } from './events/events.module.js';
 import { PdfModule } from './pdf/pdf.module.js';
 import { UsersModule } from './users/users.module.js';
+import { PricesModule } from './prices/prices.module.js';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { UsersModule } from './users/users.module.js';
     EventsModule,
     PdfModule,
     UsersModule,
+    PricesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

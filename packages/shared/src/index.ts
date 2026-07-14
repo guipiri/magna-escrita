@@ -6,3 +6,4 @@ export * from './types/user.js';
 export * from './types/errors.js';
 export * from './types/schools.js';
 export * from './types/events.js';
+export * from './types/prices.js';
