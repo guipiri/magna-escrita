@@ -3,13 +3,31 @@ import { randomUUID } from 'node:crypto';
 import { MercadoPagoProvider } from './providers/mercado-pago.provider.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
 import { PrismaService } from '../db/db.service.js';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import {
   CreateCardOrderFailedException,
   CreatePixOrderFailedException,
   NotFoundOrderException,
 } from './orders.errors.js';
 import { NotFoundBookException } from '../books/books.errors.js';
+
+type BookWithPricing = Prisma.BookGetPayload<{
+  include: {
+    student: {
+      include: {
+        class: {
+          include: {
+            price: {
+              include: {
+                tiers: true;
+              };
+            };
+          };
+        };
+      };
+    };
+  };
+}>;
 
 @Injectable()
 export class OrdersService {
@@ -18,7 +36,10 @@ export class OrdersService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async createOrder(data: CreateOrderDto, userId: string) {
+  async createOrder(
+    data: CreateOrderDto,
+    userId: string,
+  ): Promise<{ order: any; mpOrder: any }> {
     if (data.paymentMethodDetail === 'pix') {
       return this.createPixOrder(data, userId);
     }
@@ -26,20 +47,58 @@ export class OrdersService {
     return this.createCardOrder(data, userId);
   }
 
-  private async createPixOrder(data: CreateOrderDto, userId: string) {
+  private getBookUnitPrice(book: BookWithPricing, quantity: number): number {
+    const priceConfig = book?.student?.class?.price;
+    if (!priceConfig || !priceConfig.tiers || priceConfig.tiers.length === 0) {
+      throw new Error(`Preço não encontrado para livro: ${book.id}`);
+    }
+
+    const matchingTier = priceConfig.tiers.find(
+      (tier) => quantity >= tier.minQuantity,
+    );
+
+    const activeTier =
+      matchingTier || priceConfig.tiers[priceConfig.tiers.length - 1];
+    if (!activeTier) {
+      throw new Error(`Preço não encontrado para livro: ${book.id}`);
+    }
+    return Number(activeTier.unitPrice);
+  }
+
+  private async createPixOrder(
+    data: CreateOrderDto,
+    userId: string,
+  ): Promise<{ order: any; mpOrder: any }> {
     try {
       const bookIds = data.items.map((it) => it.bookId);
       const books = await this.prisma.book.findMany({
         where: { id: { in: bookIds } },
-        include: { price: true },
+        include: {
+          student: {
+            include: {
+              class: {
+                include: {
+                  price: {
+                    include: {
+                      tiers: {
+                        orderBy: { minQuantity: 'desc' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       });
 
       let total = 0;
       for (const it of data.items) {
         const book = books.find((b) => b.id === it.bookId);
-        if (!book || !book.price)
-          throw new Error(`Livro não encontrado ou sem preço: ${it.bookId}`);
-        const unit = Number(book.price.amount);
+        if (!book) {
+          throw new Error(`Livro não encontrado: ${it.bookId}`);
+        }
+        const unit = this.getBookUnitPrice(book, it.quantity);
         total += unit * it.quantity;
       }
 
@@ -90,14 +149,11 @@ export class OrdersService {
           items: {
             create: data.items.map((it) => {
               const book = books.find((b) => b.id === it.bookId)!;
-              if (!book.price)
-                throw new Error(
-                  `Preço não encontrado para livro: ${it.bookId}`,
-                );
+              const unit = this.getBookUnitPrice(book, it.quantity);
               return {
                 book: { connect: { id: it.bookId } },
                 quantity: it.quantity,
-                amount: Number(book.price.amount),
+                amount: unit,
               };
             }),
           },
@@ -113,7 +169,10 @@ export class OrdersService {
     }
   }
 
-  private async createCardOrder(data: CreateOrderDto, userId: string) {
+  private async createCardOrder(
+    data: CreateOrderDto,
+    userId: string,
+  ): Promise<{ order: any; mpOrder: any }> {
     const {
       paymentMethod,
       email,
@@ -127,14 +186,30 @@ export class OrdersService {
     const bookIds = data.items.map((it) => it.bookId);
     const books = await this.prisma.book.findMany({
       where: { id: { in: bookIds } },
-      include: { price: true },
+      include: {
+        student: {
+          include: {
+            class: {
+              include: {
+                price: {
+                  include: {
+                    tiers: {
+                      orderBy: { minQuantity: 'desc' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     let total = 0;
     for (const it of data.items) {
       const book = books.find((b) => b.id === it.bookId);
-      if (!book || !book.price) throw new NotFoundBookException();
-      const unit = Number(book.price.amount);
+      if (!book) throw new NotFoundBookException();
+      const unit = this.getBookUnitPrice(book, it.quantity);
       total += unit * it.quantity;
     }
 
@@ -188,14 +263,11 @@ export class OrdersService {
           items: {
             create: data.items.map((it) => {
               const book = books.find((b) => b.id === it.bookId)!;
-              if (!book.price)
-                throw new Error(
-                  `Preço não encontrado para livro: ${it.bookId}`,
-                );
+              const unit = this.getBookUnitPrice(book, it.quantity);
               return {
                 book: { connect: { id: it.bookId } },
                 quantity: it.quantity,
-                amount: Number(book.price.amount),
+                amount: unit,
               };
             }),
           },

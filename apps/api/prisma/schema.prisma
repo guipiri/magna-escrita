@@ -45,12 +45,26 @@ model Order {
 }
 
 model Price {
-  id     String  @id @default(cuid())
-  amount Decimal @db.Decimal(10, 2)
-  books  Book[]
+  id      String      @id @default(cuid())
+  name    String?
+  classes Class[]
+  tiers   PriceTier[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model PriceTier {
+  id          String   @id @default(cuid())
+  priceId     String
+  price       Price    @relation(fields: [priceId], references: [id], onDelete: Cascade)
+  minQuantity Int
+  unitPrice   Decimal  @db.Decimal(10, 2)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([priceId, minQuantity])
 }
 
 enum BookStatus {
@@ -70,8 +84,6 @@ model Book {
   pages          Page[]
   interiorPdfUrl String?
   coverPdfUrl    String?
-  priceId        String?
-  price          Price?  @relation(fields: [priceId], references: [id])
 
   student   Student @relation(fields: [studentId], references: [id])
   studentId String
@@ -221,6 +233,9 @@ model Class {
 
   bookTemplateId String
   bookTemplate   BookTemplate @relation(fields: [bookTemplateId], references: [id])
+
+  priceId        String?
+  price          Price?       @relation(fields: [priceId], references: [id])
 
   bookGenre            String?
   bookGenreExplanation String?

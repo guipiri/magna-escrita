@@ -182,7 +182,6 @@ export class BooksScanService {
         magnificCode,
         studentId: student.id,
         authographsEventId: activeEvent.id,
-        priceId: await this.getDefaultPriceId(),
       },
       update: {},
       select: { id: true, pages: { select: { number: true } } },
@@ -331,21 +330,6 @@ export class BooksScanService {
     return parsed;
   }
 
-  private async getDefaultPriceId(): Promise<string> {
-    // Reuse the first available price or create a zero-price placeholder.
-    const price = await this.prisma.price.findFirst({
-      orderBy: { createdAt: 'asc' },
-      select: { id: true },
-    });
-
-    if (price) return price.id;
-
-    const created = await this.prisma.price.create({
-      data: { amount: 0 },
-      select: { id: true },
-    });
-    return created.id;
-  }
 
   private getExtension(mimeType: string): string {
     const map: Record<string, string> = {

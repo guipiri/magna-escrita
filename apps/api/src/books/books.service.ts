@@ -537,7 +537,18 @@ export class BooksService {
     return { drawImageUrl, originalImageUrl };
   }
 
-  async findByIds(ids: string[]) {
+  async findByIds(
+    ids: string[],
+  ): Promise<
+    Array<{
+      id: string;
+      magnificCode: string;
+      title: string | null;
+      author: string | null;
+      synopsis: string | null;
+      price: number;
+    }>
+  > {
     const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
 
     if (!uniqueIds.length) {
@@ -552,9 +563,19 @@ export class BooksService {
         title: true,
         author: true,
         synopsis: true,
-        price: {
+        student: {
           select: {
-            amount: true,
+            class: {
+              select: {
+                price: {
+                  select: {
+                    tiers: {
+                      orderBy: { minQuantity: 'asc' },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -569,16 +590,40 @@ export class BooksService {
         throw new NotFoundBookException();
       }
 
+      const tiers = book.student?.class?.price?.tiers || [];
+      const tier = tiers.find((t) => t.minQuantity === 1) || tiers[0];
+      const priceVal = tier ? Number(tier.unitPrice) : 0;
+
       return {
-        ...book,
-        price: book.price ? Number(book.price.amount) : 0,
+        id: book.id,
+        magnificCode: book.magnificCode,
+        title: book.title,
+        author: book.author,
+        synopsis: book.synopsis,
+        price: priceVal,
       };
     });
 
     return res;
   }
 
-  async findByMagnificCode(magnificCode: string) {
+  async findByMagnificCode(
+    magnificCode: string,
+  ): Promise<{
+    id: string;
+    magnificCode: string;
+    title: string | null;
+    author: string | null;
+    synopsis: string | null;
+    price: number;
+    pages: Array<{
+      number: number;
+      type: PageType;
+      textContent: string | null;
+      drawImageUrl: string | null;
+      imageUrl: string | null;
+    }>;
+  }> {
     const book = await this.prisma.book.findUnique({
       where: { magnificCode },
       select: {
@@ -587,9 +632,19 @@ export class BooksService {
         title: true,
         author: true,
         synopsis: true,
-        price: {
+        student: {
           select: {
-            amount: true,
+            class: {
+              select: {
+                price: {
+                  select: {
+                    tiers: {
+                      orderBy: { minQuantity: 'asc' },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
         pages: {
@@ -609,9 +664,18 @@ export class BooksService {
 
     if (!book) throw new NotFoundBookException();
 
+    const tiers = book.student?.class?.price?.tiers || [];
+    const tier = tiers.find((t) => t.minQuantity === 1) || tiers[0];
+    const priceVal = tier ? Number(tier.unitPrice) : 0;
+
     return {
-      ...book,
-      price: book.price ? Number(book.price.amount) : 0,
+      id: book.id,
+      magnificCode: book.magnificCode,
+      title: book.title,
+      author: book.author,
+      synopsis: book.synopsis,
+      pages: book.pages,
+      price: priceVal,
     };
   }
 
@@ -778,14 +842,11 @@ export class BooksService {
 
     if (!template) throw new NotFoundBookTemplateException();
 
-    const priceId = await this.getDefaultPriceId();
-
     const book = await this.prisma.book.create({
       data: {
         magnificCode,
         studentId: student.id,
         authographsEventId: activeEvent.id,
-        priceId,
         title: body.title || null,
         author: student.name,
         status: BookStatus.DRAFT,
@@ -809,20 +870,5 @@ export class BooksService {
     );
 
     return this.getById(book.id, user);
-  }
-
-  private async getDefaultPriceId(): Promise<string> {
-    const price = await this.prisma.price.findFirst({
-      orderBy: { createdAt: 'asc' },
-      select: { id: true },
-    });
-
-    if (price) return price.id;
-
-    const created = await this.prisma.price.create({
-      data: { amount: 0 },
-      select: { id: true },
-    });
-    return created.id;
   }
 }

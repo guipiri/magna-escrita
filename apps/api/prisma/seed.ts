@@ -36,51 +36,75 @@ function generateMagnificCode(): string {
 async function main() {
   console.log('🌱 Iniciando seed de livros...');
 
-  // Criar/atualizar preços
-  const prices = await Promise.all([
-    prisma.price.upsert({
-      where: { id: 'price-001' },
+  // Criar/atualizar preços e tiers
+  const priceData = [
+    {
+      id: 'price-001',
+      tiers: [
+        { minQuantity: 1, unitPrice: 39.9 },
+        { minQuantity: 5, unitPrice: 34.9 },
+      ],
+    },
+    {
+      id: 'price-002',
+      tiers: [
+        { minQuantity: 1, unitPrice: 52.5 },
+        { minQuantity: 5, unitPrice: 47.5 },
+      ],
+    },
+    {
+      id: 'price-003',
+      tiers: [
+        { minQuantity: 1, unitPrice: 47.0 },
+        { minQuantity: 5, unitPrice: 42.0 },
+      ],
+    },
+    {
+      id: 'price-004',
+      tiers: [
+        { minQuantity: 1, unitPrice: 58.8 },
+        { minQuantity: 5, unitPrice: 53.8 },
+      ],
+    },
+    {
+      id: 'price-mock-sofia',
+      tiers: [
+        { minQuantity: 1, unitPrice: 39.9 },
+        { minQuantity: 5, unitPrice: 34.9 },
+      ],
+    },
+  ];
+
+  const prices = [];
+  for (const p of priceData) {
+    const price = await prisma.price.upsert({
+      where: { id: p.id },
       update: {},
       create: {
-        id: 'price-001',
-        amount: 39.9,
+        id: p.id,
       },
-    }),
-    prisma.price.upsert({
-      where: { id: 'price-002' },
-      update: {},
-      create: {
-        id: 'price-002',
-        amount: 52.5,
-      },
-    }),
-    prisma.price.upsert({
-      where: { id: 'price-003' },
-      update: {},
-      create: {
-        id: 'price-003',
-        amount: 47.0,
-      },
-    }),
-    prisma.price.upsert({
-      where: { id: 'price-004' },
-      update: {},
-      create: {
-        id: 'price-004',
-        amount: 58.8,
-      },
-    }),
-    prisma.price.upsert({
-      where: { id: 'price-mock-sofia' },
-      update: {
-        amount: 39.9,
-      },
-      create: {
-        id: 'price-mock-sofia',
-        amount: 39.9,
-      },
-    }),
-  ]);
+    });
+
+    for (const tier of p.tiers) {
+      await prisma.priceTier.upsert({
+        where: {
+          priceId_minQuantity: {
+            priceId: p.id,
+            minQuantity: tier.minQuantity,
+          },
+        },
+        update: {
+          unitPrice: tier.unitPrice,
+        },
+        create: {
+          priceId: p.id,
+          minQuantity: tier.minQuantity,
+          unitPrice: tier.unitPrice,
+        },
+      });
+    }
+    prices.push(price);
+  }
 
   console.log(`✅ ${prices.length} preços criados/atualizados`);
 
@@ -248,7 +272,9 @@ async function main() {
   // Criar classe e aluno necessários para os livros
   const klass = await prisma.class.upsert({
     where: { id: 'class-001' },
-    update: {},
+    update: {
+      priceId: 'price-001',
+    },
     create: {
       id: 'class-001',
       name: 'Turma A',
@@ -256,6 +282,7 @@ async function main() {
       unitId: 'unit-001',
       bookTemplateId: DEFAULT_CLASS_BOOK_TEMPLATE_ID,
       schoolYear: 'YEAR_2026',
+      priceId: 'price-001',
     },
   });
 
@@ -367,7 +394,6 @@ async function main() {
         author: 'Lia Monteiro',
         synopsis:
           'Um romance sobre memória, linguagem e os encontros improváveis que mudam uma vida.',
-        priceId: 'price-001',
         authographsEventId: 'event-001',
       },
       create: {
@@ -378,7 +404,6 @@ async function main() {
         author: 'Lia Monteiro',
         synopsis:
           'Um romance sobre memória, linguagem e os encontros improváveis que mudam uma vida.',
-        priceId: 'price-001',
         authographsEventId: 'event-001',
       },
     }),
@@ -392,7 +417,6 @@ async function main() {
         author: 'Rafael Cordeiro',
         synopsis:
           'Ensaios curtos sobre produto, software e a disciplina de construir coisas que duram.',
-        priceId: 'price-002',
         authographsEventId: 'event-001',
       },
       create: {
@@ -403,7 +427,6 @@ async function main() {
         author: 'Rafael Cordeiro',
         synopsis:
           'Ensaios curtos sobre produto, software e a disciplina de construir coisas que duram.',
-        priceId: 'price-002',
         authographsEventId: 'event-001',
       },
     }),
@@ -417,7 +440,6 @@ async function main() {
         author: 'Helena Vieira',
         synopsis:
           'Crônicas poéticas para leitura lenta, com capítulos que alternam mar, rua e silêncio.',
-        priceId: 'price-003',
         authographsEventId: 'event-001',
       },
       create: {
@@ -428,7 +450,6 @@ async function main() {
         author: 'Helena Vieira',
         synopsis:
           'Crônicas poéticas para leitura lenta, com capítulos que alternam mar, rua e silêncio.',
-        priceId: 'price-003',
         authographsEventId: 'event-001',
       },
     }),
@@ -442,7 +463,6 @@ async function main() {
         author: 'Nuno Azevedo',
         synopsis:
           'Uma coleção de histórias sobre mudanças discretas que alteram o curso de uma cidade.',
-        priceId: 'price-004',
         authographsEventId: 'event-001',
       },
       create: {
@@ -453,7 +473,6 @@ async function main() {
         author: 'Nuno Azevedo',
         synopsis:
           'Uma coleção de histórias sobre mudanças discretas que alteram o curso de uma cidade.',
-        priceId: 'price-004',
         authographsEventId: 'event-001',
       },
     }),
@@ -466,7 +485,6 @@ async function main() {
         author: 'Sofia Maria, 7 anos',
         synopsis:
           'Uma história encantadora sobre uma menina que descobre um mundo mágico cheio de cores, amizade e aventuras incríveis. Escrito e ilustrado com todo o carinho por uma jovem autora.',
-        priceId: 'price-mock-sofia',
         authographsEventId: 'event-001',
       },
       create: {
@@ -477,7 +495,6 @@ async function main() {
         author: 'Sofia Maria, 7 anos',
         synopsis:
           'Uma história encantadora sobre uma menina que descobre um mundo mágico cheio de cores, amizade e aventuras incríveis. Escrito e ilustrado com todo o carinho por uma jovem autora.',
-        priceId: 'price-mock-sofia',
         authographsEventId: 'event-001',
       },
     }),
