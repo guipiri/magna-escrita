@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
@@ -14,6 +15,16 @@ export class NotFoundBookException extends NotFoundException {
     } satisfies HttpExceptionConstructor);
   }
 }
+
+export class ConflictBookAlreadyExistsException extends ConflictException {
+  constructor() {
+    super({
+      key: ErrorKeys.CONFLICT_BOOK_ALREADY_EXISTS,
+      message: 'Já existe um livro cadastrado para este aluno neste evento.',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
 
 export class BadRequestDrawSquareNotFoundException extends BadRequestException {
   constructor() {

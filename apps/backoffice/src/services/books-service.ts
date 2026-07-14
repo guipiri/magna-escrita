@@ -4,7 +4,18 @@ import type {
   GetBooksListResponse,
   ScanBooksResult,
   UpdatePageRequest,
+  CreateBookRequest,
 } from '@repo/shared';
+
+export const createBook = async (
+  data: CreateBookRequest,
+): Promise<GetBookDetailResponse> => {
+  const response = await api.post<GetBookDetailResponse>(
+    '/books/backoffice',
+    data,
+  );
+  return response.data;
+};
 
 export const getBooks = async (): Promise<GetBooksListResponse[]> => {
   const response = await api.get<GetBooksListResponse[]>('/books/backoffice');

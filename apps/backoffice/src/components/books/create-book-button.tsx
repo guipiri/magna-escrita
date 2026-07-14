@@ -11,11 +11,13 @@ import {
 
 interface CreateBookButtonProps {
   onBulkUpload: () => void;
+  onCreateManual: () => void;
   className?: string;
 }
 
 export function CreateBookButton({
   onBulkUpload,
+  onCreateManual,
   className,
 }: CreateBookButtonProps) {
   return (
@@ -31,6 +33,13 @@ export function CreateBookButton({
       <DropdownMenuContent align='end' className='w-52' onCloseAutoFocus={(e) => e.preventDefault()}>
         <DropdownMenuLabel>Opções de criação</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={onCreateManual}
+          className='cursor-pointer hover:bg-muted'
+        >
+          <BookPlus className='h-4 w-4' />
+          Criar manualmente
+        </DropdownMenuItem>
         <DropdownMenuItem
           onClick={onBulkUpload}
           className='cursor-pointer hover:bg-muted'

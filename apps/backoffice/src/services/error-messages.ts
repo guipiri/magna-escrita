@@ -88,6 +88,7 @@ export const errorMessages: Record<ErrorKeys, string> = {
   BAD_REQUEST_MISSING_BIOGRAPHY: 'Biografia do livro ausente.',
 
   CONFLICT_MORE_THAN_ONE_ACTIVE_EVENT: 'Mais de um evento ativo encontrado.',
+  CONFLICT_BOOK_ALREADY_EXISTS: 'Já existe um livro cadastrado para este aluno neste evento.',
   BAD_REQUEST_QR_CODE_NOT_READABLE: 'O QR Code da imagem não pode ser lido.',
   BAD_REQUEST_DRAW_SQUARE_NOT_FOUND:
     'O espaço para desenho não foi encontrado.',

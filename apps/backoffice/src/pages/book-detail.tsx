@@ -1110,6 +1110,11 @@ export function BookDetailPage() {
   // Keyboard navigation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return;
       if (e.key === 'ArrowLeft') goTo(currentIndex - 1);
       if (e.key === 'ArrowRight') goTo(currentIndex + 1);
     };

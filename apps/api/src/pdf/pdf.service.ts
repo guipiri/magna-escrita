@@ -5,7 +5,7 @@ import { createRequire } from 'module';
 import { Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
 import { AuthUser, UserRole } from '@repo/shared';
-import { AuthographsEventStatus, BookStatus, PageType } from '@prisma/client';
+import { AuthographsEventStatus, BookStatus, PageType, Prisma } from '@prisma/client';
 import * as QRCode from 'qrcode';
 import PDFDocument from 'pdfkit';
 import { PDFDocument as PdfLibDocument, rgb } from 'pdf-lib';
@@ -634,7 +634,11 @@ export class PdfService {
 
   private async drawBookPrefacePage(
     doc: InstanceType<typeof PDFDocument>,
-    classRecord: any,
+    classRecord: Prisma.ClassGetPayload<{
+      include: {
+        units: true;
+      };
+    }>,
     title: string,
     author: string,
     colorTheme: string,
@@ -727,44 +731,49 @@ export class PdfService {
 
     const authorNameY = authorRoleY + 15;
     doc
-      .font('MyriadPro-Semibold')
+      .font('MyriadPro-It')
       .fontSize(12)
-      .fillColor(colorTheme)
+      .fillColor('#1f2937')
       .text(author.toUpperCase(), 0, authorNameY, {
         align: 'center',
         width: pageSize,
       });
 
     // 7. Draw Publisher Info
-    const pubY = bottomY - 35;
-    const magnaWidth = doc.font('MyriadPro-Semibold').fontSize(12).widthOfString('MAGNA');
-    const printiWidth = doc.font('MyriadPro-Semibold').fontSize(12).widthOfString(' PRINTI');
-    const totalPubWidth = magnaWidth + printiWidth;
-    const pubX = (pageSize - totalPubWidth) / 2;
-
+    const pubY = bottomY - 38;
     doc
       .font('MyriadPro-Semibold')
       .fontSize(12)
       .fillColor('#b91c1c')
-      .text('MAGNA', pubX, pubY, { lineBreak: false })
+      .text('MAGNA', 0, pubY, {
+        align: 'center',
+        width: pageSize,
+      });
+
+    doc
+      .font('MyriadPro-Semibold')
+      .fontSize(12)
       .fillColor('#4b5563')
-      .text(' PRINTI');
+      .text('PRINTI', 0, pubY + 11, {
+        align: 'center',
+        width: pageSize,
+      });
 
     doc
       .font('MyriadPro')
       .fontSize(7)
       .fillColor('#9ca3af')
-      .text('conveniência gráfica', 0, pubY + 14, {
+      .text('conveniência gráfica', 0, pubY + 23, {
         align: 'center',
         width: pageSize,
       });
 
-    const yearText = classRecord.schoolYear === 'YEAR_2026' ? '2026' : '2027';
+    const yearText = classRecord.schoolYear ? classRecord.schoolYear.replace('YEAR_', '') : '2026';
     doc
       .font('MyriadPro-Semibold')
       .fontSize(8)
       .fillColor('#4b5563')
-      .text(yearText, 0, pubY + 23, {
+      .text(yearText, 0, pubY + 31, {
         align: 'center',
         width: pageSize,
       });
@@ -772,7 +781,11 @@ export class PdfService {
 
   private async drawBookThanksPage(
     doc: InstanceType<typeof PDFDocument>,
-    classRecord: any,
+    classRecord: Prisma.ClassGetPayload<{
+      include: {
+        units: true;
+      };
+    }>,
     pageNumber: number,
     colorTheme: string,
   ): Promise<void> {
@@ -783,13 +796,11 @@ export class PdfService {
     const startX = 15 * MM_TO_PT;
     const endX = 190 * MM_TO_PT;
 
-    // 1. Draw top & bottom lines
+    // 1. Draw top line only
     doc
       .save()
       .moveTo(startX, topY)
       .lineTo(endX, topY)
-      .moveTo(startX, bottomY)
-      .lineTo(endX, bottomY)
       .lineWidth(2)
       .strokeColor(colorTheme)
       .stroke()
@@ -821,15 +832,15 @@ export class PdfService {
     if (schoolMsgText) {
       doc
         .font('MyriadPro')
-        .fontSize(11)
+        .fontSize(12)
         .fillColor('#1f2937')
-        .text(schoolMsgText, 30, schoolMsgY, {
+        .text(schoolMsgText, startX, schoolMsgY, {
           align: 'center',
-          width: pageSize - 60,
+          width: endX - startX,
           lineGap: 4,
         });
       schoolMsgHeight = doc.heightOfString(schoolMsgText, {
-        width: pageSize - 60,
+        width: endX - startX,
         lineGap: 4,
       }) + 15;
     }
@@ -838,7 +849,7 @@ export class PdfService {
     const titleY = schoolMsgY + schoolMsgHeight;
     doc
       .font('MyriadPro-Semibold')
-      .fontSize(18)
+      .fontSize(15)
       .fillColor(colorTheme)
       .text('Agradecimentos', 0, titleY, {
         align: 'center',
@@ -847,24 +858,35 @@ export class PdfService {
 
     // 5. Draw Thanks Message
     const thanksText = classRecord.thanksMessage || '';
-    const thanksY = titleY + 30;
+    const thanksY = titleY + 25;
     doc
       .font('MyriadPro')
-      .fontSize(11)
+      .fontSize(12)
       .fillColor('#1f2937')
-      .text(thanksText, 30, thanksY, {
+      .text(thanksText, startX, thanksY, {
         align: 'center',
-        width: pageSize - 60,
+        width: endX - startX,
         lineGap: 4,
       });
 
     const thanksHeight = doc.heightOfString(thanksText, {
-      width: pageSize - 60,
+      width: endX - startX,
       lineGap: 4,
     });
 
+    // Draw horizontal separator line under thanks message
+    const separatorY = thanksY + thanksHeight + 15;
+    doc
+      .save()
+      .moveTo(startX, separatorY)
+      .lineTo(endX, separatorY)
+      .lineWidth(1)
+      .strokeColor(colorTheme)
+      .stroke()
+      .restore();
+
     // 6. Draw School Team (Staff List)
-    const staffStartY = thanksY + thanksHeight + 20;
+    const staffStartY = separatorY + 15;
     const staffLines = (classRecord.schoolTeam || '')
       .split('\n')
       .map((line: string) => line.trim())
@@ -873,9 +895,10 @@ export class PdfService {
     const staffItems: { role: string; name: string }[] = [];
     for (const line of staffLines) {
       const parts = line.split(':');
-      if (parts.length >= 2) {
+      const firstPart = parts[0];
+      if (parts.length >= 2 && firstPart !== undefined) {
         staffItems.push({
-          role: parts[0].trim(),
+          role: firstPart.trim(),
           name: parts.slice(1).join(':').trim(),
         });
       } else {
@@ -886,9 +909,9 @@ export class PdfService {
       }
     }
 
-    const leftColX = 30;
+    const colWidth = (pageSize / 2) - startX - 10;
+    const leftColX = startX;
     const rightColX = pageSize / 2 + 10;
-    const colWidth = pageSize / 2 - 40;
 
     const hasCenterItem = staffItems.length % 2 !== 0;
     const sideItemsCount = hasCenterItem ? staffItems.length - 1 : staffItems.length;
@@ -904,27 +927,27 @@ export class PdfService {
 
       if (item.role) {
         doc
-          .font('MyriadPro-Semibold')
-          .fontSize(9)
+          .font('MyriadPro-It')
+          .fontSize(12)
           .fillColor(colorTheme)
           .text(item.role, x, y, { align: 'left', width: colWidth });
         doc
           .font('MyriadPro')
-          .fontSize(9)
+          .fontSize(12)
           .fillColor('#1f2937')
-          .text(item.name, x, y + 11, { align: 'left', width: colWidth });
+          .text(item.name, x, y + 14, { align: 'left', width: colWidth });
       } else {
         doc
           .font('MyriadPro')
-          .fontSize(9)
+          .fontSize(12)
           .fillColor('#1f2937')
           .text(item.name, x, y, { align: 'left', width: colWidth });
       }
 
       if (isLeft) {
-        leftY += 28;
+        leftY += item.role ? 36 : 18;
       } else {
-        rightY += 28;
+        rightY += item.role ? 36 : 18;
       }
     }
 
@@ -935,19 +958,19 @@ export class PdfService {
       const y = finalStaffY + 5;
       if (lastItem.role) {
         doc
-          .font('MyriadPro-Semibold')
-          .fontSize(9)
+          .font('MyriadPro-It')
+          .fontSize(12)
           .fillColor(colorTheme)
           .text(lastItem.role, 0, y, { align: 'center', width: pageSize });
         doc
           .font('MyriadPro')
-          .fontSize(9)
+          .fontSize(12)
           .fillColor('#1f2937')
-          .text(lastItem.name, 0, y + 11, { align: 'center', width: pageSize });
+          .text(lastItem.name, 0, y + 14, { align: 'center', width: pageSize });
       } else {
         doc
           .font('MyriadPro')
-          .fontSize(9)
+          .fontSize(12)
           .fillColor('#1f2937')
           .text(lastItem.name, 0, y, { align: 'center', width: pageSize });
       }
@@ -1103,8 +1126,10 @@ export class PdfService {
         // Register custom fonts on the doc (PDFDocument from pdfkit)
         const regularFontPath = this.getFontPath('MyriadPro-Regular.ttf');
         const semiboldFontPath = this.getFontPath('MyriadPro-Semibold.ttf');
+        const italicFontPath = this.getFontPath('MyriadPro-It.otf');
         doc.registerFont('MyriadPro', regularFontPath);
         doc.registerFont('MyriadPro-Semibold', semiboldFontPath);
+        doc.registerFont('MyriadPro-It', italicFontPath);
 
         const colorTheme =
           book.student.class.bookTemplate.bookTemplateTheme.colorTheme;

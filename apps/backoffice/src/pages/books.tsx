@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import {
   BookOpen,
@@ -12,6 +12,7 @@ import { getBooks } from '../services/books-service';
 import { BooksList } from '../components/books/books-list';
 import { CreateBookButton } from '../components/books/create-book-button';
 import { BulkUploadDialog } from '../components/books/bulk-upload-dialog';
+import { CreateBookDialog } from '../components/books/create-book-dialog';
 import { Input } from '../components/ui/input';
 import { Card, CardContent } from '../components/ui/card';
 import { BookStatusEnum } from '@repo/shared';
@@ -19,6 +20,8 @@ import { BookStatusEnum } from '@repo/shared';
 export function BooksPage() {
   const [search, setSearch] = useState('');
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
+  const [isCreateManualOpen, setIsCreateManualOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['books'],
@@ -122,6 +125,7 @@ export function BooksPage() {
             </div>
             <CreateBookButton
               onBulkUpload={() => setIsBulkUploadOpen(true)}
+              onCreateManual={() => setIsCreateManualOpen(true)}
               className='w-full md:w-auto'
             />
           </div>
@@ -195,6 +199,15 @@ export function BooksPage() {
       <BulkUploadDialog
         isOpen={isBulkUploadOpen}
         onClose={() => setIsBulkUploadOpen(false)}
+      />
+
+      <CreateBookDialog
+        isOpen={isCreateManualOpen}
+        onClose={() => setIsCreateManualOpen(false)}
+        onSuccess={() => {
+          setIsCreateManualOpen(false);
+          queryClient.invalidateQueries({ queryKey: ['books'] });
+        }}
       />
     </main>
   );

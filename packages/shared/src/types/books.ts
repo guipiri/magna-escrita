@@ -149,3 +149,10 @@ export interface UpdatePageRequest {
   schoolMessage?: string | null;
   schoolTeam?: string | null;
 }
+
+export interface CreateBookRequest {
+  studentId: string;
+  title?: string | null;
+}
+
+

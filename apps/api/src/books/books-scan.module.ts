@@ -4,7 +4,7 @@ import { AuthModule } from '../auth/auth.module.js';
 import { CloudflareR2Service } from '../common/bucket/providers/cloudflare-r2.service.js';
 import { BooksScanController } from './books-scan.controller.js';
 import { BooksScanService } from './books-scan.service.js';
-import { OpenCVDrawExtractor } from './providers/extract-draw.service.js';
+import { GeminiDrawExtractor } from './providers/extract-draw.service.js';
 import { GeminiTextExtractor } from './providers/extract-text.service.js';
 import { JsqrQrCodeReader } from './providers/read-qr-code.service.js';
 
@@ -14,7 +14,7 @@ import { JsqrQrCodeReader } from './providers/read-qr-code.service.js';
   providers: [
     BooksScanService,
     { provide: 'BucketService', useClass: CloudflareR2Service },
-    { provide: 'ExtractDrawService', useClass: OpenCVDrawExtractor },
+    { provide: 'ExtractDrawService', useClass: GeminiDrawExtractor },
     {
       provide: 'ExtractTextService',
       useClass: GeminiTextExtractor,

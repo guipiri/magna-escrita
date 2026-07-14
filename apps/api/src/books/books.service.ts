@@ -9,6 +9,7 @@ import { PrismaService } from '../db/db.service.js';
 import {
   NotFoundBookException,
   ForbiddenBookReadyException,
+  ConflictBookAlreadyExistsException,
 } from './books.errors.js';
 import type { GetBookDetailResponse, GetBooksListResponse } from '@repo/shared';
 import type { AuthUser } from '@repo/shared';
@@ -22,7 +23,16 @@ import {
   getProcessedPageUploadBucketPath,
 } from '../common/bucket/bucket.utils.js';
 import type { BucketService } from '../common/bucket/bucket.contract.js';
-import { NotFoundActiveEventForStudentException } from './books-scan.errors.js';
+import {
+  NotFoundActiveEventForStudentException,
+  NotFoundStudentException,
+} from './books-scan.errors.js';
+import {
+  NotFoundBookTemplateException,
+  UnauthorizedUserNoAccessToUnitException,
+} from '../schools/schools.errors.js';
+import { generateMagnificCode } from './books.utils.js';
+import { CreateBookDto } from './dto/create-book.dto.js';
 
 @Injectable()
 export class BooksService {
@@ -264,7 +274,11 @@ export class BooksService {
       if (page.type === PageType.PREFACE) {
         const bookRecord = await this.prisma.book.findUnique({
           where: { id: bookId },
-          select: { student: { select: { class: { select: { bookGenreExplanation: true } } } } },
+          select: {
+            student: {
+              select: { class: { select: { bookGenreExplanation: true } } },
+            },
+          },
         });
         const explanation =
           data.bookGenreExplanation !== undefined
@@ -372,7 +386,8 @@ export class BooksService {
         await this.prisma.class.update({
           where: { id: bookRecord.student.classId },
           data: {
-            bookGenre: data.bookGenre !== undefined ? data.bookGenre : undefined,
+            bookGenre:
+              data.bookGenre !== undefined ? data.bookGenre : undefined,
             bookGenreExplanation:
               data.bookGenreExplanation !== undefined
                 ? data.bookGenreExplanation
@@ -703,5 +718,127 @@ export class BooksService {
     });
 
     return { interiorPdfUrl, coverPdfUrl };
+  }
+
+  async createBook(
+    body: CreateBookDto,
+    user: AuthUser,
+  ): Promise<GetBookDetailResponse> {
+    const student = await this.prisma.student.findUnique({
+      where: { id: body.studentId },
+      include: {
+        class: true,
+      },
+    });
+
+    if (!student) {
+      throw new NotFoundStudentException();
+    }
+
+    if (user.role !== UserRole.ADMIN) {
+      const hasAccess = await this.prisma.userUnit.findFirst({
+        where: {
+          userId: user.id,
+          unitId: student.class.unitId,
+        },
+      });
+
+      if (!hasAccess) throw new UnauthorizedUserNoAccessToUnitException();
+    }
+
+    const activeEvent = await this.prisma.authographsEvent.findFirst({
+      where: {
+        unitId: student.class.unitId,
+        schoolYear: student.class.schoolYear,
+        status: {
+          in: ['ONGOING', 'PLANNED'],
+        },
+      },
+      select: { id: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!activeEvent) throw new NotFoundActiveEventForStudentException();
+
+    const existingBook = await this.prisma.book.findUnique({
+      where: {
+        studentId_authographsEventId: {
+          studentId: student.id,
+          authographsEventId: activeEvent.id,
+        },
+      },
+    });
+
+    if (existingBook) throw new ConflictBookAlreadyExistsException();
+
+    let magnificCode = generateMagnificCode();
+    while (true) {
+      const existingBookCode = await this.prisma.book.findFirst({
+        where: { magnificCode },
+      });
+
+      if (!existingBookCode) break;
+      magnificCode = generateMagnificCode();
+    }
+
+    const template = await this.prisma.bookTemplate.findUnique({
+      where: {
+        id: student.class.bookTemplateId,
+      },
+      select: {
+        bookTemplatePages: {
+          select: { pageNumber: true, pageType: true },
+        },
+      },
+    });
+
+    if (!template) throw new NotFoundBookTemplateException();
+
+    const priceId = await this.getDefaultPriceId();
+
+    const book = await this.prisma.book.create({
+      data: {
+        magnificCode,
+        studentId: student.id,
+        authographsEventId: activeEvent.id,
+        priceId,
+        title: body.title || null,
+        author: student.name,
+        status: BookStatus.DRAFT,
+      },
+    });
+
+    await Promise.all(
+      template.bookTemplatePages.map(async (p) => {
+        await this.prisma.page.create({
+          data: {
+            bookId: book.id,
+            number: p.pageNumber,
+            type: p.pageType,
+            status:
+              p.pageType === PageType.BLANK
+                ? PageStatus.READY
+                : PageStatus.NOT_STARTED,
+          },
+        });
+      }),
+    );
+
+    return this.getById(book.id, user);
+  }
+
+  private async getDefaultPriceId(): Promise<string> {
+    const price = await this.prisma.price.findFirst({
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+
+    if (price) return price.id;
+
+    const created = await this.prisma.price.create({
+      data: { amount: 0 },
+      select: { id: true },
+    });
+    return created.id;
   }
 }
