@@ -1,9 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { Search, Coins, AlertCircle } from 'lucide-react';
+import { Search, Coins, AlertCircle, Plus, Pencil } from 'lucide-react';
 import { getPrices } from '../services/prices-service';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { CreatePriceDialog } from '../components/prices/create-price-dialog';
+import { EditPriceDialog } from '../components/prices/edit-price-dialog';
+import { GetPricesResponse } from '@repo/shared';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', {
@@ -14,6 +18,8 @@ const formatCurrency = (value: number) => {
 
 export function PricesPage() {
   const [search, setSearch] = useState('');
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editingPrice, setEditingPrice] = useState<GetPricesResponse | null>(null);
 
   const {
     data: prices,
@@ -97,6 +103,14 @@ export function PricesPage() {
                   className='pl-9'
                 />
               </div>
+
+              <Button
+                onClick={() => setCreateDialogOpen(true)}
+                className='w-full sm:w-auto sm:self-end flex items-center justify-center gap-1.5'
+              >
+                <Plus className='w-4 h-4' />
+                Adicionar Preço
+              </Button>
             </div>
           </div>
         </section>
@@ -109,7 +123,8 @@ export function PricesPage() {
                 <tr className='border-b border-border bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
                   <th className='p-4 pl-6 w-1/4'>Preço</th>
                   <th className='p-4 w-1/3'>Faixas de Preço (Tiers)</th>
-                  <th className='p-4 pr-6 w-5/12'>Turmas Associadas</th>
+                  <th className='p-4 w-5/12'>Turmas Associadas</th>
+                  <th className='p-4 pr-6 text-right w-1/12'>Ações</th>
                 </tr>
               </thead>
               <tbody className='divide-y divide-border/60 text-sm'>
@@ -149,7 +164,7 @@ export function PricesPage() {
                           ))}
                         </div>
                       </td>
-                      <td className='p-4 pr-6 align-top'>
+                      <td className='p-4 align-top'>
                         {price.classes.length === 0 ? (
                           <span className='text-xs text-muted-foreground italic block mt-1'>
                             Nenhuma turma associada
@@ -172,6 +187,16 @@ export function PricesPage() {
                           </div>
                         )}
                       </td>
+                      <td className='p-4 pr-6 align-top text-right'>
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          onClick={() => setEditingPrice(price)}
+                          className='h-8 w-8 text-muted-foreground hover:text-foreground'
+                        >
+                          <Pencil className='w-4 h-4' />
+                        </Button>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -180,6 +205,17 @@ export function PricesPage() {
           </div>
         </div>
       </div>
+
+      <CreatePriceDialog
+        isOpen={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+      />
+
+      <EditPriceDialog
+        isOpen={!!editingPrice}
+        price={editingPrice}
+        onClose={() => setEditingPrice(null)}
+      />
     </main>
   );
 }

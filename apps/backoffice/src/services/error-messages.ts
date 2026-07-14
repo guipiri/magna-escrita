@@ -30,6 +30,7 @@ export const errorMessages: Record<ErrorKeys, string> = {
   NOT_FOUND_EVENT: 'Evento não encontrado.',
   NOT_FOUND_BOOK_TEMPLATE: 'Template de livro não encontrado.',
   NOT_FOUND_GRADE: 'Turma não encontrada.',
+  NOT_FOUND_PRICE: 'Tabela de preço não encontrada.',
   NOT_FOUND_UNIT_LOGO: 'Logo da unidade não encontrado.',
   NOT_FOUND_COVER_TEMPLATE: 'Template de capa não encontrado.',
 
@@ -52,6 +53,8 @@ export const errorMessages: Record<ErrorKeys, string> = {
 
   BAD_REQUEST_GRADE_NAME_ALREADY_EXISTS:
     'Já existe uma turma com esse nome nesta unidade.',
+  BAD_REQUEST_DUPLICATE_MIN_QUANTITY:
+    'Existem quantidades mínimas duplicadas nas faixas de preço.',
   BAD_REQUEST_SCHOOL_USER_WITHOUT_UNITS:
     'Um usuário com perfil de escola precisa estar associado a pelo menos uma unidade.',
   BAD_REQUEST_INVALID_ROLE_FOR_USER_CREATION:
