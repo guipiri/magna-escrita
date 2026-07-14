@@ -44,3 +44,48 @@ export class ForbiddenBookReadyException extends ForbiddenException {
     } satisfies HttpExceptionConstructor);
   }
 }
+
+export class BadRequestPageWithoutContentException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.BAD_REQUEST_PAGE_WITHOUT_CONTENT,
+      message: 'Não é permitido marcar uma página sem conteúdo como revisada.',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class BadRequestInvalidStatusForRoleException extends BadRequestException {
+  constructor(roleMessage: string) {
+    super({
+      key: ErrorKeys.BAD_REQUEST_INVALID_STATUS_FOR_ROLE,
+      message: `Status inválido para o perfil de ${roleMessage}`,
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class BadRequestPageNotRevisedBySchoolException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.BAD_REQUEST_PAGE_NOT_REVISED_BY_SCHOOL,
+      message: 'Alteração para Pronto permitida apenas se já revisado pela escola',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class NotFoundPageException extends NotFoundException {
+  constructor() {
+    super({
+      key: ErrorKeys.NOT_FOUND_PAGE,
+      message: 'Página não encontrada',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class ForbiddenPageUpdateException extends ForbiddenException {
+  constructor() {
+    super({
+      key: ErrorKeys.FORBIDDEN_PAGE_UPDATE,
+      message: 'Usuário não autorizado a alterar o status da página',
+    } satisfies HttpExceptionConstructor);
+  }
+}

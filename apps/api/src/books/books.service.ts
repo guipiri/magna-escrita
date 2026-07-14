@@ -1,15 +1,14 @@
-import {
-  Injectable,
-  BadRequestException,
-  ForbiddenException,
-  NotFoundException,
-  Inject,
-} from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
 import {
   NotFoundBookException,
   ForbiddenBookReadyException,
   ConflictBookAlreadyExistsException,
+  BadRequestPageWithoutContentException,
+  BadRequestInvalidStatusForRoleException,
+  BadRequestPageNotRevisedBySchoolException,
+  NotFoundPageException,
+  ForbiddenPageUpdateException,
 } from './books.errors.js';
 import type { GetBookDetailResponse, GetBooksListResponse } from '@repo/shared';
 import type { AuthUser } from '@repo/shared';
@@ -257,7 +256,7 @@ export class BooksService {
     }
 
     const page = bookDetail.pages.find((p) => p.number === pageNumber);
-    if (!page) throw new NotFoundException('Página não encontrada');
+    if (!page) throw new NotFoundPageException();
 
     const finalStatus = data.status !== undefined ? data.status : page.status;
 
@@ -325,9 +324,7 @@ export class BooksService {
         !!page.drawImageUrl || !!page.imageUrl || !!page.originalImageUrl;
 
       if (!hasTextContent && !hasImageContent) {
-        throw new BadRequestException(
-          'Não é permitido marcar uma página sem conteúdo como revisada.',
-        );
+        throw new BadRequestPageWithoutContentException();
       }
     }
 
@@ -342,33 +339,20 @@ export class BooksService {
           data.status !== PageStatus.REVISED_BY_SCHOOL &&
           data.status !== PageStatus.IN_PROGRESS
         ) {
-          throw new BadRequestException(
-            'Status inválido para o perfil de escola',
-          );
+          throw new BadRequestInvalidStatusForRoleException('escola');
         }
         updateData.status = data.status;
       } else if (user.role === UserRole.ADMIN) {
         if (
+          data.status === PageStatus.READY &&
           page.status !== PageStatus.REVISED_BY_SCHOOL &&
           page.status !== PageStatus.READY
         ) {
-          throw new BadRequestException(
-            'Alteração permitida apenas se já revisado pela escola',
-          );
-        }
-        if (
-          data.status !== PageStatus.READY &&
-          data.status !== PageStatus.REVISED_BY_SCHOOL
-        ) {
-          throw new BadRequestException(
-            'Status inválido para o perfil de administrador',
-          );
+          throw new BadRequestPageNotRevisedBySchoolException();
         }
         updateData.status = data.status;
       } else {
-        throw new ForbiddenException(
-          'Usuário não autorizado a alterar o status da página',
-        );
+        throw new ForbiddenPageUpdateException();
       }
     }
 

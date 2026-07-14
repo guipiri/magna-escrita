@@ -90,11 +90,14 @@ export interface ScanBooksResult {
   results: ScanPageResult[];
 }
 
-export type PageStatus =
-  | 'NOT_STARTED'
-  | 'IN_PROGRESS'
-  | 'REVISED_BY_SCHOOL'
-  | 'READY';
+export enum PageStatusEnum {
+  NOT_STARTED = 'NOT_STARTED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  REVISED_BY_SCHOOL = 'REVISED_BY_SCHOOL',
+  READY = 'READY',
+}
+
+export type PageStatus = keyof typeof PageStatusEnum;
 
 export interface BookDetailPage {
   number: number;

@@ -125,6 +125,12 @@ export const errorMessages: Record<ErrorKeys, string> = {
   BAD_GATEWAY_FAILED_TO_UPLOAD_BOOK_TEMPLATE_THEME_COVER:
     'Erro ao fazer upload do PDF da capa do tema.',
 
+  BAD_REQUEST_PAGE_WITHOUT_CONTENT: 'Não é permitido marcar uma página sem conteúdo como revisada.',
+  BAD_REQUEST_INVALID_STATUS_FOR_ROLE: 'Status inválido para o perfil de usuário.',
+  BAD_REQUEST_PAGE_NOT_REVISED_BY_SCHOOL: 'Alteração para Pronto permitida apenas se já revisado pela escola.',
+  NOT_FOUND_PAGE: 'Página não encontrada.',
+  FORBIDDEN_PAGE_UPDATE: 'Usuário não autorizado a alterar o status da página.',
+
   UNKNOWN_ERROR: 'Ocorreu um erro desconhecido. Tente novamente mais tarde.',
 };
 

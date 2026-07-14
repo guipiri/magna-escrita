@@ -24,10 +24,13 @@ import {
 import {
   type BookDetailPage,
   type BookPageType,
+  BookPageTypeEnum,
   BookStatus,
   type PageStatus,
   type GetBookDetailResponse,
   UserRole,
+  BookStatusEnum,
+  PageStatusEnum,
 } from '@repo/shared';
 import {
   getBookById,
@@ -56,11 +59,11 @@ function formatSchoolYear(s: string) {
 
 function bookStatusConfig(status: BookStatus) {
   switch (status) {
-    case 'REVISED_BY_MAGNA':
+    case BookStatusEnum.REVISED_BY_MAGNA:
       return { label: 'Revisado pela Magna', variant: 'default' as const };
-    case 'REVISED_BY_SCHOOL':
+    case BookStatusEnum.REVISED_BY_SCHOOL:
       return { label: 'Revisado pela escola', variant: 'secondary' as const };
-    case 'ARCHIVED':
+    case BookStatusEnum.ARCHIVED:
       return { label: 'Arquivado', variant: 'outline' as const };
     default:
       return { label: 'Rascunho', variant: 'outline' as const };
@@ -68,38 +71,42 @@ function bookStatusConfig(status: BookStatus) {
 }
 
 const PAGE_TYPE_LABELS: Record<BookPageType, string> = {
-  COVER: 'Capa',
-  BACK_COVER: 'Contracapa',
-  PREFACE: 'Prefácio',
-  THANKS: 'Agradecimentos',
-  BLANK: 'Em branco',
-  TEXT: 'Texto',
-  DRAW: 'Desenho',
-  DRAW_TEXT: 'Desenho + Texto',
+  [BookPageTypeEnum.COVER]: 'Capa',
+  [BookPageTypeEnum.BACK_COVER]: 'Contracapa',
+  [BookPageTypeEnum.PREFACE]: 'Prefácio',
+  [BookPageTypeEnum.THANKS]: 'Agradecimentos',
+  [BookPageTypeEnum.BLANK]: 'Em branco',
+  [BookPageTypeEnum.TEXT]: 'Texto',
+  [BookPageTypeEnum.DRAW]: 'Desenho',
+  [BookPageTypeEnum.DRAW_TEXT]: 'Desenho + Texto',
 };
 
 const PAGE_TYPE_ICONS: Record<BookPageType, React.ElementType> = {
-  COVER: BookOpen,
-  BACK_COVER: BookOpen,
-  PREFACE: FileText,
-  THANKS: FileText,
-  BLANK: Layers,
-  TEXT: FileText,
-  DRAW: FileImage,
-  DRAW_TEXT: FileImage,
+  [BookPageTypeEnum.COVER]: BookOpen,
+  [BookPageTypeEnum.BACK_COVER]: BookOpen,
+  [BookPageTypeEnum.PREFACE]: FileText,
+  [BookPageTypeEnum.THANKS]: FileText,
+  [BookPageTypeEnum.BLANK]: Layers,
+  [BookPageTypeEnum.TEXT]: FileText,
+  [BookPageTypeEnum.DRAW]: FileImage,
+  [BookPageTypeEnum.DRAW_TEXT]: FileImage,
 };
 
 function hasText(type: BookPageType) {
   return (
-    type === 'TEXT' ||
-    type === 'DRAW_TEXT' ||
-    type === 'PREFACE' ||
-    type === 'THANKS'
+    type === BookPageTypeEnum.TEXT ||
+    type === BookPageTypeEnum.DRAW_TEXT ||
+    type === BookPageTypeEnum.PREFACE ||
+    type === BookPageTypeEnum.THANKS
   );
 }
 
 function hasDraw(type: BookPageType) {
-  return type === 'DRAW' || type === 'DRAW_TEXT' || type === 'COVER';
+  return (
+    type === BookPageTypeEnum.DRAW ||
+    type === BookPageTypeEnum.DRAW_TEXT ||
+    type === BookPageTypeEnum.COVER
+  );
 }
 
 /* ─── page card ─────────────────────────────────────────── */
@@ -135,7 +142,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
   const [isDragging, setIsDragging] = useState(false);
   const { user } = useAuth();
   const isReadOnlyForSchool =
-    user?.role === UserRole.SCHOOL && book.status === 'READY_FOR_SALE';
+    user?.role === UserRole.SCHOOL && book.status === BookStatusEnum.READY_FOR_SALE;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -184,16 +191,16 @@ function PageCard({ page, book, isActive }: PageCardProps) {
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      if (page.type === 'COVER') {
+      if (page.type === BookPageTypeEnum.COVER) {
         return updateBook(bookId, { title: titleDraft || null });
       }
-      if (page.type === 'PREFACE') {
+      if (page.type === BookPageTypeEnum.PREFACE) {
         return updateBookPage(bookId, page.number, {
           bookGenre: bookGenreDraft || null,
           bookGenreExplanation: bookGenreExplanationDraft || null,
         });
       }
-      if (page.type === 'THANKS') {
+      if (page.type === BookPageTypeEnum.THANKS) {
         return updateBookPage(bookId, page.number, {
           thanksMessage: thanksMessageDraft || null,
           schoolMessage: schoolMessageDraft || null,
@@ -206,11 +213,11 @@ function PageCard({ page, book, isActive }: PageCardProps) {
     },
     onSuccess: () => {
       enqueueSnackbar(
-        page.type === 'COVER'
+        page.type === BookPageTypeEnum.COVER
           ? 'Capa salva com sucesso!'
-          : page.type === 'PREFACE'
+          : page.type === BookPageTypeEnum.PREFACE
             ? 'Prefácio salvo com sucesso!'
-            : page.type === 'THANKS'
+            : page.type === BookPageTypeEnum.THANKS
               ? 'Agradecimentos salvos com sucesso!'
               : 'Página salva com sucesso!',
         { variant: 'success' },
@@ -306,8 +313,8 @@ function PageCard({ page, book, isActive }: PageCardProps) {
   const TypeIcon = PAGE_TYPE_ICONS[page.type] ?? Layers;
   const showText = hasText(page.type);
   const showDraw = hasDraw(page.type);
-  const isCover = page.type === 'COVER';
-  const isBackCover = page.type === 'BACK_COVER';
+  const isCover = page.type === BookPageTypeEnum.COVER;
+  const isBackCover = page.type === BookPageTypeEnum.BACK_COVER;
   const canEditText = showText || isCover || isBackCover;
 
   return (
@@ -349,11 +356,11 @@ function PageCard({ page, book, isActive }: PageCardProps) {
               <Checkbox
                 id={`revise-page-${page.number}`}
                 checked={
-                  page.status === 'REVISED_BY_SCHOOL' || page.status === 'READY'
+                  page.status === PageStatusEnum.REVISED_BY_SCHOOL || page.status === PageStatusEnum.READY
                 }
                 onCheckedChange={(checked) => {
                   statusMutation.mutate(
-                    checked ? 'REVISED_BY_SCHOOL' : 'IN_PROGRESS',
+                    checked ? PageStatusEnum.REVISED_BY_SCHOOL : PageStatusEnum.IN_PROGRESS,
                   );
                 }}
                 disabled={statusMutation.isPending || isReadOnlyForSchool}
@@ -364,19 +371,27 @@ function PageCard({ page, book, isActive }: PageCardProps) {
           {user?.role === 'ADMIN' &&
             (() => {
               const isRevisedBySchool =
-                page.status === 'REVISED_BY_SCHOOL' || page.status === 'READY';
+                page.status === PageStatusEnum.REVISED_BY_SCHOOL || page.status === PageStatusEnum.READY;
               return (
                 <div className='flex items-center gap-4 rounded-lg bg-muted/30 px-3 py-1.5 border border-border/50'>
-                  <span className='text-xs font-medium text-muted-foreground'>
-                    Revisado pela escola:{' '}
-                    {isRevisedBySchool ? (
-                      <span className='text-emerald-600 font-semibold'>
-                        Sim
-                      </span>
-                    ) : (
-                      <span className='text-rose-500 font-semibold'>Não</span>
-                    )}
-                  </span>
+                  <div className='flex items-center gap-2'>
+                    <label
+                      htmlFor={`revise-page-${page.number}`}
+                      className='text-xs font-semibold text-muted-foreground select-none cursor-pointer'
+                    >
+                      Revisado pela escola
+                    </label>
+                    <Checkbox
+                      id={`revise-page-${page.number}`}
+                      checked={isRevisedBySchool}
+                      disabled={statusMutation.isPending}
+                      onCheckedChange={(checked) => {
+                        statusMutation.mutate(
+                          checked ? PageStatusEnum.REVISED_BY_SCHOOL : PageStatusEnum.IN_PROGRESS,
+                        );
+                      }}
+                    />
+                  </div>
                   <div className='h-4 w-px bg-border/60' />
                   <div className='flex items-center gap-2'>
                     <label
@@ -392,11 +407,11 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                     </label>
                     <Checkbox
                       id={`ready-page-${page.number}`}
-                      checked={page.status === 'READY'}
+                      checked={page.status === PageStatusEnum.READY}
                       disabled={!isRevisedBySchool || statusMutation.isPending}
                       onCheckedChange={(checked) => {
                         statusMutation.mutate(
-                          checked ? 'READY' : 'REVISED_BY_SCHOOL',
+                          checked ? PageStatusEnum.READY : PageStatusEnum.REVISED_BY_SCHOOL,
                         );
                       }}
                     />
@@ -562,7 +577,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                 )}
               </div>
               {isEditing ? (
-                page.type === 'PREFACE' ? (
+                page.type === BookPageTypeEnum.PREFACE ? (
                   <div className='flex flex-col gap-4 w-full'>
                     <div className='flex flex-col gap-1.5'>
                       <label className='text-xs font-semibold text-muted-foreground'>
@@ -590,7 +605,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                       />
                     </div>
                   </div>
-                ) : page.type === 'THANKS' ? (
+                ) : page.type === BookPageTypeEnum.THANKS ? (
                   <div className='flex flex-col gap-4 w-full'>
                     <div className='flex flex-col gap-1.5'>
                       <label className='text-xs font-semibold text-muted-foreground'>
@@ -636,7 +651,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                     autoFocus
                   />
                 )
-              ) : page.type === 'PREFACE' ? (
+              ) : page.type === BookPageTypeEnum.PREFACE ? (
                 book.class.bookGenre || book.class.bookGenreExplanation ? (
                   <div className='space-y-4 rounded-xl border border-border/70 bg-muted/20 p-4 text-sm text-foreground w-full'>
                     {book.class.bookGenre && (
@@ -664,7 +679,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                     <p className='text-xs'>Sem conteúdo de prefácio</p>
                   </div>
                 )
-              ) : page.type === 'THANKS' ? (
+              ) : page.type === BookPageTypeEnum.THANKS ? (
                 book.class.schoolMessage ||
                 book.class.thanksMessage ||
                 book.class.schoolTeam ? (
@@ -1154,7 +1169,7 @@ export function BookDetailPage() {
   return (
     <main className='flex-1 overflow-auto'>
       <div className='mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8'>
-        {user?.role === 'SCHOOL' && book.status === 'READY_FOR_SALE' && (
+        {user?.role === 'SCHOOL' && book.status === BookStatusEnum.READY_FOR_SALE && (
           <Alert
             variant='destructive'
             className='mb-6 bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-500 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-500'
