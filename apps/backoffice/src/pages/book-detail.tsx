@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   AlertCircle,
   BookOpen,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Crop,
@@ -25,7 +24,6 @@ import {
   type BookDetailPage,
   type BookPageType,
   BookPageTypeEnum,
-  BookStatus,
   type PageStatus,
   type GetBookDetailResponse,
   UserRole,
@@ -50,24 +48,12 @@ import { BookImageEditorDialog } from '../components/books/book-image-editor-dia
 import { Checkbox } from '../components/ui/checkbox';
 import { useAuth } from '../hooks/auth-hook';
 import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert';
+import { getBookStatusConfig } from '../utils/book-status';
 
 /* ─── helpers ───────────────────────────────────────────── */
 
 function formatSchoolYear(s: string) {
   return s.replace('YEAR_', '');
-}
-
-function bookStatusConfig(status: BookStatus) {
-  switch (status) {
-    case BookStatusEnum.REVISED_BY_MAGNA:
-      return { label: 'Revisado pela Magna', variant: 'default' as const };
-    case BookStatusEnum.REVISED_BY_SCHOOL:
-      return { label: 'Revisado pela escola', variant: 'secondary' as const };
-    case BookStatusEnum.ARCHIVED:
-      return { label: 'Arquivado', variant: 'outline' as const };
-    default:
-      return { label: 'Rascunho', variant: 'outline' as const };
-  }
 }
 
 const PAGE_TYPE_LABELS: Record<BookPageType, string> = {
@@ -1164,7 +1150,8 @@ export function BookDetailPage() {
     );
   }
 
-  const statusCfg = bookStatusConfig(book.status);
+  const statusCfg = getBookStatusConfig(book.status);
+  const StatusIcon = statusCfg.icon;
 
   return (
     <main className='flex-1 overflow-auto'>
@@ -1206,8 +1193,8 @@ export function BookDetailPage() {
                   <h1 className='text-2xl font-semibold tracking-tight text-foreground sm:text-3xl'>
                     {book.title ?? 'Sem título'}
                   </h1>
-                  <Badge variant={statusCfg.variant}>
-                    <CheckCircle2 className='size-3' />
+                  <Badge variant={statusCfg.variant} className={statusCfg.bgColor}>
+                    <StatusIcon className='size-3' />
                     {statusCfg.label}
                   </Badge>
                 </div>

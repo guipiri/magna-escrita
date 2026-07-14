@@ -70,10 +70,17 @@ function TemplateCard({
 
   return (
     <div className='rounded-xl border border-border bg-card shadow-sm overflow-hidden'>
-      <button
-        type='button'
+      <div
+        role='button'
+        tabIndex={0}
         onClick={() => setExpanded((prev) => !prev)}
-        className='w-full text-left px-5 py-4 flex items-center justify-between gap-4 hover:bg-accent/50 transition-colors'
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setExpanded((prev) => !prev);
+          }
+        }}
+        className='w-full cursor-pointer text-left px-5 py-4 flex items-center justify-between gap-4 hover:bg-accent/50 transition-colors'
       >
         <div className='flex items-center gap-3 min-w-0'>
           <span className='shrink-0 w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center'>
@@ -148,7 +155,7 @@ function TemplateCard({
             <ChevronDown className='w-4 h-4 text-muted-foreground shrink-0' />
           )}
         </div>
-      </button>
+      </div>
 
       <AnimatePresence>
         {expanded && (

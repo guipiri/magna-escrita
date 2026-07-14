@@ -1,9 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FormEvent, useState, useMemo, useEffect } from 'react';
+import { FormEvent, useState, useMemo } from 'react';
 import { useSnackbar } from 'notistack';
 import { Plus, Trash2, AlertCircle, Search } from 'lucide-react';
 import { getErrorMessage } from '../../services/error-messages';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Checkbox } from '../ui/checkbox';
@@ -19,32 +25,24 @@ export function EditPriceDialog({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  price: GetPricesResponse | null;
+  price: GetPricesResponse;
   onSuccess?: () => void;
 }) {
-  const [name, setName] = useState('');
-  const [tiers, setTiers] = useState<CreatePriceTierRequest[]>([]);
-  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
+  const [name, setName] = useState(price.name || '');
+  const [tiers, setTiers] = useState<CreatePriceTierRequest[]>(
+    price.tiers.map((t) => ({
+      minQuantity: t.minQuantity,
+      unitPrice: t.unitPrice,
+    }))
+  );
+  const [selectedClassIds, setSelectedClassIds] = useState<string[]>(
+    price.classes.map((c) => c.id)
+  );
   const [classSearch, setClassSearch] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const { enqueueSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
-
-  useEffect(() => {
-    if (price && isOpen) {
-      setName(price.name || '');
-      setTiers(
-        price.tiers.map((t) => ({
-          minQuantity: t.minQuantity,
-          unitPrice: t.unitPrice,
-        }))
-      );
-      setSelectedClassIds(price.classes.map((c) => c.id));
-      setClassSearch('');
-      setValidationError(null);
-    }
-  }, [price, isOpen]);
 
   const { data: classesList, isLoading: classesLoading } = useQuery({
     queryKey: ['classes'],
@@ -59,7 +57,7 @@ export function EditPriceDialog({
     return classesList.filter((c) =>
       `${c.name} ${c.school.name} ${c.unit.name || ''}`
         .toLowerCase()
-        .includes(term)
+        .includes(term),
     );
   }, [classesList, classSearch]);
 
@@ -76,7 +74,7 @@ export function EditPriceDialog({
   const updateTierField = (
     index: number,
     field: keyof CreatePriceTierRequest,
-    value: number
+    value: number,
   ) => {
     const updated = tiers.map((tier, i) => {
       if (i === index) {
@@ -89,14 +87,16 @@ export function EditPriceDialog({
   };
 
   const editMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updatePrice(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      updatePrice(id, data),
     onSuccess: (data) => {
       enqueueSnackbar(
         `Preço "${data.name || data.id}" atualizado com sucesso!`,
-        { variant: 'success' }
+        { variant: 'success' },
       );
       queryClient.invalidateQueries({ queryKey: ['prices'] });
       queryClient.invalidateQueries({ queryKey: ['classes'] });
+      onClose();
       if (onSuccess) onSuccess();
     },
   });
@@ -150,13 +150,16 @@ export function EditPriceDialog({
     setSelectedClassIds((prev) =>
       prev.includes(classId)
         ? prev.filter((id) => id !== classId)
-        : [...prev, classId]
+        : [...prev, classId],
     );
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className='max-w-2xl max-h-[90vh] overflow-y-auto' aria-describedby={undefined}>
+      <DialogContent
+        className='max-w-2xl max-h-[90vh] overflow-y-auto'
+        aria-describedby={undefined}
+      >
         <DialogHeader>
           <DialogTitle>Editar Tabela de Preço</DialogTitle>
         </DialogHeader>
@@ -209,15 +212,24 @@ export function EditPriceDialog({
 
             <div className='space-y-3 max-h-48 overflow-y-auto pr-1'>
               {tiers.map((tier, index) => (
-                <div key={index} className='flex items-center gap-3 bg-muted/30 p-2.5 rounded-xl border border-border/40'>
+                <div
+                  key={index}
+                  className='flex items-center gap-3 bg-muted/30 p-2.5 rounded-xl border border-border/40'
+                >
                   <div className='flex-1 flex items-center gap-2'>
-                    <span className='text-xs text-muted-foreground whitespace-nowrap'>Qtd Mínima:</span>
+                    <span className='text-xs text-muted-foreground whitespace-nowrap'>
+                      Qtd Mínima:
+                    </span>
                     <Input
                       type='number'
                       min='1'
                       value={tier.minQuantity}
                       onChange={(e) =>
-                        updateTierField(index, 'minQuantity', parseInt(e.target.value) || 0)
+                        updateTierField(
+                          index,
+                          'minQuantity',
+                          parseInt(e.target.value) || 0,
+                        )
                       }
                       className='h-9'
                       required
@@ -226,14 +238,20 @@ export function EditPriceDialog({
                   </div>
 
                   <div className='flex-1 flex items-center gap-2'>
-                    <span className='text-xs text-muted-foreground whitespace-nowrap'>Preço Unitário (R$):</span>
+                    <span className='text-xs text-muted-foreground whitespace-nowrap'>
+                      Preço Unitário (R$):
+                    </span>
                     <Input
                       type='number'
                       step='0.01'
                       min='0.01'
                       value={tier.unitPrice || ''}
                       onChange={(e) =>
-                        updateTierField(index, 'unitPrice', parseFloat(e.target.value) || 0)
+                        updateTierField(
+                          index,
+                          'unitPrice',
+                          parseFloat(e.target.value) || 0,
+                        )
                       }
                       className='h-9'
                       required
@@ -279,9 +297,13 @@ export function EditPriceDialog({
             <div className='border border-border/80 rounded-xl overflow-hidden bg-card'>
               <div className='max-h-48 overflow-y-auto divide-y divide-border/60 p-1'>
                 {classesLoading ? (
-                  <p className='text-xs text-muted-foreground p-4 text-center'>Carregando turmas...</p>
+                  <p className='text-xs text-muted-foreground p-4 text-center'>
+                    Carregando turmas...
+                  </p>
                 ) : filteredClasses.length === 0 ? (
-                  <p className='text-xs text-muted-foreground p-4 text-center'>Nenhuma turma correspondente encontrada.</p>
+                  <p className='text-xs text-muted-foreground p-4 text-center'>
+                    Nenhuma turma correspondente encontrada.
+                  </p>
                 ) : (
                   filteredClasses.map((c) => {
                     const isChecked = selectedClassIds.includes(c.id);
@@ -299,9 +321,12 @@ export function EditPriceDialog({
                           onClick={(e) => e.stopPropagation()}
                         />
                         <div className='flex flex-col text-xs'>
-                          <span className='font-semibold text-foreground'>{c.name}</span>
+                          <span className='font-semibold text-foreground'>
+                            {c.name}
+                          </span>
                           <span className='text-muted-foreground text-[10px]'>
-                            {c.school.name} {c.unit.name ? `- ${c.unit.name}` : ''}
+                            {c.school.name}{' '}
+                            {c.unit.name ? `- ${c.unit.name}` : ''}
                           </span>
                         </div>
                       </div>

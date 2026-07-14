@@ -1,10 +1,6 @@
-import type { BookStatus, GetBooksListResponse } from '@repo/shared';
-import { BookStatusEnum } from '@repo/shared';
+import type { GetBooksListResponse } from '@repo/shared';
 import {
   BookOpen,
-  CheckCircle2,
-  CircleDashed,
-  Clock3,
   Eye,
   GraduationCap,
   School,
@@ -38,47 +34,7 @@ import { useSnackbar } from 'notistack';
 import { generateFinalBookPdf } from '../../services/books-service';
 import { getErrorMessage } from '../../services/error-messages';
 import { routes } from '../../main';
-
-interface BookStatusConfig {
-  label: string;
-  variant: 'default' | 'secondary' | 'outline' | 'destructive';
-  icon: React.ElementType;
-  bgColor?: string;
-}
-
-function getBookStatus(status: BookStatus): BookStatusConfig {
-  switch (status) {
-    case BookStatusEnum.REVISED_BY_MAGNA:
-      return {
-        label: 'Revisado pela Magna',
-        variant: 'default',
-        icon: CheckCircle2,
-        bgColor: 'bg-emerald-600',
-      };
-    case BookStatusEnum.REVISED_BY_SCHOOL:
-      return {
-        label: 'Revisado pela escola',
-        variant: 'default',
-        icon: Clock3,
-        bgColor: 'bg-amber-600',
-      };
-    case BookStatusEnum.ARCHIVED:
-      return {
-        label: 'Arquivado',
-        variant: 'outline',
-        icon: Eye,
-        bgColor: 'bg-red-100',
-      };
-    case BookStatusEnum.DRAFT:
-    default:
-      return {
-        label: 'Rascunho',
-        variant: 'outline',
-        icon: CircleDashed,
-        bgColor: 'bg-gray-100',
-      };
-  }
-}
+import { getBookStatusConfig } from '../../utils/book-status';
 
 function formatSchoolYear(schoolYear: string): string {
   return schoolYear.replace('YEAR_', '');
@@ -130,7 +86,7 @@ export function BooksList({ books }: BooksListProps) {
   return (
     <DataList>
       {books.map((book) => {
-        const status = getBookStatus(book.status);
+        const status = getBookStatusConfig(book.status);
         const StatusIcon = status.icon;
         const bookTitle = book.title ?? 'Sem título';
 
