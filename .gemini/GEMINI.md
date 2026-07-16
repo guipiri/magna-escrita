@@ -1,3 +1,9 @@
+# General Instructions
+
+- Avoid using literal strings for types or statuses (e.g., `PageType`, `BookStatus`). Instead, prefer using enums. If enum doesen´t exist, create it in the appropiate folder in the shared package.
+  - Wrong: `const isBookReadyForSale = book.status === 'READY_FOR_SALE';`
+  - Right: `const isBookReadyForSale = book.status === BookStatusEnum.READY_FOR_SALE;`
+
 # API Project Instructions
 
 - Use `yarn` for all package manager operations.
