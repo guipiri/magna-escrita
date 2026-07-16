@@ -12,5 +12,13 @@ services:
     volumes:
       - magna_escrita_pg_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    container_name: magna-escrita-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+
 volumes:
   magna_escrita_pg_data:
+

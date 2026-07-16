@@ -3,7 +3,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { ErrorKeys } from '@repo/shared';
+import { ErrorKeys, PageStatus } from '@repo/shared';
 import { HttpExceptionConstructor } from '../common/filters/http-exception.filter.js';
 
 export class BadRequestQrCodeNotReadableException extends BadRequestException {
@@ -76,6 +76,15 @@ export class InternalQrCodeRecognitionFailedException extends InternalServerErro
     super({
       key: ErrorKeys.INTERNAL_QR_CODE_RECOGNITION_FAILED,
       message: `Falha no reconhecimento do QR Code${detail ? ': ' + detail : '.'}`,
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class BadRequestPageAlreadyProcessedException extends BadRequestException {
+  constructor(pageNumber: number, currentStatus: PageStatus | undefined) {
+    super({
+      key: ErrorKeys.BAD_REQUEST_PAGE_ALREADY_PROCESSED,
+      message: `A página ${pageNumber} já foi processada${currentStatus ? ' e está no status ' + currentStatus : ''}. Ela não pode ser processada novamente.`,
     } satisfies HttpExceptionConstructor);
   }
 }

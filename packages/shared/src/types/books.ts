@@ -84,7 +84,7 @@ export interface ScanPageResult {
   filename: string;
   studentId: string;
   pageNumber: number;
-  status: 'success' | 'error';
+  status: 'success' | 'error' | 'enqueued';
   error?: string;
 }
 

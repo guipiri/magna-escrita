@@ -22,4 +22,6 @@ export const validationSchema = Joi.object({
   CLOUDFLARE_R2_SECRET_ACCESS_KEY: Joi.string().required(),
   CLOUDFLARE_R2_BUCKET_NAME: Joi.string().required(),
   CLOUDFLARE_R2_PUBLIC_URL: Joi.string().uri().required(),
+  REDIS_HOST: Joi.string().default('localhost'),
+  REDIS_PORT: Joi.number().default(6379),
 });
