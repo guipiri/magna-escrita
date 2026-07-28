@@ -140,8 +140,8 @@ export function BulkUploadDialog({ isOpen, onClose }: BulkUploadDialogProps) {
     if (!pageResult) return null;
     if (pageResult.status === 'enqueued') {
       return (
-        <span className="flex items-center gap-1 text-xs font-medium text-blue-600">
-          <Loader2 className="size-3.5 shrink-0 animate-spin" />
+        <span className='flex items-center gap-1 text-xs font-medium text-blue-600'>
+          <Loader2 className='size-3.5 shrink-0 animate-spin' />
           Fila de processamento...
         </span>
       );

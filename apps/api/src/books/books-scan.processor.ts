@@ -6,6 +6,8 @@ import type { ExtractDrawService } from './providers/extract-draw.service.js';
 import type { ExtractTextService } from './providers/extract-text.service.js';
 import type { ReadQrCodeService } from './providers/read-qr-code.service.js';
 import type { BucketService } from '../common/bucket/bucket.contract.js';
+import { RedisService } from '../common/redis/redis.service.js';
+import { MailService } from '../common/mail/mail.service.js';
 import {
   $Enums,
   AuthographsEventStatus,
@@ -27,6 +29,7 @@ import {
 } from './books-scan.errors.js';
 
 interface ScanJobPayload {
+  batchId: string;
   filename: string;
   mimetype: string;
   buffer: string; // base64 string
@@ -37,6 +40,24 @@ interface QrCodeData {
   templateId: string;
   page: number;
 }
+
+const updateBatchScript = `
+  local batchKey = KEYS[1]
+  local resultJson = ARGV[1]
+  local batchData = redis.call("get", batchKey)
+  if not batchData then
+    return nil
+  end
+  local batch = cjson.decode(batchData)
+  batch.completed = batch.completed + 1
+  if not batch.results then
+    batch.results = {}
+  end
+  table.insert(batch.results, cjson.decode(resultJson))
+  local newBatchData = cjson.encode(batch)
+  redis.call("set", batchKey, newBatchData, "KEEPTTL")
+  return newBatchData
+`;
 
 @Processor('books-scan')
 @Injectable()
@@ -53,13 +74,17 @@ export class BooksScanProcessor extends WorkerHost {
     private readonly extractTextService: ExtractTextService,
     @Inject('ReadQrCodeService')
     private readonly readQrCodeService: ReadQrCodeService,
+    private readonly redisService: RedisService,
+    private readonly mailService: MailService,
   ) {
     super();
   }
 
   async process(job: Job<ScanJobPayload>): Promise<void> {
-    const { filename, mimetype, buffer } = job.data;
-    this.logger.log(`Processing scan image job ${job.id} for file ${filename}`);
+    const { batchId, filename, mimetype, buffer } = job.data;
+    this.logger.log(
+      `Processing scan image job ${job.id} for file ${filename} in batch ${batchId}`,
+    );
 
     const fileBuffer = Buffer.from(buffer, 'base64');
     const mockFile: Express.Multer.File = {
@@ -75,23 +100,80 @@ export class BooksScanProcessor extends WorkerHost {
       stream: null as any,
     };
 
+    let resultDetail: any;
+    let studentId = '';
+    let pageNumber = 0;
+
     try {
-      await this.processImage(mockFile);
+      // 1. Read QR Code locally with Jimp + jsQR
+      const qrStringData = await this.readQrCodeService.execute(mockFile);
+      if (!qrStringData) throw new BadRequestQrCodeNotReadableException();
+
+      const qrData = this.parseQrPayload(qrStringData);
+      studentId = qrData.studentId;
+      pageNumber = qrData.page;
+      this.logger.debug(`QR code data extracted: ${qrStringData}`);
+
+      await this.processImage(mockFile, qrData);
+
+      resultDetail = {
+        filename,
+        studentId,
+        pageNumber,
+        status: 'success',
+      };
       this.logger.log(`Successfully processed file ${filename}`);
     } catch (err: unknown) {
       this.logger.error(`Failed to process scan image job ${job.id}:`, err);
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      resultDetail = {
+        filename,
+        studentId,
+        pageNumber,
+        status: 'error',
+        error: message,
+      };
       throw err;
+    } finally {
+      if (batchId) {
+        try {
+          const batchKey = `scan-batch:${batchId}`;
+          const updatedBatchJson = (await this.redisService
+            .getClient()
+            .eval(
+              updateBatchScript,
+              1,
+              batchKey,
+              JSON.stringify(resultDetail),
+            )) as string | null;
+
+          if (updatedBatchJson) {
+            const updatedBatch = JSON.parse(updatedBatchJson);
+            if (updatedBatch.completed >= updatedBatch.total) {
+              this.logger.log(
+                `Batch ${batchId} completed! Sending summary email to ${updatedBatch.userEmail}`,
+              );
+              await this.mailService.sendScanSummaryEmail(
+                updatedBatch.userEmail,
+                updatedBatch.results,
+              );
+              await this.redisService.getClient().del(batchKey);
+            }
+          }
+        } catch (redisErr) {
+          this.logger.error(
+            `Failed to update batch progress in Redis:`,
+            redisErr,
+          );
+        }
+      }
     }
   }
 
-  private async processImage(file: Express.Multer.File): Promise<void> {
-    // 1. Read QR Code locally with Jimp + jsQR
-    const qrStringData = await this.readQrCodeService.execute(file);
-    if (!qrStringData) throw new BadRequestQrCodeNotReadableException();
-
-    const qrData = this.parseQrPayload(qrStringData);
-    this.logger.debug(`QR code data extracted: ${qrStringData}`);
-
+  private async processImage(
+    file: Express.Multer.File,
+    qrData: QrCodeData,
+  ): Promise<void> {
     // 2. Fetch student → class → current template
     const student = await this.prisma.student.findUnique({
       where: { id: qrData.studentId },

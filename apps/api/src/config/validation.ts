@@ -24,4 +24,10 @@ export const validationSchema = Joi.object({
   CLOUDFLARE_R2_PUBLIC_URL: Joi.string().uri().required(),
   REDIS_HOST: Joi.string().default('localhost'),
   REDIS_PORT: Joi.number().default(6379),
+  SMTP_HOST: Joi.string().default('localhost'),
+  SMTP_PORT: Joi.number().default(1025),
+  SMTP_USER: Joi.string().allow('').optional(),
+  SMTP_PASS: Joi.string().allow('').optional(),
+  SMTP_SECURE: Joi.boolean().default(false),
+  SMTP_FROM: Joi.string().default('noreply@magnaescrita.com.br'),
 });

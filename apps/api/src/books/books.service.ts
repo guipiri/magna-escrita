@@ -537,9 +537,7 @@ export class BooksService {
     return { drawImageUrl, originalImageUrl };
   }
 
-  async findByIds(
-    ids: string[],
-  ): Promise<
+  async findByIds(ids: string[]): Promise<
     Array<{
       id: string;
       magnificCode: string;
@@ -619,9 +617,7 @@ export class BooksService {
     return res;
   }
 
-  async findByMagnificCode(
-    magnificCode: string,
-  ): Promise<{
+  async findByMagnificCode(magnificCode: string): Promise<{
     id: string;
     magnificCode: string;
     title: string | null;

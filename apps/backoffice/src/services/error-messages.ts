@@ -96,6 +96,8 @@ export const errorMessages: Record<ErrorKeys, string> = {
   BAD_REQUEST_DRAW_SQUARE_NOT_FOUND:
     'O espaço para desenho não foi encontrado.',
   BAD_REQUEST_BOOK_TEMPLATE_MISMATCH: 'Template de livro incorreto.',
+  BAD_REQUEST_PAGE_ALREADY_PROCESSED:
+    'Esta página já foi processada e não pode ser reprocessada.',
   NOT_FOUND_STUDENT: 'Matrícula não encontrada.',
   NOT_FOUND_BOOK_TEMPLATE_PAGE: 'Página do template não encontrada.',
   NOT_FOUND_ACTIVE_EVENT_FOR_STUDENT: 'Nenhum evento ativo para a matrícula.',

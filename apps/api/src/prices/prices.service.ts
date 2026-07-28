@@ -1,7 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
-import { GetPricesResponse, CreatePriceRequest, CreatePriceResponse, UpdatePriceRequest } from '@repo/shared';
-import { BadRequestDuplicateMinQuantityException, NotFoundPriceException } from './prices.errors.js';
+import {
+  GetPricesResponse,
+  CreatePriceRequest,
+  CreatePriceResponse,
+  UpdatePriceRequest,
+} from '@repo/shared';
+import {
+  BadRequestDuplicateMinQuantityException,
+  NotFoundPriceException,
+} from './prices.errors.js';
 import { NotFoundClassException } from '../classes/classes.errors.js';
 import { BookStatus } from '@prisma/client';
 

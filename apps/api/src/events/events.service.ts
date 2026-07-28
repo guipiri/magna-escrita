@@ -7,11 +7,7 @@ import {
   SchoolYear,
   UserRole,
 } from '@repo/shared';
-import {
-  AuthographsEventStatus,
-  Prisma,
-  SchoolYear as PrismaSchoolYear,
-} from '@prisma/client';
+import { AuthographsEventStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../db/db.service.js';
 import {
   NotFoundUnitException,

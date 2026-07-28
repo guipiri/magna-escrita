@@ -16,6 +16,8 @@ import { EventsModule } from './events/events.module.js';
 import { PdfModule } from './pdf/pdf.module.js';
 import { UsersModule } from './users/users.module.js';
 import { PricesModule } from './prices/prices.module.js';
+import { RedisModule } from './common/redis/redis.module.js';
+import { MailModule } from './common/mail/mail.module.js';
 
 @Module({
   imports: [
@@ -38,6 +40,8 @@ import { PricesModule } from './prices/prices.module.js';
       inject: [ConfigService],
     }),
     DbModule,
+    RedisModule,
+    MailModule,
     BooksModule,
     BooksScanModule,
     BookTemplatesModule,

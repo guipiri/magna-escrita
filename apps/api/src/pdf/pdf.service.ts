@@ -5,7 +5,12 @@ import { createRequire } from 'module';
 import { Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
 import { AuthUser, UserRole } from '@repo/shared';
-import { AuthographsEventStatus, BookStatus, PageType, Prisma } from '@prisma/client';
+import {
+  AuthographsEventStatus,
+  BookStatus,
+  PageType,
+  Prisma,
+} from '@prisma/client';
 import * as QRCode from 'qrcode';
 import PDFDocument from 'pdfkit';
 import { PDFDocument as PdfLibDocument, rgb } from 'pdf-lib';
@@ -565,7 +570,6 @@ export class PdfService {
     colorTheme: string,
   ): Promise<void> {
     const MM_TO_PT = 72 / 25.4;
-    const pageSize = 205 * MM_TO_PT;
     const drawSize = 175 * MM_TO_PT;
     const drawX = 15 * MM_TO_PT;
     const drawY = 15 * MM_TO_PT;
@@ -670,7 +674,7 @@ export class PdfService {
         if (response.ok) {
           const arrayBuffer = await response.arrayBuffer();
           const logoBuffer = Buffer.from(arrayBuffer);
-          
+
           doc.image(logoBuffer, 0, topY + 10, {
             fit: [pageSize, 50],
             align: 'center',
@@ -768,7 +772,9 @@ export class PdfService {
         width: pageSize,
       });
 
-    const yearText = classRecord.schoolYear ? classRecord.schoolYear.replace('YEAR_', '') : '2026';
+    const yearText = classRecord.schoolYear
+      ? classRecord.schoolYear.replace('YEAR_', '')
+      : new Date().getFullYear().toString();
     doc
       .font('MyriadPro-Semibold')
       .fontSize(8)
@@ -839,10 +845,11 @@ export class PdfService {
           width: endX - startX,
           lineGap: 4,
         });
-      schoolMsgHeight = doc.heightOfString(schoolMsgText, {
-        width: endX - startX,
-        lineGap: 4,
-      }) + 15;
+      schoolMsgHeight =
+        doc.heightOfString(schoolMsgText, {
+          width: endX - startX,
+          lineGap: 4,
+        }) + 15;
     }
 
     // 4. Draw Title: "Agradecimentos"
@@ -909,12 +916,14 @@ export class PdfService {
       }
     }
 
-    const colWidth = (pageSize / 2) - startX - 10;
+    const colWidth = pageSize / 2 - startX - 10;
     const leftColX = startX;
     const rightColX = pageSize / 2 + 10;
 
     const hasCenterItem = staffItems.length % 2 !== 0;
-    const sideItemsCount = hasCenterItem ? staffItems.length - 1 : staffItems.length;
+    const sideItemsCount = hasCenterItem
+      ? staffItems.length - 1
+      : staffItems.length;
 
     let leftY = staffStartY;
     let rightY = staffStartY;
@@ -951,7 +960,7 @@ export class PdfService {
       }
     }
 
-    let finalStaffY = Math.max(leftY, rightY);
+    const finalStaffY = Math.max(leftY, rightY);
 
     if (hasCenterItem) {
       const lastItem = staffItems[staffItems.length - 1]!;
