@@ -89,10 +89,9 @@ export interface ScanPageResult {
 }
 
 export interface ScanBooksResult {
-  processed: number;
-  succeeded: number;
+  received: number;
+  enqueued: number;
   failed: number;
-  results: ScanPageResult[];
 }
 
 export enum PageStatusEnum {
@@ -163,4 +162,6 @@ export interface CreateBookRequest {
   title?: string | null;
 }
 
-
+export interface UpdateBookRequest {
+  title?: string | null;
+}

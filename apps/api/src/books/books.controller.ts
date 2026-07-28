@@ -17,6 +17,9 @@ import { BackofficeGuard } from '../auth/guards/backoffice.guard.js';
 import { User } from '../auth/auth.decorator.js';
 import type { AuthUser } from '@repo/shared';
 import { CreateBookDto } from './dto/create-book.dto.js';
+import { UpdatePageDto } from './dto/update-page.dto.js';
+import { UpdateBookDto } from './dto/update-book.dto.js';
+import { BadRequestImageFileRequiredException } from './books.errors.js';
 
 @Controller('books')
 export class BooksController {
@@ -51,7 +54,7 @@ export class BooksController {
   updatePage(
     @Param('id') id: string,
     @Param('pageNumber') pageNumber: string,
-    @Body() body: { textContent?: string | null; status?: any },
+    @Body() body: UpdatePageDto,
     @User() user: AuthUser,
   ) {
     return this.booksService.updatePage(id, Number(pageNumber), body, user);
@@ -61,7 +64,7 @@ export class BooksController {
   @UseGuards(AuthGuard, BackofficeGuard)
   updateBook(
     @Param('id') id: string,
-    @Body() body: { title?: string | null },
+    @Body() body: UpdateBookDto,
     @User() user: AuthUser,
   ) {
     return this.booksService.updateBook(id, body, user);
@@ -89,7 +92,7 @@ export class BooksController {
     const originalImage = files.originalImage?.[0];
 
     if (!image) {
-      throw new Error('Image file is required');
+      throw new BadRequestImageFileRequiredException();
     }
 
     return this.booksService.updatePageDraw(

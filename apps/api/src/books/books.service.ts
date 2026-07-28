@@ -10,10 +10,9 @@ import {
   NotFoundPageException,
   ForbiddenPageUpdateException,
 } from './books.errors.js';
-import type { GetBookDetailResponse, GetBooksListResponse } from '@repo/shared';
-import type { AuthUser } from '@repo/shared';
-import { UserRole } from '@repo/shared/dist/types/user.js';
-import { BookStatus, PageStatus, PageType } from '@prisma/client';
+import type { GetBookDetailResponse, GetBooksListResponse, UpdatePageRequest } from '@repo/shared';
+import { UserRole, type AuthUser } from '@repo/shared';
+import { AuthographsEventStatus, BookStatus, PageStatus, PageType } from '@prisma/client';
 import { PdfService } from '../pdf/pdf.service.js';
 import {
   getBookCoverBucketKey,
@@ -228,15 +227,7 @@ export class BooksService {
   async updatePage(
     bookId: string,
     pageNumber: number,
-    data: {
-      textContent?: string | null;
-      status?: PageStatus;
-      bookGenre?: string | null;
-      bookGenreExplanation?: string | null;
-      thanksMessage?: string | null;
-      schoolMessage?: string | null;
-      schoolTeam?: string | null;
-    },
+    data: UpdatePageRequest,
     user: AuthUser,
   ): Promise<void> {
     // Ensure user has access to this book
@@ -339,7 +330,7 @@ export class BooksService {
           data.status !== PageStatus.REVISED_BY_SCHOOL &&
           data.status !== PageStatus.IN_PROGRESS
         ) {
-          throw new BadRequestInvalidStatusForRoleException('escola');
+          throw new BadRequestInvalidStatusForRoleException(UserRole.SCHOOL);
         }
         updateData.status = data.status;
       } else if (user.role === UserRole.ADMIN) {
@@ -477,13 +468,18 @@ export class BooksService {
       where: {
         unitId: student.class.unitId,
         schoolYear: student.class.schoolYear,
-        status: { in: ['ONGOING', 'PLANNED'] },
+        status: {
+          in: [
+            AuthographsEventStatus.ONGOING,
+            AuthographsEventStatus.PLANNED,
+          ],
+        },
       },
       select: { id: true },
       orderBy: { createdAt: 'desc' },
     });
 
-    if (!activeEvent) throw new Error('Active event not found');
+    if (!activeEvent) throw new NotFoundActiveEventForStudentException();
 
     const getExt = (mimeType: string) =>
       mimeType === 'image/png'
@@ -740,7 +736,12 @@ export class BooksService {
       where: {
         unitId: bookDetail.student.class.unitId,
         schoolYear: bookDetail.student.class.schoolYear,
-        status: { in: ['ONGOING', 'PLANNED'] },
+        status: {
+          in: [
+            AuthographsEventStatus.ONGOING,
+            AuthographsEventStatus.PLANNED,
+          ],
+        },
       },
       select: { id: true },
       orderBy: { createdAt: 'desc' },
@@ -819,7 +820,10 @@ export class BooksService {
         unitId: student.class.unitId,
         schoolYear: student.class.schoolYear,
         status: {
-          in: ['ONGOING', 'PLANNED'],
+          in: [
+            AuthographsEventStatus.ONGOING,
+            AuthographsEventStatus.PLANNED,
+          ],
         },
       },
       select: { id: true },

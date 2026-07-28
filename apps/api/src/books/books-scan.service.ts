@@ -2,22 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { RedisService } from '../common/redis/redis.service.js';
-import type { AuthUser } from '@repo/shared';
-
-export interface ScanPageResult {
-  filename: string;
-  studentId: string;
-  pageNumber: number;
-  status: 'success' | 'error' | 'enqueued';
-  error?: string;
-}
-
-export interface ScanBooksResult {
-  processed: number;
-  succeeded: number;
-  failed: number;
-  results: ScanPageResult[];
-}
+import type { AuthUser, ScanBooksResult, ScanPageResult } from '@repo/shared';
 
 @Injectable()
 export class BooksScanService {
@@ -90,13 +75,13 @@ export class BooksScanService {
       }
     }
 
-    const succeeded = results.filter((r) => r.status === 'enqueued').length;
+    const enqueued = results.filter((r) => r.status === 'enqueued').length;
+    const failed = results.filter((r) => r.status === 'error').length;
 
     return {
-      processed: results.length,
-      succeeded,
-      failed: results.length - succeeded,
-      results,
+      received: results.length,
+      enqueued,
+      failed,
     };
   }
 }

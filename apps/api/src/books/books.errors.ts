@@ -35,6 +35,16 @@ export class BadRequestDrawSquareNotFoundException extends BadRequestException {
   }
 }
 
+export class BadRequestImageFileRequiredException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.BAD_REQUEST_IMAGE_FILE_REQUIRED,
+      message: 'O arquivo de imagem é obrigatório.',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+
 export class ForbiddenBookReadyException extends ForbiddenException {
   constructor() {
     super({
