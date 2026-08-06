@@ -779,6 +779,7 @@ export class BooksService {
         body: coverBookPdf,
         contentType: 'application/pdf',
       }),
+      this.pdfService.generateBookPagesImages(bookId, user),
     ]);
 
     await this.prisma.book.update({
@@ -788,6 +789,14 @@ export class BooksService {
 
     return { interiorPdfUrl, coverPdfUrl };
   }
+
+  async generateBookPagesImages(
+    bookId: string,
+    user: AuthUser,
+  ): Promise<Array<{ pageNumber: number; imageUrl: string }>> {
+    return this.pdfService.generateBookPagesImages(bookId, user);
+  }
+
 
   async createBook(
     body: CreateBookDto,

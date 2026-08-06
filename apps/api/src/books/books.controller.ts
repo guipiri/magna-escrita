@@ -49,6 +49,13 @@ export class BooksController {
     return this.booksService.generateFinalBookPdf(id, user);
   }
 
+  @Post('backoffice/:id/generate-pages-images')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  generatePagesImages(@Param('id') id: string, @User() user: AuthUser) {
+    return this.booksService.generateBookPagesImages(id, user);
+  }
+
+
   @Patch('backoffice/:id/pages/:pageNumber')
   @UseGuards(AuthGuard, BackofficeGuard)
   updatePage(

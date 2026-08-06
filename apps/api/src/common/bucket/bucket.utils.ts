@@ -83,3 +83,22 @@ export function getKeyFromUrl(url: string): string {
 export function getBookTemplateThemeCoverBucketKey(themeId: string): string {
   return `cover-templates/${themeId}.pdf`;
 }
+
+export function getBookPageImageBucketKey({
+  eventId,
+  unitId,
+  studentId,
+  bookId,
+  pageNumber,
+  ext = 'jpg',
+}: {
+  unitId: string;
+  eventId: string;
+  studentId: string;
+  bookId: string;
+  pageNumber: number;
+  ext?: string;
+}): string {
+  return `units/${unitId}/events/${eventId}/students/${studentId}/books/${bookId}/pages/${pageNumber}.${ext}`;
+}
+

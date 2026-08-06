@@ -1,5 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { Injectable, Inject } from '@nestjs/common';
@@ -12,6 +15,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import * as QRCode from 'qrcode';
+import { Jimp } from 'jimp';
 import PDFDocument from 'pdfkit';
 import { PDFDocument as PdfLibDocument, rgb } from 'pdf-lib';
 import { NotFoundBookException } from '../books/books.errors.js';
@@ -26,16 +30,22 @@ import {
   BadRequestMissingBiographyException,
   NotFoundCoverTemplateException,
   NotFoundLogoException,
+  NotFoundPdfPageException,
 } from './pdf.errors.js';
 import {
   BadRequestBookIsNotReadyException,
   ForbiddenUserNotAdminException,
 } from '../users/users.errors.js';
-import { getKeyFromUrl } from '../common/bucket/bucket.utils.js';
+import {
+  getKeyFromUrl,
+  getBookPageImageBucketKey,
+} from '../common/bucket/bucket.utils.js';
 import type { BucketService } from '../common/bucket/bucket.contract.js';
 
 const require = createRequire(import.meta.url);
 const fontkit = require('@pdf-lib/fontkit');
+const execFileAsync = promisify(execFile);
+
 
 const ELIGIBLE_PAGE_TYPES: PageType[] = [
   PageType.DRAW,
@@ -1606,4 +1616,373 @@ export class PdfService {
 
     return Buffer.from(pdfBytes);
   }
+
+  private async generatePagePdfBuffer(
+    book: Prisma.BookGetPayload<{
+      include: {
+        student: {
+          include: {
+            class: {
+              include: {
+                bookTemplate: { include: { bookTemplateTheme: true } };
+                units: true;
+              };
+            };
+          };
+        };
+      };
+    }>,
+    page: Prisma.PageGetPayload<{}>,
+  ): Promise<Buffer> {
+    const MM_TO_PT = 72 / 25.4;
+    const squareSize = 205 * MM_TO_PT;
+
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({
+        size: [squareSize, squareSize],
+        margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        autoFirstPage: false,
+        bufferPages: true,
+      });
+
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      const render = async () => {
+        const regularFontPath = this.getFontPath('MyriadPro-Regular.ttf');
+        const semiboldFontPath = this.getFontPath('MyriadPro-Semibold.ttf');
+        const italicFontPath = this.getFontPath('MyriadPro-It.otf');
+        doc.registerFont('MyriadPro', regularFontPath);
+        doc.registerFont('MyriadPro-Semibold', semiboldFontPath);
+        doc.registerFont('MyriadPro-It', italicFontPath);
+
+        const colorTheme =
+          book.student.class.bookTemplate.bookTemplateTheme.colorTheme;
+        const title = book.title || 'Sem Título';
+        const author = book.author || book.student.name;
+
+        doc.addPage();
+
+        if (page.type === PageType.TEXT) {
+          this.drawBookTextPage(
+            doc,
+            title,
+            author,
+            page.textContent || '',
+            page.number,
+            colorTheme,
+          );
+        } else if (
+          page.type === PageType.DRAW ||
+          page.type === PageType.DRAW_TEXT ||
+          page.type === PageType.COVER
+        ) {
+          await this.drawBookDrawPage(
+            doc,
+            page.drawImageUrl,
+            page.number,
+            colorTheme,
+          );
+        } else if (page.type === PageType.PREFACE) {
+          await this.drawBookPrefacePage(
+            doc,
+            book.student.class,
+            title,
+            author,
+            colorTheme,
+          );
+        } else if (page.type === PageType.THANKS) {
+          await this.drawBookThanksPage(
+            doc,
+            book.student.class,
+            page.number,
+            colorTheme,
+          );
+        } else if (page.type === PageType.BACK_COVER) {
+          if (page.textContent) {
+            this.drawBookTextPage(
+              doc,
+              title,
+              author,
+              page.textContent,
+              page.number,
+              colorTheme,
+            );
+          } else {
+            await this.drawBookDrawPage(
+              doc,
+              page.drawImageUrl,
+              page.number,
+              colorTheme,
+            );
+          }
+        } else {
+          this.drawPageNumber(doc, page.number, colorTheme);
+        }
+
+        doc.end();
+      };
+
+      render().catch(reject);
+    });
+  }
+
+  private async convertPdfToJpeg(pdfBuffer: Buffer): Promise<Buffer> {
+    const tempDir = os.tmpdir();
+    const uniqueId = Math.random().toString(36).substring(2, 9);
+    const inputPdfPath = path.join(tempDir, `page-${uniqueId}.pdf`);
+    const outputPrefix = path.join(tempDir, `page-${uniqueId}`);
+    const outputJpegPath = `${outputPrefix}.jpg`;
+
+    try {
+      await fs.promises.writeFile(inputPdfPath, pdfBuffer);
+      await execFileAsync('pdftoppm', [
+        '-jpeg',
+        '-r',
+        '150',
+        '-singlefile',
+        inputPdfPath,
+        outputPrefix,
+      ]);
+
+      const jpegBuffer = await fs.promises.readFile(outputJpegPath);
+      return jpegBuffer;
+    } finally {
+      await fs.promises.unlink(inputPdfPath).catch(() => {});
+      await fs.promises.unlink(outputJpegPath).catch(() => {});
+    }
+  }
+
+  private async cropCoverImage(
+    coverJpegBuffer: Buffer,
+    pageType: PageType,
+  ): Promise<Buffer> {
+    const image = await Jimp.read(coverJpegBuffer);
+    const width = image.bitmap.width;
+    const height = image.bitmap.height;
+    const halfWidth = Math.floor(width / 2);
+
+    if (pageType === PageType.BACK_COVER) {
+      const cropped = image.clone().crop({
+        x: 0,
+        y: 0,
+        w: halfWidth,
+        h: height,
+      });
+      return await cropped.getBuffer('image/jpeg');
+    } else {
+      const cropped = image.clone().crop({
+        x: halfWidth,
+        y: 0,
+        w: halfWidth,
+        h: height,
+      });
+      return await cropped.getBuffer('image/jpeg');
+    }
+  }
+
+  async generateBookPageImage(
+    bookId: string,
+    pageNumber: number,
+    user?: AuthUser,
+  ): Promise<string> {
+    const book = await this.prisma.book.findUnique({
+      where: { id: bookId },
+      include: {
+        student: {
+          include: {
+            class: {
+              include: {
+                bookTemplate: { include: { bookTemplateTheme: true } },
+                units: true,
+              },
+            },
+          },
+        },
+        pages: {
+          where: { number: pageNumber },
+        },
+      },
+    });
+
+    if (!book) throw new NotFoundBookException();
+
+    const page = book.pages[0];
+    if (!page) throw new NotFoundPdfPageException();
+
+    if (user && user.role !== UserRole.ADMIN) {
+      const hasAccess = await this.prisma.userUnit.findFirst({
+        where: {
+          userId: user.id,
+          unitId: book.student.class.unitId,
+        },
+      });
+      if (!hasAccess) throw new ForbiddenUserNotAdminException();
+    }
+
+    const activeEvent = await this.prisma.authographsEvent.findFirst({
+      where: {
+        unitId: book.student.class.unitId,
+        schoolYear: book.student.class.schoolYear,
+        status: {
+          in: [
+            AuthographsEventStatus.ONGOING,
+            AuthographsEventStatus.PLANNED,
+          ],
+        },
+      },
+      select: { id: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!activeEvent) throw new NotFoundPdfNoActiveEventException();
+
+    let jpegBuffer: Buffer;
+    if (page.type === PageType.COVER || page.type === PageType.BACK_COVER) {
+      try {
+        const coverPdfBuffer = await this.generateBookCoverPdf(bookId);
+        const fullCoverJpegBuffer = await this.convertPdfToJpeg(coverPdfBuffer);
+        jpegBuffer = await this.cropCoverImage(fullCoverJpegBuffer, page.type);
+      } catch (err) {
+        console.error('Failed to generate full cover PDF for page image, falling back to basic page:', err);
+        const pdfBuffer = await this.generatePagePdfBuffer(book, page);
+        jpegBuffer = await this.convertPdfToJpeg(pdfBuffer);
+      }
+    } else {
+      const pdfBuffer = await this.generatePagePdfBuffer(book, page);
+      jpegBuffer = await this.convertPdfToJpeg(pdfBuffer);
+    }
+
+    const key = getBookPageImageBucketKey({
+      unitId: book.student.class.unitId,
+      eventId: activeEvent.id,
+      studentId: book.student.id,
+      bookId,
+      pageNumber: page.number,
+      ext: 'jpg',
+    });
+
+    const imageUrl = await this.bucketService.upload({
+      key,
+      body: jpegBuffer,
+      contentType: 'image/jpeg',
+    });
+
+    await this.prisma.page.update({
+      where: { bookId_number: { bookId, number: pageNumber } },
+      data: { imageUrl },
+    });
+
+    return imageUrl;
+  }
+
+  async generateBookPagesImages(
+    bookId: string,
+    user?: AuthUser,
+  ): Promise<Array<{ pageNumber: number; imageUrl: string }>> {
+    const book = await this.prisma.book.findUnique({
+      where: { id: bookId },
+      include: {
+        student: {
+          include: {
+            class: {
+              include: {
+                bookTemplate: { include: { bookTemplateTheme: true } },
+                units: true,
+              },
+            },
+          },
+        },
+        pages: {
+          orderBy: { number: 'asc' },
+        },
+      },
+    });
+
+    if (!book) throw new NotFoundBookException();
+
+    if (user && user.role !== UserRole.ADMIN) {
+      const hasAccess = await this.prisma.userUnit.findFirst({
+        where: {
+          userId: user.id,
+          unitId: book.student.class.unitId,
+        },
+      });
+      if (!hasAccess) throw new ForbiddenUserNotAdminException();
+    }
+
+    const activeEvent = await this.prisma.authographsEvent.findFirst({
+      where: {
+        unitId: book.student.class.unitId,
+        schoolYear: book.student.class.schoolYear,
+        status: {
+          in: [
+            AuthographsEventStatus.ONGOING,
+            AuthographsEventStatus.PLANNED,
+          ],
+        },
+      },
+      select: { id: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!activeEvent) throw new NotFoundPdfNoActiveEventException();
+
+    let fullCoverJpegBuffer: Buffer | null = null;
+    const hasCoverPages = book.pages.some(
+      (p) => p.type === PageType.COVER || p.type === PageType.BACK_COVER,
+    );
+
+    if (hasCoverPages) {
+      try {
+        const coverPdfBuffer = await this.generateBookCoverPdf(bookId);
+        fullCoverJpegBuffer = await this.convertPdfToJpeg(coverPdfBuffer);
+      } catch (err) {
+        console.error('Failed to generate full cover PDF for page images:', err);
+      }
+    }
+
+    const results: Array<{ pageNumber: number; imageUrl: string }> = [];
+
+    for (const page of book.pages) {
+      let jpegBuffer: Buffer;
+
+      if (
+        (page.type === PageType.COVER || page.type === PageType.BACK_COVER) &&
+        fullCoverJpegBuffer
+      ) {
+        jpegBuffer = await this.cropCoverImage(fullCoverJpegBuffer, page.type);
+      } else {
+        const pdfBuffer = await this.generatePagePdfBuffer(book, page);
+        jpegBuffer = await this.convertPdfToJpeg(pdfBuffer);
+      }
+
+      const key = getBookPageImageBucketKey({
+        unitId: book.student.class.unitId,
+        eventId: activeEvent.id,
+        studentId: book.student.id,
+        bookId,
+        pageNumber: page.number,
+        ext: 'jpg',
+      });
+
+      const imageUrl = await this.bucketService.upload({
+        key,
+        body: jpegBuffer,
+        contentType: 'image/jpeg',
+      });
+
+      await this.prisma.page.update({
+        where: { bookId_number: { bookId, number: page.number } },
+        data: { imageUrl },
+      });
+
+      results.push({ pageNumber: page.number, imageUrl });
+    }
+
+    return results;
+  }
 }
+
