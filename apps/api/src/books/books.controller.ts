@@ -15,7 +15,7 @@ import { BooksService } from './books.service.js';
 import { AuthGuard } from '../auth/guards/auth.guard.js';
 import { BackofficeGuard } from '../auth/guards/backoffice.guard.js';
 import { User } from '../auth/auth.decorator.js';
-import type { AuthUser } from '@repo/shared';
+import type { AuthUser, GenerateBookPdfResponse } from '@repo/shared';
 import { CreateBookDto } from './dto/create-book.dto.js';
 import { UpdatePageDto } from './dto/update-page.dto.js';
 import { UpdateBookDto } from './dto/update-book.dto.js';
@@ -45,7 +45,10 @@ export class BooksController {
 
   @Post('backoffice/:id/generate-pdf')
   @UseGuards(AuthGuard, BackofficeGuard)
-  generateBookPdf(@Param('id') id: string, @User() user: AuthUser) {
+  generateBookPdf(
+    @Param('id') id: string,
+    @User() user: AuthUser,
+  ): Promise<GenerateBookPdfResponse> {
     return this.booksService.generateFinalBookPdf(id, user);
   }
 

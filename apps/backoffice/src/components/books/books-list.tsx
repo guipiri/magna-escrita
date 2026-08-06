@@ -67,10 +67,13 @@ export function BooksList({ books }: BooksListProps) {
 
   const generatePdfMutation = useMutation({
     mutationFn: generateFinalBookPdf,
-    onSuccess: () => {
-      enqueueSnackbar('PDF do livro gerado com sucesso!', {
-        variant: 'success',
-      });
+    onSuccess: (data) => {
+      enqueueSnackbar(
+        data.message || 'Geração de PDF do livro enviada para a fila com sucesso!',
+        {
+          variant: 'success',
+        },
+      );
       queryClient.invalidateQueries({ queryKey: ['books'] });
     },
     onError: (error) => {

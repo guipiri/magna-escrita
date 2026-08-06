@@ -10,6 +10,15 @@ export interface ScanResultDetail {
   error?: string;
 }
 
+export interface BookPdfResultDetail {
+  bookTitle: string;
+  magnificCode: string;
+  status: 'success' | 'error';
+  interiorPdfUrl?: string;
+  coverPdfUrl?: string;
+  error?: string;
+}
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -134,6 +143,78 @@ export class MailService {
         this.logger.log(`Email notification successfully sent to ${toEmail}`);
       } catch (err) {
         this.logger.error(`Failed to send email notification to ${toEmail}:`, err);
+      }
+    } else {
+      this.logger.log(`
+--- SIMULATED EMAIL DISPATCH ---
+To: ${toEmail}
+Subject: ${subject}
+Content:
+${htmlContent.replace(/<[^>]*>/g, ' ').trim()}
+---------------------------------
+      `);
+    }
+  }
+
+  async sendBookPdfResultEmail(
+    toEmail: string,
+    detail: BookPdfResultDetail,
+  ): Promise<void> {
+    const isSuccess = detail.status === 'success';
+    const subject = isSuccess
+      ? `[Magna Escrita] PDF do livro "${detail.bookTitle}" gerado com sucesso`
+      : `[Magna Escrita] Falha na geração do PDF do livro "${detail.bookTitle}"`;
+
+    const htmlContent = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #ffffff;">
+        <div style="background-color: ${isSuccess ? '#10b981' : '#ef4444'}; padding: 20px; border-top-left-radius: 8px; border-top-right-radius: 8px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 22px;">${isSuccess ? 'Geração de PDF Concluída' : 'Erro na Geração de PDF'}</h1>
+        </div>
+        
+        <div style="padding: 20px;">
+          <p style="font-size: 16px; color: #334155; line-height: 1.5;">Olá,</p>
+          <p style="font-size: 16px; color: #334155; line-height: 1.5;">
+            ${
+              isSuccess
+                ? `O PDF do livro <strong>"${detail.bookTitle}"</strong> (Código: <code>${detail.magnificCode}</code>) foi gerado e processado com sucesso.`
+                : `Ocorreu uma falha ao gerar o PDF do livro <strong>"${detail.bookTitle}"</strong> (Código: <code>${detail.magnificCode}</code>).`
+            }
+          </p>
+
+          ${
+            isSuccess
+              ? `
+          <div style="margin: 20px 0; padding: 15px; border-radius: 6px; background-color: #f8fafc; border: 1px solid #e2e8f0;">
+            <p style="margin: 5px 0; font-size: 14px; color: #475569;">Arquivos gerados:</p>
+            ${detail.interiorPdfUrl ? `<p style="margin: 5px 0; font-size: 14px;"><a href="${detail.interiorPdfUrl}" style="color: #2563eb; text-decoration: underline;">Baixar PDF do Miolo</a></p>` : ''}
+            ${detail.coverPdfUrl ? `<p style="margin: 5px 0; font-size: 14px;"><a href="${detail.coverPdfUrl}" style="color: #2563eb; text-decoration: underline;">Baixar PDF da Capa</a></p>` : ''}
+          </div>
+          `
+              : `
+          <div style="margin: 20px 0; padding: 15px; border-radius: 6px; background-color: #fef2f2; border: 1px solid #fee2e2;">
+            <p style="margin: 5px 0; font-size: 14px; color: #991b1b;"><strong>Detalhes do erro:</strong> ${detail.error ?? 'Falha desconhecida no processamento'}</p>
+          </div>
+          `
+          }
+
+          <p style="font-size: 14px; color: #64748b; margin-top: 40px; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+            Este é um e-mail automático enviado pelo sistema Magna Escrita. Por favor, não responda a esta mensagem.
+          </p>
+        </div>
+      </div>
+    `;
+
+    if (this.transporter) {
+      try {
+        await this.transporter.sendMail({
+          from: this.from,
+          to: toEmail,
+          subject,
+          html: htmlContent,
+        });
+        this.logger.log(`Email notification for book PDF result sent to ${toEmail}`);
+      } catch (err) {
+        this.logger.error(`Failed to send book PDF result email to ${toEmail}:`, err);
       }
     } else {
       this.logger.log(`

@@ -1,4 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { PrismaService } from '../db/db.service.js';
 import {
   NotFoundBookException,
@@ -10,7 +12,12 @@ import {
   NotFoundPageException,
   ForbiddenPageUpdateException,
 } from './books.errors.js';
-import type { GetBookDetailResponse, GetBooksListResponse, UpdatePageRequest } from '@repo/shared';
+import type {
+  GetBookDetailResponse,
+  GetBooksListResponse,
+  GenerateBookPdfResponse,
+  UpdatePageRequest,
+} from '@repo/shared';
 import { UserRole, type AuthUser } from '@repo/shared';
 import { AuthographsEventStatus, BookStatus, PageStatus, PageType } from '@prisma/client';
 import { PdfService } from '../pdf/pdf.service.js';
@@ -39,6 +46,8 @@ export class BooksService {
     @Inject('BucketService')
     private readonly bucketService: BucketService,
     private readonly pdfService: PdfService,
+    @InjectQueue('books-pdf')
+    private readonly booksPdfQueue: Queue,
   ) {}
 
   async getAll(user: AuthUser): Promise<GetBooksListResponse[]> {
@@ -698,7 +707,7 @@ export class BooksService {
   async generateFinalBookPdf(
     bookId: string,
     user: AuthUser,
-  ): Promise<{ interiorPdfUrl: string; coverPdfUrl: string }> {
+  ): Promise<GenerateBookPdfResponse> {
     const bookDetail = await this.prisma.book.findUnique({
       where: { id: bookId },
       select: {
@@ -749,45 +758,17 @@ export class BooksService {
 
     if (!activeEvent) throw new NotFoundActiveEventForStudentException();
 
-    const [interiorBookPdf, coverBookPdf] = await Promise.all([
-      this.pdfService.generateBookInteriorPdf(bookId, user),
-      this.pdfService.generateBookCoverPdf(bookId),
-    ]);
-
-    const interiorBookKey = getBookInteriorBucketKey({
-      eventId: activeEvent.id,
+    await this.booksPdfQueue.add('generate-pdf', {
+      bookId,
+      user,
+      activeEventId: activeEvent.id,
       unitId: bookDetail.student.class.unitId,
       studentId: bookDetail.student.id,
-      bookId,
     });
 
-    const coverBookKey = getBookCoverBucketKey({
-      unitId: bookDetail.student.class.unitId,
-      eventId: activeEvent.id,
-      studentId: bookDetail.student.id,
-      bookId,
-    });
-
-    const [interiorPdfUrl, coverPdfUrl] = await Promise.all([
-      this.bucketService.upload({
-        key: interiorBookKey,
-        body: interiorBookPdf,
-        contentType: 'application/pdf',
-      }),
-      this.bucketService.upload({
-        key: coverBookKey,
-        body: coverBookPdf,
-        contentType: 'application/pdf',
-      }),
-      this.pdfService.generateBookPagesImages(bookId, user),
-    ]);
-
-    await this.prisma.book.update({
-      where: { id: bookId },
-      data: { interiorPdfUrl, coverPdfUrl },
-    });
-
-    return { interiorPdfUrl, coverPdfUrl };
+    return {
+      message: 'Geração do PDF enviada para a fila com sucesso.',
+    };
   }
 
   async generateBookPagesImages(

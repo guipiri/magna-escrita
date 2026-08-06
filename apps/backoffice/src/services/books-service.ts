@@ -2,6 +2,7 @@ import { api } from './api';
 import type {
   GetBookDetailResponse,
   GetBooksListResponse,
+  GenerateBookPdfResponse,
   ScanBooksResult,
   UpdatePageRequest,
   CreateBookRequest,
@@ -78,8 +79,8 @@ export const scanBooks = async (files: File[]): Promise<ScanBooksResult> => {
 
 export const generateFinalBookPdf = async (
   bookId: string,
-): Promise<{ pdfUrl: string }> => {
-  const response = await api.post<{ pdfUrl: string }>(
+): Promise<GenerateBookPdfResponse> => {
+  const response = await api.post<GenerateBookPdfResponse>(
     `/books/backoffice/${bookId}/generate-pdf`,
   );
   return response.data;

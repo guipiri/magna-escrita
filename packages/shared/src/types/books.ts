@@ -80,6 +80,10 @@ export interface GetBooksListResponse {
   updatedAt: string;
 }
 
+export interface GenerateBookPdfResponse {
+  message: string;
+}
+
 export interface ScanPageResult {
   filename: string;
   studentId: string;
