@@ -135,31 +135,19 @@ export function BulkUploadDialog({ isOpen, onClose }: BulkUploadDialogProps) {
 
   /* ── Render helpers ── */
 
-  const renderResultRow = (filename: string) => {
-    const pageResult = result?.results.find((r) => r.filename === filename);
-    if (!pageResult) return null;
-    if (pageResult.status === 'enqueued') {
+  const renderResultRow = () => {
+    if (mutation.isError) {
       return (
-        <span className='flex items-center gap-1 text-xs font-medium text-blue-600'>
-          <Loader2 className='size-3.5 shrink-0 animate-spin' />
-          Fila de processamento...
+        <span className='flex items-center gap-1 text-xs font-medium text-destructive'>
+          <AlertCircle className='size-3.5 shrink-0' />
+          Erro no envio
         </span>
       );
     }
-    const isOk = pageResult.status === 'success';
     return (
-      <span
-        className={cn(
-          'flex items-center gap-1 text-xs font-medium',
-          isOk ? 'text-emerald-600' : 'text-destructive',
-        )}
-      >
-        {isOk ? (
-          <CheckCircle2 className='size-3.5 shrink-0' />
-        ) : (
-          <AlertCircle className='size-3.5 shrink-0' />
-        )}
-        {isOk ? `Pág. ${pageResult.pageNumber}` : (pageResult.error ?? 'Erro')}
+      <span className='flex items-center gap-1 text-xs font-medium text-blue-600'>
+        <CheckCircle2 className='size-3.5 shrink-0 text-emerald-600' />
+        Enviado para a fila
       </span>
     );
   };
@@ -251,14 +239,34 @@ export function BulkUploadDialog({ isOpen, onClose }: BulkUploadDialogProps) {
             )}
             <div>
               <p className='text-sm font-semibold'>
-                {result.succeeded} de {result.processed} processados com sucesso
+                {result.enqueued} de {result.received}{' '}
+                {result.received === 1
+                  ? 'imagem enviada para a fila de processamento'
+                  : 'imagens enviadas para a fila de processamento'}
               </p>
-              {result.failed > 0 && (
-                <p className='mt-0.5 text-xs'>
-                  {result.failed} {result.failed === 1 ? 'falhou' : 'falharam'}{' '}
-                  — veja os detalhes abaixo.
-                </p>
-              )}
+              <p className='mt-0.5 text-xs'>
+                {result.failed === 0
+                  ? 'O processamento das imagens será realizado em segundo plano.'
+                  : `${result.failed} ${
+                      result.failed === 1
+                        ? 'imagem falhou'
+                        : 'imagens falharam'
+                    } ao entrar na fila.`}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {isDone && mutation.isError && (
+          <div className='flex items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-destructive'>
+            <AlertCircle className='size-5 shrink-0' />
+            <div>
+              <p className='text-sm font-semibold'>
+                Ocorreu um erro ao enviar as imagens.
+              </p>
+              <p className='mt-0.5 text-xs'>
+                Por favor, tente novamente mais tarde.
+              </p>
             </div>
           </div>
         )}
@@ -306,7 +314,7 @@ export function BulkUploadDialog({ isOpen, onClose }: BulkUploadDialogProps) {
                       {entry.file.name}
                     </p>
                     {isDone ? (
-                      renderResultRow(entry.file.name)
+                      renderResultRow()
                     ) : (
                       <p className='text-xs text-muted-foreground'>
                         {formatBytes(entry.file.size)}
