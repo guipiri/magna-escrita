@@ -36,10 +36,15 @@ export class MailService {
     const user = this.configService.get<string>('SMTP_USER', '');
     const pass = this.configService.get<string>('SMTP_PASS', '');
     const secure = this.configService.get<boolean>('SMTP_SECURE', false);
+    console.log({
+      host,
+      port,
+      user,
+      pass,
+      secure,
+      from: this.from,
+    });
 
-    // Initialize transporter only if valid configuration is provided.
-    // If it's a default/development environment without custom configs,
-    // we can skip initialization and log to console instead.
     if (host && host !== 'localhost') {
       try {
         const auth = user && pass ? { user, pass } : undefined;
@@ -49,12 +54,16 @@ export class MailService {
           secure,
           auth,
         });
-        this.logger.log(`Nodemailer SMTP transporter initialized for host ${host}`);
+        this.logger.log(
+          `Nodemailer SMTP transporter initialized for host ${host}`,
+        );
       } catch (err) {
         this.logger.error('Failed to create nodemailer SMTP transporter:', err);
       }
     } else {
-      this.logger.log('Nodemailer SMTP host is localhost or not configured; falling back to console log for email dispatch.');
+      this.logger.log(
+        'Nodemailer SMTP host is localhost or not configured; falling back to console log for email dispatch.',
+      );
     }
   }
 
@@ -142,7 +151,10 @@ export class MailService {
         });
         this.logger.log(`Email notification successfully sent to ${toEmail}`);
       } catch (err) {
-        this.logger.error(`Failed to send email notification to ${toEmail}:`, err);
+        this.logger.error(
+          `Failed to send email notification to ${toEmail}:`,
+          err,
+        );
       }
     } else {
       this.logger.log(`
@@ -212,9 +224,14 @@ ${htmlContent.replace(/<[^>]*>/g, ' ').trim()}
           subject,
           html: htmlContent,
         });
-        this.logger.log(`Email notification for book PDF result sent to ${toEmail}`);
+        this.logger.log(
+          `Email notification for book PDF result sent to ${toEmail}`,
+        );
       } catch (err) {
-        this.logger.error(`Failed to send book PDF result email to ${toEmail}:`, err);
+        this.logger.error(
+          `Failed to send book PDF result email to ${toEmail}:`,
+          err,
+        );
       }
     } else {
       this.logger.log(`
