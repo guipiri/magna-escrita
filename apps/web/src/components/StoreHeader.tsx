@@ -5,6 +5,7 @@ import { ArrowLeft, Home, LogIn, ShoppingCart, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/auth-context';
 import { useCart } from '../context/cart-context';
 import { useGoogleLogin } from '@react-oauth/google';
+import { routes } from '../main';
 
 export function StoreHeader() {
   const navigate = useNavigate();
@@ -14,12 +15,13 @@ export function StoreHeader() {
     onSuccess: (coderesponse) => loginWithGoogle({ code: coderesponse.code }),
   });
   const { totalQuantity } = useCart();
-  const isBookRoute = Boolean(useMatch('/book/:magnificCode'));
-  const isCartRoute = Boolean(useMatch('/cart'));
-  const isCheckoutRoute = Boolean(useMatch('/checkout'));
-  const isOrderRoute = Boolean(useMatch('/order/:orderId'));
-  const isOrdersRoute = Boolean(useMatch('/orders'));
-  const isHomeRoute = Boolean(useMatch('/'));
+  const isBookRoute = Boolean(useMatch(routes.BOOK.path));
+  const isBookReadRoute = Boolean(useMatch(routes.READ.path));
+  const isCartRoute = Boolean(useMatch(routes.CART.path));
+  const isCheckoutRoute = Boolean(useMatch(routes.CHECKOUT.path));
+  const isOrderRoute = Boolean(useMatch(routes.ORDER.path));
+  const isOrdersRoute = Boolean(useMatch(routes.ORDERS.path));
+  const isHomeRoute = Boolean(useMatch(routes.HOME.path));
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const userMenuId = useId();
@@ -103,7 +105,7 @@ export function StoreHeader() {
   );
 
   const renderActions = () => {
-    if (isBookRoute || isHomeRoute) {
+    if (isBookRoute || isHomeRoute || isBookReadRoute) {
       return (
         <div className='flex items-center gap-3'>
           {userBadge}

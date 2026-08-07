@@ -13,10 +13,10 @@ export function BookViewer({ pages }: BookViewerProps) {
   if (!pages || pages.length === 0) return <p>Livro ainda em contrução...</p>;
 
   return (
-    <div className='p-2 sm:p-8 flex justify-center items-center'>
+    <div className='mt-2 sm:mt-8 flex justify-center items-center'>
       <HTMLFlipBook
-        width={450}
-        height={450}
+        width={950}
+        height={950}
         size='stretch'
         minWidth={280}
         maxWidth={550}

@@ -20,8 +20,8 @@ import { StoreLayout } from './layouts/StoreLayout';
 import { useAuth } from './context/auth-context';
 import { JSX } from 'react';
 import { OrdersPage } from './pages/OrdersPage';
+import { ReadBookPage } from './pages/ReadBookPage';
 
-const DEFAULT_BOOK_PATH = '/';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
 const RequireAuth = ({
@@ -49,38 +49,46 @@ const RequireAuth = ({
   return children;
 };
 
+export const routes = {
+  HOME: { path: '/', element: <HomePage />, isPublic: true },
+  CART: { path: '/cart', element: <CartPage />, isPublic: true },
+  CHECKOUT: { path: '/checkout', element: <CheckoutPage />, isPublic: false },
+  ORDER: { path: '/order/:orderId', element: <OrderPage />, isPublic: false },
+  ORDERS: { path: '/orders', element: <OrdersPage />, isPublic: false },
+  BOOK: {
+    path: '/book/:magnificCode',
+    element: <BookPage />,
+    isPublic: true,
+    pathGenerator: (magnificCode: string) => `/book/${magnificCode}`,
+  },
+  READ: {
+    path: '/book/:magnificCode/read',
+    element: <ReadBookPage />,
+    pathGenerator: (magnificCode: string) => `/book/${magnificCode}/read`,
+    isPublic: true,
+  },
+};
+
 const AppRoutes = () => (
   <BrowserRouter>
     <Routes>
       <Route element={<StoreLayout />}>
-        <Route path='/' element={<HomePage />} />
-        <Route
-          path='/checkout'
-          element={
-            <RequireAuth redirectTo='/cart'>
-              <CheckoutPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path='/order/:orderId'
-          element={
-            <RequireAuth redirectTo='/cart'>
-              <OrderPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path='/orders'
-          element={
-            <RequireAuth redirectTo='/cart'>
-              <OrdersPage />
-            </RequireAuth>
-          }
-        />
-        <Route path='/cart' element={<CartPage />} />
-        <Route path='/book/:magnificCode' element={<BookPage />} />
-        <Route path='*' element={<Navigate to={DEFAULT_BOOK_PATH} replace />} />
+        {Object.entries(routes).map(([_, route]) =>
+          route.isPublic ? (
+            <Route path={route.path} element={route.element} />
+          ) : (
+            <Route
+              path={route.path}
+              element={
+                <RequireAuth redirectTo={routes.CART.path}>
+                  {route.element}
+                </RequireAuth>
+              }
+            />
+          ),
+        )}
+
+        <Route path='*' element={<Navigate to={routes.HOME.path} replace />} />
       </Route>
     </Routes>
   </BrowserRouter>
