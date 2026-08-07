@@ -166,7 +166,7 @@ export default function BookPage() {
               <p className='text-gray-600 mt-2'>por {book.author}</p>
             </motion.div>
 
-            <BookViewer />
+            <BookViewer pages={book.pages} />
 
             <motion.div
               initial={{ opacity: 0 }}
