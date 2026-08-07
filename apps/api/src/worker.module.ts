@@ -25,8 +25,10 @@ import { validationSchema } from './config/validation.js';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         connection: {
-          host: configService.get<string>('REDIS_HOST', 'localhost'),
-          port: configService.get<number>('REDIS_PORT', 6379),
+          url: configService.get<string>(
+            'REDIS_URL',
+            'redis://localhost:6379',
+          ),
         },
       }),
       inject: [ConfigService],
@@ -38,9 +40,6 @@ import { validationSchema } from './config/validation.js';
     BooksModule,
     BooksScanModule,
   ],
-  providers: [
-    BooksPdfProcessor,
-    BooksScanProcessor,
-  ],
+  providers: [BooksPdfProcessor, BooksScanProcessor],
 })
 export class WorkerModule {}
