@@ -1,8 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthService } from '../auth.service.js';
-import { UserRole } from '@repo/shared/dist/types/user.js';
-import { AuthUser } from '@repo/shared';
+import { AuthUser, UserRole } from '@repo/shared';
 import {
   ForbiddenMissingAuthTokenException,
   ForbiddenInsufficientPermissionsException,

@@ -6,8 +6,8 @@ import {
   ClassStudentResponse,
   UpdateClassStudentItem,
   getCurrentSchoolYear,
+  UserRole,
 } from '@repo/shared';
-import { UserRole } from '@repo/shared/dist/types/user.js';
 import {
   BadRequestGradeNameAlreadyExistsException,
   BadRequestMultipleUnitsAccessException,

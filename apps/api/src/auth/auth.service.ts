@@ -3,8 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import { PrismaService } from '../db/db.service.js';
-import { UserRole } from '@repo/shared/dist/types/user.js';
-import { AuthResponse, AuthUser } from '@repo/shared';
+import { AuthResponse, AuthUser, UserRole } from '@repo/shared';
 import { GoogleAuthDto } from './dto/google-auth.dto.js';
 import {
   UnauthorizedAccessToBackofficeException,
