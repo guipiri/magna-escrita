@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { MercadoPagoProvider } from './providers/mercado-pago.provider.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
@@ -31,6 +31,8 @@ type BookWithPricing = Prisma.BookGetPayload<{
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly mercadoPagoProvider: MercadoPagoProvider,
     private readonly prisma: PrismaService,
@@ -311,7 +313,10 @@ export class OrdersService {
 
       return { order, mpOrder };
     } catch (error) {
-      console.error('Erro ao buscar pedido no Mercado Pago:', error);
+      this.logger.error(
+        `Failed to fetch order ${order.id} from Mercado Pago:`,
+        error,
+      );
       return { order };
     }
   }
@@ -348,6 +353,9 @@ export class OrdersService {
     });
 
     if (!order || !mappedStatus) {
+      this.logger.warn(
+        `Order sync skipped. Order found: ${!!order}, mapped status: ${mappedStatus} (original: ${status})`,
+      );
       return {
         received: true,
         resourceId,
@@ -361,6 +369,10 @@ export class OrdersService {
         status: mappedStatus,
       },
     });
+
+    this.logger.log(
+      `Order status updated for order ${order.id} (mpId: ${resourceId}): ${order.status} -> ${mappedStatus}`,
+    );
 
     return {
       received: true,

@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 import { ImageAnnotatorClient } from '@google-cloud/vision';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Jimp } from 'jimp';
 import {
@@ -14,6 +14,7 @@ export interface ExtractTextService {
 
 @Injectable()
 export class GeminiTextExtractor implements ExtractTextService {
+  private readonly logger = new Logger(GeminiTextExtractor.name);
   gemini: GoogleGenerativeAI;
 
   constructor(private readonly configService: ConfigService) {
@@ -49,7 +50,7 @@ export class GeminiTextExtractor implements ExtractTextService {
       ]);
       text = result.response.text().trim();
     } catch (err) {
-      console.error('Gemini OCR failed:', err);
+      this.logger.error('Gemini OCR failed:', err);
       throw new InternalGeminiRecognitionFailedException(
         'reconhecimento de texto (OCR)',
       );
@@ -61,6 +62,9 @@ export class GeminiTextExtractor implements ExtractTextService {
 
 @Injectable()
 export class GoogleCloudVisionTextExtractor implements ExtractTextService {
+  private readonly logger = new Logger(
+    GoogleCloudVisionTextExtractor.name,
+  );
   private readonly client: ImageAnnotatorClient;
   private readonly headerCropRatio = 0.28;
   private readonly rotationCandidates = [0, 90, 180, 270];
@@ -106,7 +110,7 @@ export class GoogleCloudVisionTextExtractor implements ExtractTextService {
 
       return bestCandidate.text;
     } catch (err) {
-      console.error('Google Cloud Vision OCR failed:', err);
+      this.logger.error('Google Cloud Vision OCR failed:', err);
       throw new InternalGoogleCloudVisionRecognitionFailedException(
         'reconhecimento de texto (OCR)',
       );

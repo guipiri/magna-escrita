@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   S3Client,
@@ -11,6 +11,7 @@ import { BucketService } from '../bucket.contract.js';
 
 @Injectable()
 export class CloudflareR2Service implements BucketService {
+  private readonly logger = new Logger(CloudflareR2Service.name);
   private readonly s3Client: S3Client;
   private readonly bucketName: string;
   private readonly publicUrl: string;
@@ -62,7 +63,7 @@ export class CloudflareR2Service implements BucketService {
         }),
       );
     } catch (err) {
-      console.error('Cloudflare R2 upload failed:', err);
+      this.logger.error(`Cloudflare R2 upload failed for key ${key}:`, err);
       throw new InternalServerErrorException({
         key: ErrorKeys.INTERNAL_CLOUDFLARE_UPLOAD_FAILED,
         message: 'Failed to upload image to Cloudflare R2',
@@ -70,8 +71,8 @@ export class CloudflareR2Service implements BucketService {
     }
 
     const cleanBase = this.publicUrl.replace(/\/$/, '');
-    console.log(
-      `File uploaded to R2 with key: ${key}, accessible at: ${cleanBase}`,
+    this.logger.log(
+      `File uploaded to R2 with key: ${key}, accessible at: ${cleanBase}/${key}`,
     );
     return `${cleanBase}/${key}`;
   }
@@ -94,7 +95,7 @@ export class CloudflareR2Service implements BucketService {
 
       return Buffer.concat(chunks);
     } catch (err) {
-      // console.error('Cloudflare R2 get file failed:', err);
+      this.logger.warn(`Cloudflare R2 get file failed for key ${key}:`, err);
       return null;
     }
   }

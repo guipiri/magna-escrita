@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Param, Logger } from '@nestjs/common';
 import { OrdersService } from './orders.service.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
 import { WebhookSignatureGuard } from './guards/webhook-signature.guard.js';
@@ -8,6 +8,8 @@ import type { AuthUser } from '@repo/shared';
 
 @Controller('order')
 export class OrdersController {
+  private readonly logger = new Logger(OrdersController.name);
+
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post()
@@ -19,7 +21,7 @@ export class OrdersController {
   @Get()
   @UseGuards(AuthGuard)
   async listOrders(@User() user: AuthUser) {
-    console.log('Listando orders para usuário:', user.email);
+    this.logger.debug(`Listing orders for user: ${user.email}`);
     return this.ordersService.getOrders(user.id);
   }
 
@@ -36,7 +38,7 @@ export class OrdersController {
     const resourceId = body.data.id;
 
     if (!type || !resourceId) {
-      console.warn('Invalid webhook payload:', body);
+      this.logger.warn('Invalid webhook payload:', body);
       // todo: register event in db for later analysis
       return { message: 'Invalid payload' };
     }

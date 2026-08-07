@@ -36,14 +36,6 @@ export class MailService {
     const user = this.configService.get<string>('SMTP_USER', '');
     const pass = this.configService.get<string>('SMTP_PASS', '');
     const secure = this.configService.get<boolean>('SMTP_SECURE', false);
-    console.log({
-      host,
-      port,
-      user,
-      pass,
-      secure,
-      from: this.from,
-    });
 
     if (host && host !== 'localhost') {
       try {

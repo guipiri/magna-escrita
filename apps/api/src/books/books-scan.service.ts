@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { RedisService } from '../common/redis/redis.service.js';
@@ -6,6 +6,8 @@ import type { AuthUser, ScanBooksResult, ScanPageResult } from '@repo/shared';
 
 @Injectable()
 export class BooksScanService {
+  private readonly logger = new Logger(BooksScanService.name);
+
   constructor(
     @InjectQueue('books-scan')
     private readonly booksScanQueue: Queue,
@@ -19,6 +21,10 @@ export class BooksScanService {
     const results: ScanPageResult[] = [];
     const batchId = Math.random().toString(36).substring(2, 15);
     const batchKey = `scan-batch:${batchId}`;
+
+    this.logger.log(
+      `Starting scan batch ${batchId} for user ${user.email} with ${files.length} file(s)`,
+    );
 
     if (files.length > 0) {
       await this.redisService.getClient().set(
@@ -50,7 +56,7 @@ export class BooksScanService {
           status: 'enqueued',
         });
       } catch (err: unknown) {
-        console.error(`Error enqueuing file ${file.originalname}:`, err);
+        this.logger.error(`Error enqueuing file ${file.originalname}:`, err);
         const message =
           err instanceof Error ? err.message : 'Erro desconhecido';
         results.push({
@@ -77,6 +83,10 @@ export class BooksScanService {
 
     const enqueued = results.filter((r) => r.status === 'enqueued').length;
     const failed = results.filter((r) => r.status === 'error').length;
+
+    this.logger.log(
+      `Scan batch ${batchId} enqueued: ${enqueued} succeeded, ${failed} failed`,
+    );
 
     return {
       received: results.length,

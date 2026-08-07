@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
@@ -23,6 +23,7 @@ interface JwtClaims {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private googleClient: OAuth2Client;
   private googleClientId: string;
   private googleClientSecret: string;
@@ -52,7 +53,7 @@ export class AuthService {
     );
   }
 
-  async authenticateWithGoogle(g: GoogleAuthDto) {
+  async authenticateWithGoogle(g: GoogleAuthDto): Promise<AuthResponse> {
     if (g.idToken) return await this.authenticateWithGoogleIdToken(g.idToken);
 
     if (g.code) return await this.authenticateWithGoogleAuthCode(g.code);
@@ -68,8 +69,10 @@ export class AuthService {
 
     const payload = ticket.getPayload();
 
-    if (!payload?.sub || !payload.email)
+    if (!payload?.sub || !payload.email) {
+      this.logger.warn('Google authentication payload missing sub or email');
       throw new UnauthorizedInvalidGoogleCredentialsException();
+    }
 
     const { sub, email, name, picture } = payload;
 
@@ -84,6 +87,8 @@ export class AuthService {
     const token = jwt.sign({ sub, email, name, role }, this.jwtSecret, {
       expiresIn: Number(this.jwtExpiresInMilliseconds) || '7d',
     });
+
+    this.logger.log(`User ${user.email} authenticated successfully via Google`);
 
     return {
       user: {
@@ -108,7 +113,8 @@ export class AuthService {
         throw new UnauthorizedInvalidGoogleCredentialsException();
 
       return await this.authenticateWithGoogleIdToken(tokens.id_token);
-    } catch {
+    } catch (error) {
+      this.logger.warn('Google auth code exchange failed:', error);
       throw new UnauthorizedInvalidGoogleCredentialsException();
     }
   }
@@ -140,15 +146,23 @@ export class AuthService {
     };
   }
 
-  async backofficeLoginWithGoogle(g: GoogleAuthDto) {
+  async backofficeLoginWithGoogle(g: GoogleAuthDto): Promise<AuthResponse> {
     const authResult = await this.authenticateWithGoogle(g);
 
     if (
       !authResult.user.role ||
       (authResult.user.role !== UserRole.ADMIN &&
         authResult.user.role !== UserRole.SCHOOL)
-    )
+    ) {
+      this.logger.warn(
+        `Unauthorized backoffice access attempt by user ${authResult.user.email} (role: ${authResult.user.role})`,
+      );
       throw new UnauthorizedAccessToBackofficeException();
+    }
+
+    this.logger.log(
+      `Backoffice login successful for user ${authResult.user.email} (role: ${authResult.user.role})`,
+    );
 
     return authResult;
   }

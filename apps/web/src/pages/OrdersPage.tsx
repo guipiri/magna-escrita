@@ -55,8 +55,6 @@ export function OrdersPage() {
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
 
-  console.log('OrdersPage data:', data);
-
   const orders = data?.orders ?? [];
 
   return (

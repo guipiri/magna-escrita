@@ -84,8 +84,6 @@ export function ClassesList({
     mutationFn: downloadClassPdf,
     onError: (error) => {
       const message = getErrorMessage(error);
-      console.log(message);
-
       enqueueSnackbar(message, { variant: 'error' });
     },
     onSuccess: () => {

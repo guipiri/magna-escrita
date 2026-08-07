@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 import cvModule from '@techstark/opencv-js';
@@ -12,6 +12,7 @@ export interface ExtractDrawService {
 
 @Injectable()
 export class OpenCVDrawExtractor implements ExtractDrawService {
+  private readonly logger = new Logger(OpenCVDrawExtractor.name);
   private static cv: any;
   private static cvReadyPromise: Promise<void> | undefined;
 
@@ -63,7 +64,7 @@ export class OpenCVDrawExtractor implements ExtractDrawService {
         throw new BadRequestDrawSquareNotFoundException();
       }
 
-      console.log(
+      this.logger.log(
         `[ProcessDrawOpenCV] linha horizontal detectada em y=${lineY}`,
       );
 
@@ -135,7 +136,7 @@ export class OpenCVDrawExtractor implements ExtractDrawService {
       if (deltaY > maxDeltaY) continue;
       if (midY < imageHeight * 0.05 || midY > imageHeight * 0.8) continue;
 
-      console.log(
+      this.logger.debug(
         `[ProcessDrawOpenCV] candidata: y=${midY.toFixed(0)} len=${segmentLength} deltaY=${deltaY.toFixed(1)}`,
       );
 
@@ -164,6 +165,7 @@ export class OpenCVDrawExtractor implements ExtractDrawService {
 
 @Injectable()
 export class GeminiDrawExtractor implements ExtractDrawService {
+  private readonly logger = new Logger(GeminiDrawExtractor.name);
   private readonly gemini: GoogleGenerativeAI;
 
   constructor(private readonly configService: ConfigService) {
@@ -214,7 +216,7 @@ Sua tarefa:
 Retorne a imagem em PNG.`;
 
     try {
-      console.log(
+      this.logger.log(
         'Sending image to Gemini image-generation for draw extraction...',
       );
 
@@ -228,20 +230,19 @@ Retorne a imagem em PNG.`;
             mimeType: string;
           };
 
-          console.log(
-            'Gemini returned image directly, mimeType:',
-            inlineData.mimeType,
+          this.logger.log(
+            `Gemini returned image directly, mimeType: ${inlineData.mimeType}`,
           );
 
           return Buffer.from(inlineData.data, 'base64');
         }
       }
 
-      console.warn(
+      this.logger.warn(
         'Gemini image-generation did not return an image part — falling back to coordinate detection.',
       );
     } catch (error) {
-      console.warn(
+      this.logger.warn(
         'Gemini image-generation failed, falling back to coordinate detection:',
         error,
       );
@@ -279,7 +280,7 @@ Use exatamente 4 pontos nos cantos do quadrado (sentido horário a partir do can
 Se não houver quadrado visível, retorne apenas: {"found":false}`;
 
     try {
-      console.log(
+      this.logger.log(
         'Sending image to Gemini for draw square coordinate detection...',
       );
 
@@ -321,7 +322,7 @@ Se não houver quadrado visível, retorne apenas: {"found":false}`;
         throw error;
       }
 
-      console.error('Gemini coordinate fallback failed:', error);
+      this.logger.error('Gemini coordinate fallback failed:', error);
       throw new InternalGeminiRecognitionFailedException(
         'identificação do quadrado do desenho',
       );

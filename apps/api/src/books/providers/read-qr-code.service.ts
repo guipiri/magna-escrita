@@ -2,7 +2,7 @@ import cv from '@techstark/opencv-js';
 import jsQR from 'jsqr';
 
 import { Bitmap, Jimp } from 'jimp';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 export interface ReadQrCodeService {
   execute(file: Express.Multer.File): Promise<string | null>;
@@ -10,6 +10,8 @@ export interface ReadQrCodeService {
 
 @Injectable()
 export class JsqrQrCodeReader implements ReadQrCodeService {
+  private readonly logger = new Logger(JsqrQrCodeReader.name);
+
   async execute(file: Express.Multer.File): Promise<string | null> {
     let image;
     try {
@@ -64,7 +66,7 @@ export class JsqrQrCodeReader implements ReadQrCodeService {
         if (code?.data) return code.data;
       }
     } catch (e) {
-      console.warn('preprocessing attempts failed:', e);
+      this.logger.debug('Preprocessing QR code attempts failed:', e);
     }
 
     // 3) Fallback: try OpenCV.js (using matFromArray; avoid ImageData which isn't available in Node)
@@ -83,7 +85,7 @@ export class JsqrQrCodeReader implements ReadQrCodeService {
             // src.delete?.();
             if (decoded) return decoded.toString();
           } catch (e) {
-            console.warn('OpenCV QRCodeDetector failed:', e);
+            this.logger.debug('OpenCV QRCodeDetector failed:', e);
           }
         }
 
@@ -110,16 +112,16 @@ export class JsqrQrCodeReader implements ReadQrCodeService {
 
           if (code?.data) return code.data;
         } catch (e) {
-          console.warn('OpenCV postprocessing failed:', e);
+          this.logger.debug('OpenCV postprocessing failed:', e);
           try {
             src.delete?.();
           } catch (e) {
-            console.warn('Failed to delete OpenCV Mat:', e);
+            this.logger.debug('Failed to delete OpenCV Mat:', e);
           }
         }
       }
     } catch (e) {
-      console.warn('OpenCV.js not available or failed to load:', e);
+      this.logger.warn('OpenCV.js not available or failed to load:', e);
     }
 
     return null;

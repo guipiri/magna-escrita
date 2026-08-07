@@ -4,6 +4,7 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { type ApiError, ErrorKeys } from '@repo/shared';
 import { Request, Response } from 'express';
@@ -15,6 +16,8 @@ export interface HttpExceptionConstructor {
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -55,7 +58,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     }
 
-    if (!isHttpException) console.error('Unhandled exception:', exception);
+    if (!isHttpException) {
+      const stack =
+        exception instanceof Error ? exception.stack : String(exception);
+      this.logger.error(
+        `Unhandled exception on ${request.method} ${request.url}:`,
+        stack,
+      );
+    }
 
     response.status(status).json(payload);
   }

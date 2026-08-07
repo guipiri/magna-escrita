@@ -5,7 +5,7 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
 import { AuthUser, UserRole } from '@repo/shared';
 import {
@@ -83,6 +83,8 @@ const parseHexToRgb = (hex: string) => {
 
 @Injectable()
 export class PdfService {
+  private readonly logger = new Logger(PdfService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject('BucketService')
@@ -596,7 +598,7 @@ export class PdfService {
             valign: 'center',
           });
         } else {
-          console.error(
+          this.logger.error(
             `Failed to fetch image: status ${response.status} for URL ${drawImageUrl}`,
           );
           doc
@@ -609,7 +611,7 @@ export class PdfService {
             });
         }
       } catch (error) {
-        console.error('Failed to fetch/draw page image:', error);
+        this.logger.error('Failed to fetch/draw page image:', error);
         doc
           .font('MyriadPro')
           .fontSize(14)
@@ -692,7 +694,7 @@ export class PdfService {
           });
         }
       } catch (err) {
-        console.error('Failed to draw school logo in preface page:', err);
+        this.logger.error('Failed to draw school logo in preface page:', err);
       }
     }
 
@@ -837,7 +839,7 @@ export class PdfService {
           });
         }
       } catch (err) {
-        console.error('Failed to draw school logo in thanks page:', err);
+        this.logger.error('Failed to draw school logo in thanks page:', err);
       }
     }
 
@@ -1367,7 +1369,9 @@ export class PdfService {
     try {
       const logoKey = getKeyFromUrl(schoolLogoUrl);
       const logoBuffer = await this.bucketService.get(logoKey);
-      console.log({ logoKey, logoBuffer });
+      this.logger.debug(
+        `School logo fetched for key ${logoKey}, size: ${logoBuffer?.length ?? 0} bytes`,
+      );
       if (!logoBuffer || logoBuffer.length === 0) {
         throw new NotFoundLogoException();
       }
@@ -1400,7 +1404,7 @@ export class PdfService {
         height: logoHeight,
       });
     } catch (err) {
-      console.error('Failed to embed school logo:', err);
+      this.logger.error('Failed to embed school logo:', err);
     }
 
     // 5. Draw Cover Image inside the pre-existing white frame
@@ -1475,7 +1479,7 @@ export class PdfService {
       });
       hasPortrait = true;
     } catch (err) {
-      console.error('Failed to embed student portrait photo:', err);
+      this.logger.error('Failed to embed student portrait photo:', err);
     }
 
     // 7. Draw Biography Text (Myriad Pro Regular size between 14 and 20, depending on text length)
@@ -1846,7 +1850,10 @@ export class PdfService {
         const fullCoverJpegBuffer = await this.convertPdfToJpeg(coverPdfBuffer);
         jpegBuffer = await this.cropCoverImage(fullCoverJpegBuffer, page.type);
       } catch (err) {
-        console.error('Failed to generate full cover PDF for page image, falling back to basic page:', err);
+        this.logger.error(
+          'Failed to generate full cover PDF for page image, falling back to basic page:',
+          err,
+        );
         const pdfBuffer = await this.generatePagePdfBuffer(book, page);
         jpegBuffer = await this.convertPdfToJpeg(pdfBuffer);
       }
@@ -1940,7 +1947,10 @@ export class PdfService {
         const coverPdfBuffer = await this.generateBookCoverPdf(bookId);
         fullCoverJpegBuffer = await this.convertPdfToJpeg(coverPdfBuffer);
       } catch (err) {
-        console.error('Failed to generate full cover PDF for page images:', err);
+        this.logger.error(
+          'Failed to generate full cover PDF for page images:',
+          err,
+        );
       }
     }
 

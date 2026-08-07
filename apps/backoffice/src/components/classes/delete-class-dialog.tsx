@@ -34,7 +34,7 @@ export function DeleteClassDialog({
       onSuccess?.();
     },
     onError: (error) => {
-      console.log(error);
+      console.error('Failed to delete class:', error);
       enqueueSnackbar(getErrorMessage(error), {
         variant: 'error',
       });

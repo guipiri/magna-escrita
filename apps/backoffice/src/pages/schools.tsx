@@ -130,7 +130,6 @@ export default function Schools() {
               <SchoolCard
                 key={school.id}
                 school={school}
-                onClick={() => console.log('Clicked school:', school.id)}
               />
             ))}
           </div>
