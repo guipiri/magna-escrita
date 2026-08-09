@@ -7,8 +7,6 @@ export const validationSchema = Joi.object({
   PORT: Joi.number().default(3000),
   MERCADOPAGO_ACCESS_TOKEN: Joi.string().required(),
   MERCADOPAGO_WEBHOOK_SECRET: Joi.string().required(),
-  APP_URL: Joi.string().uri().required(),
-  API_URL: Joi.string().uri().required(),
   DATABASE_URL: Joi.string().uri().required(),
   GOOGLE_CLIENT_ID: Joi.string().required(),
   GOOGLE_CLIENT_SECRET: Joi.string().required(),

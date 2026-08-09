@@ -75,8 +75,6 @@ jobs:
           secrets: |
             MERCADOPAGO_ACCESS_TOKEN=MERCADOPAGO_ACCESS_TOKEN:latest
             MERCADOPAGO_WEBHOOK_SECRET=MERCADOPAGO_WEBHOOK_SECRET:latest
-            APP_URL=APP_URL:latest
-            API_URL=API_URL:latest
             DATABASE_URL=DATABASE_URL:latest
             GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest
             GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest
