@@ -1,4 +1,4 @@
-name: Deploy API to Google Cloud Run
+name: Deploy API and Worker to Google Cloud Run
 
 on:
   push:
@@ -22,11 +22,12 @@ env:
   GCP_REGION: ${{ secrets.GCP_REGION }}
   ARTIFACT_REGISTRY_REPO: ${{ secrets.ARTIFACT_REGISTRY_REPO }}
   SERVICE_NAME: ${{ secrets.CLOUD_RUN_SERVICE_NAME }}
+  WORKER_SERVICE_NAME: ${{ secrets.CLOUD_RUN_WORKER_SERVICE_NAME }}
   IMAGE_NAME: api
 
 jobs:
   deploy:
-    name: Build, Push & Deploy API
+    name: Build, Push & Deploy API and Worker
     runs-on: ubuntu-latest
 
     steps:
@@ -62,8 +63,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Deploy to Cloud Run
-        id: deploy
+      - name: Deploy API to Cloud Run
+        id: deploy-api
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE_NAME }}
@@ -96,6 +97,41 @@ jobs:
             SMTP_SECURE=SMTP_SECURE:latest
             REDIS_URL=REDIS_URL:latest
 
-      - name: Print Cloud Run Service URL
+      - name: Deploy Worker to Cloud Run
+        id: deploy-worker
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.WORKER_SERVICE_NAME }}
+          region: ${{ env.GCP_REGION }}
+          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          flags: '--command=node --args=apps/api/dist/src/worker.js --service-account=magna-escrita-runtime@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com --no-allow-unauthenticated'
+          env_vars: |
+            NODE_ENV=production
+          secrets: |
+            MERCADOPAGO_ACCESS_TOKEN=MERCADOPAGO_ACCESS_TOKEN:latest
+            MERCADOPAGO_WEBHOOK_SECRET=MERCADOPAGO_WEBHOOK_SECRET:latest
+            DATABASE_URL=DATABASE_URL:latest
+            GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest
+            GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest
+            JWT_SECRET=JWT_SECRET:latest
+            JWT_EXPIRES_IN=JWT_EXPIRES_IN:latest
+            AUTH_COOKIE_NAME=AUTH_COOKIE_NAME:latest
+            AUTH_COOKIE_MAX_AGE_DAYS=AUTH_COOKIE_MAX_AGE_DAYS:latest
+            GEMINI_API_KEY=GEMINI_API_KEY:latest
+            CLOUDFLARE_R2_ACCOUNT_ID=CLOUDFLARE_R2_ACCOUNT_ID:latest
+            CLOUDFLARE_R2_ACCESS_KEY_ID=CLOUDFLARE_R2_ACCESS_KEY_ID:latest
+            CLOUDFLARE_R2_SECRET_ACCESS_KEY=CLOUDFLARE_R2_SECRET_ACCESS_KEY:latest
+            CLOUDFLARE_R2_BUCKET_NAME=CLOUDFLARE_R2_BUCKET_NAME:latest
+            CLOUDFLARE_R2_PUBLIC_URL=CLOUDFLARE_R2_PUBLIC_URL:latest
+            SMTP_FROM=SMTP_FROM:latest
+            SMTP_HOST=SMTP_HOST:latest
+            SMTP_PORT=SMTP_PORT:latest
+            SMTP_USER=SMTP_USER:latest
+            SMTP_PASS=SMTP_PASS:latest
+            SMTP_SECURE=SMTP_SECURE:latest
+            REDIS_URL=REDIS_URL:latest
+
+      - name: Print Cloud Run Service URLs
         run: |
-          echo "API successfully deployed to: ${{ steps.deploy.outputs.url }}"
+          echo "API successfully deployed to: ${{ steps.deploy-api.outputs.url }}"
+          echo "Worker successfully deployed to: ${{ steps.deploy-worker.outputs.url }}"
