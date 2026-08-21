@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
+import { useAuth } from '../../hooks/auth-hook';
 
 interface HeaderProps {
   selectedUnit?: string;
@@ -29,6 +30,8 @@ export function Header({
   userAvatar,
   onMenuToggle,
 }: HeaderProps) {
+  const { logout } = useAuth();
+
   const showYearSelector = academicYears.length > 1;
 
   return (
@@ -86,7 +89,10 @@ export function Header({
           className='p-2 hover:bg-accent rounded-md transition-colors duration-200'
           title='Sair'
         >
-          <LogOut className='w-5 h-5 text-muted-foreground' />
+          <LogOut
+            onClick={() => logout()}
+            className='w-5 h-5 text-muted-foreground'
+          />
         </button>
       </div>
     </header>
