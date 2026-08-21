@@ -34,7 +34,13 @@ import { MailModule } from './common/mail/mail.module.js';
       useFactory: (configService: ConfigService) => ({
         connection: {
           url: configService.getOrThrow<string>('REDIS_URL'),
+          connectTimeout: 10000,
+          keepAlive: 15000,
           family: 4,
+          maxRetries: 5,
+          retryStrategy(times) {
+            return Math.min(times * 50, 2000);
+          },
         },
       }),
       inject: [ConfigService],
