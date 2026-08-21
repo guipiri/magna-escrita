@@ -99,9 +99,28 @@ export const routes = {
   },
 };
 
+const RootRoute = () => {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <main className='px-4 py-12 text-center'>
+        Verificando autenticacao...
+      </main>
+    );
+  }
+
+  if (user) {
+    return <Navigate to={routes.schools.path} replace />;
+  }
+
+  return <Navigate to={routes.login.path} replace />;
+};
+
 const AppRoutes = () => (
   <BrowserRouter>
     <Routes>
+      <Route path="/" element={<RootRoute />} />
       <Route path={routes.login.path} element={<LoginPage />} />
       <Route element={<MainLayout />}>
         <Route
