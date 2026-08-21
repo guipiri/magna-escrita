@@ -38,9 +38,7 @@ import { MailModule } from './common/mail/mail.module.js';
           keepAlive: 15000,
           family: 4,
           maxRetries: 5,
-          retryStrategy(times) {
-            return Math.min(times * 50, 2000);
-          },
+          maxRetriesPerRequest: 5,
         },
       }),
       inject: [ConfigService],
