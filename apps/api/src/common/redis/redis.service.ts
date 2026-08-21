@@ -11,10 +11,11 @@ export class RedisService implements OnModuleDestroy {
 
     this.client = new Redis(redisUrl, {
       connectTimeout: 10000,
-      keepAlive: 15000,
+      keepAlive: 10000,
+      pingInterval: 10000,
       family: 4,
       maxRetriesPerRequest: null,
-    });
+    } as any);
   }
 
   getClient(): Redis {
