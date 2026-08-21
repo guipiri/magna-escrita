@@ -70,7 +70,7 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.GCP_REGION }}
           image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          flags: '--service-account=magna-escrita-runtime@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com --allow-unauthenticated --port=8080 --vpc-egress=private-ranges-only --network=default'
+          flags: '--service-account=magna-escrita-runtime@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com --allow-unauthenticated --port=8080'
           env_vars: |
             NODE_ENV=production
           secrets: |
@@ -104,7 +104,7 @@ jobs:
           service: ${{ env.WORKER_SERVICE_NAME }}
           region: ${{ env.GCP_REGION }}
           image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          flags: '--command=node --args=apps/api/dist/src/worker.js --service-account=magna-escrita-runtime@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com --no-allow-unauthenticated --vpc-egress=private-ranges-only --network=default'
+          flags: '--command=node --args=apps/api/dist/src/worker.js --service-account=magna-escrita-runtime@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com --no-allow-unauthenticated'
           env_vars: |
             NODE_ENV=production
           secrets: |
