@@ -10,6 +10,7 @@ import { MailModule } from './common/mail/mail.module.js';
 import { PdfModule } from './pdf/pdf.module.js';
 import { RedisModule } from './common/redis/redis.module.js';
 import { validationSchema } from './config/validation.js';
+import { BucketModule } from './common/bucket/bucket.module.js';
 
 @Module({
   imports: [
@@ -25,10 +26,7 @@ import { validationSchema } from './config/validation.js';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         connection: {
-          url: configService.get<string>(
-            'REDIS_URL',
-            'redis://localhost:6379',
-          ),
+          url: configService.getOrThrow<string>('REDIS_URL'),
         },
       }),
       inject: [ConfigService],
@@ -39,6 +37,7 @@ import { validationSchema } from './config/validation.js';
     PdfModule,
     BooksModule,
     BooksScanModule,
+    BucketModule,
   ],
   providers: [BooksPdfProcessor, BooksScanProcessor],
 })

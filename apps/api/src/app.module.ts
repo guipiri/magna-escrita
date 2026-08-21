@@ -33,7 +33,7 @@ import { MailModule } from './common/mail/mail.module.js';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         connection: {
-          url: configService.get<string>('REDIS_URL', 'redis://localhost:6379'),
+          url: configService.getOrThrow<string>('REDIS_URL'),
         },
       }),
       inject: [ConfigService],
