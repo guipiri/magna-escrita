@@ -34,6 +34,7 @@ import { MailModule } from './common/mail/mail.module.js';
       useFactory: (configService: ConfigService) => ({
         connection: {
           url: configService.getOrThrow<string>('REDIS_URL'),
+          family: 4,
         },
       }),
       inject: [ConfigService],

@@ -27,6 +27,7 @@ import { BucketModule } from './common/bucket/bucket.module.js';
       useFactory: (configService: ConfigService) => ({
         connection: {
           url: configService.getOrThrow<string>('REDIS_URL'),
+          family: 4,
         },
       }),
       inject: [ConfigService],
