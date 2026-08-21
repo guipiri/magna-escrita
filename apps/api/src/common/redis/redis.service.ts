@@ -13,7 +13,7 @@ export class RedisService implements OnModuleDestroy {
       connectTimeout: 10000,
       keepAlive: 15000,
       family: 4,
-      maxRetriesPerRequest: 5,
+      maxRetriesPerRequest: null,
     });
   }
 

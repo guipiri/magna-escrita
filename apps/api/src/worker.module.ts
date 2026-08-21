@@ -31,7 +31,7 @@ import { BucketModule } from './common/bucket/bucket.module.js';
           keepAlive: 15000,
           family: 4,
           maxRetries: 5,
-          maxRetriesPerRequest: 5,
+          maxRetriesPerRequest: null,
         },
       }),
       inject: [ConfigService],
