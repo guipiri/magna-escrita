@@ -24,7 +24,6 @@ env:
   SERVICE_NAME: ${{ secrets.CLOUD_RUN_SERVICE_NAME }}
   WORKER_SERVICE_NAME: ${{ secrets.CLOUD_RUN_WORKER_SERVICE_NAME }}
   IMAGE_NAME: api
-  REDIS_INSTANCE_NAME: ${{ secrets.REDIS_INSTANCE_NAME || 'magna-escrita-redis' }}
 
 jobs:
   deploy:
@@ -64,39 +63,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Setup GCP Memorystore (Redis)
-        id: setup-redis
-        run: |
-          REDIS_NAME="${{ env.REDIS_INSTANCE_NAME }}"
-          REGION="${{ env.GCP_REGION }}"
-          PROJECT="${{ env.GCP_PROJECT_ID }}"
-
-          echo "Checking if Redis instance '$REDIS_NAME' exists in region '$REGION'..."
-          if ! gcloud redis instances describe "$REDIS_NAME" --region="$REGION" --project="$PROJECT" >/dev/null 2>&1; then
-            echo "Redis instance not found. Creating Memorystore Redis instance '$REDIS_NAME'..."
-            gcloud redis instances create "$REDIS_NAME" \
-              --size=1 \
-              --region="$REGION" \
-              --tier=basic \
-              --network=default \
-              --project="$PROJECT"
-          else
-            echo "Redis instance '$REDIS_NAME' already exists."
-          fi
-
-          echo "Fetching Redis connection details..."
-          REDIS_HOST=$(gcloud redis instances describe "$REDIS_NAME" --region="$REGION" --project="$PROJECT" --format="value(host)")
-          REDIS_PORT=$(gcloud redis instances describe "$REDIS_NAME" --region="$REGION" --project="$PROJECT" --format="value(port)")
-
-          if [ -z "$REDIS_HOST" ] || [ -z "$REDIS_PORT" ]; then
-            echo "Failed to retrieve Redis host or port."
-            exit 1
-          fi
-
-          REDIS_URL="redis://${REDIS_HOST}:${REDIS_PORT}"
-          echo "Redis URL: redis://${REDIS_HOST}:${REDIS_PORT}"
-          echo "redis_url=${REDIS_URL}" >> $GITHUB_OUTPUT
-
       - name: Deploy API to Cloud Run
         id: deploy-api
         uses: google-github-actions/deploy-cloudrun@v2
@@ -107,7 +73,6 @@ jobs:
           flags: '--service-account=magna-escrita-runtime@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com --allow-unauthenticated --port=8080 --vpc-egress=private-ranges-only --network=default'
           env_vars: |
             NODE_ENV=production
-            REDIS_URL=${{ steps.setup-redis.outputs.redis_url }}
           secrets: |
             CORS_ORIGIN=CORS_ORIGIN:latest
             MERCADOPAGO_ACCESS_TOKEN=MERCADOPAGO_ACCESS_TOKEN:latest
@@ -131,6 +96,7 @@ jobs:
             SMTP_USER=SMTP_USER:latest
             SMTP_PASS=SMTP_PASS:latest
             SMTP_SECURE=SMTP_SECURE:latest
+            REDIS_URL=REDIS_URL:latest
             GEMINI_MODEL=GEMINI_MODEL:latest
 
       - name: Deploy Worker to Cloud Run
@@ -143,7 +109,6 @@ jobs:
           flags: '--command=node --args=apps/api/dist/src/worker.js --service-account=magna-escrita-runtime@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com --no-allow-unauthenticated --vpc-egress=private-ranges-only --network=default'
           env_vars: |
             NODE_ENV=production
-            REDIS_URL=${{ steps.setup-redis.outputs.redis_url }}
           secrets: |
             CORS_ORIGIN=CORS_ORIGIN:latest
             MERCADOPAGO_ACCESS_TOKEN=MERCADOPAGO_ACCESS_TOKEN:latest
@@ -167,6 +132,7 @@ jobs:
             SMTP_USER=SMTP_USER:latest
             SMTP_PASS=SMTP_PASS:latest
             SMTP_SECURE=SMTP_SECURE:latest
+            REDIS_URL=REDIS_URL:latest
             GEMINI_MODEL=GEMINI_MODEL:latest
 
       - name: Print Cloud Run Service URLs
