@@ -97,6 +97,7 @@ jobs:
             SMTP_PASS=SMTP_PASS:latest
             SMTP_SECURE=SMTP_SECURE:latest
             REDIS_URL=REDIS_URL:latest
+            GEMINI_MODEL=GEMINI_MODEL:latest
 
       - name: Deploy Worker to Cloud Run
         id: deploy-worker
@@ -132,6 +133,7 @@ jobs:
             SMTP_PASS=SMTP_PASS:latest
             SMTP_SECURE=SMTP_SECURE:latest
             REDIS_URL=REDIS_URL:latest
+            GEMINI_MODEL=GEMINI_MODEL:latest
 
       - name: Print Cloud Run Service URLs
         run: |
