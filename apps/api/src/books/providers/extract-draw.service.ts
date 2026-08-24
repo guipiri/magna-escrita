@@ -167,10 +167,12 @@ export class OpenCVDrawExtractor implements ExtractDrawService {
 export class GeminiDrawExtractor implements ExtractDrawService {
   private readonly logger = new Logger(GeminiDrawExtractor.name);
   private readonly gemini: GoogleGenerativeAI;
+  private readonly modelName: string;
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.getOrThrow<string>('GEMINI_API_KEY');
     this.gemini = new GoogleGenerativeAI(apiKey);
+    this.modelName = this.configService.getOrThrow<string>('GEMINI_MODEL');
   }
 
   async execute(file: Express.Multer.File): Promise<File> {
@@ -192,7 +194,7 @@ export class GeminiDrawExtractor implements ExtractDrawService {
     file: Express.Multer.File,
   ): Promise<Buffer> {
     const model = this.gemini.getGenerativeModel({
-      model: 'gemini-2.0-flash-preview-image-generation',
+      model: this.modelName,
       generationConfig: {
         responseModalities: ['IMAGE', 'TEXT'],
       } as any,
@@ -259,7 +261,7 @@ Retorne a imagem em PNG.`;
     file: Express.Multer.File,
   ): Promise<Buffer> {
     const model = this.gemini.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: this.modelName,
     });
 
     const imagePart: Part = {

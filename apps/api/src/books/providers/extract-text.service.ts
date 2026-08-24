@@ -15,16 +15,18 @@ export interface ExtractTextService {
 @Injectable()
 export class GeminiTextExtractor implements ExtractTextService {
   private readonly logger = new Logger(GeminiTextExtractor.name);
-  gemini: GoogleGenerativeAI;
+  private readonly gemini: GoogleGenerativeAI;
+  private readonly modelName: string;
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.getOrThrow<string>('GEMINI_API_KEY');
     this.gemini = new GoogleGenerativeAI(apiKey);
+    this.modelName = this.configService.getOrThrow<string>('GEMINI_MODEL');
   }
 
   async execute(file: Express.Multer.File): Promise<string> {
     const model = this.gemini.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: this.modelName,
     });
 
     const imagePart: Part = {
