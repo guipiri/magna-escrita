@@ -139,7 +139,7 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
               </div>
               {isLogoVisible && (
                 <span className='font-semibold text-sidebar-foreground whitespace-nowrap'>
-                  Magna Printi
+                  Magna Escrita
                 </span>
               )}
             </div>
