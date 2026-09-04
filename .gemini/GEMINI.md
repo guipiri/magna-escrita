@@ -59,22 +59,21 @@
   - **Estados Vazios & Áreas Pontilhadas:** Utilize `border border-dashed border-border` ou `border-border/70` para empty states, placeholders e áreas de upload.
   - **Estados de Validação:** Use `border-destructive` acompanhado de `aria-invalid` para destacar campos com erro.
 
-- **Border Radius & Escala Semântica:**
-  - **`rounded-3xl`:** Containers externos de página, seções principais e cards de filtro/busca (`rounded-3xl border border-border bg-card/80 p-5 sm:p-6`).
-  - **`rounded-2xl`:** Cards de conteúdo individuais, itens de lista (`DataListItem`) e blocos de empty state.
-  - **`rounded-xl`:** Sub-containers internos (caixas de metadados, visualizadores de texto, previews de imagem) e containers de ícones em destaque (`size-12 rounded-xl bg-primary/10`).
-  - **`rounded-md` / `rounded-lg`:** Elementos de controle interativo (botões, inputs, selects, dropdowns, dialogs e badges).
+- **Border Radius & Escala Semântica (Máximo `rounded-xl`):**
+  - **`rounded-xl`:** Containers externos de página, seções principais, cards de filtro/busca (`rounded-xl border border-border bg-card/80 p-5 sm:p-6`), cards de conteúdo individuais, itens de lista (`DataListItem`) e blocos de empty state.
+  - **`rounded-lg`:** Sub-containers internos (caixas de metadados, visualizadores de texto, previews de imagem) e containers de ícones em destaque (`size-10 rounded-lg bg-primary/10`).
+  - **`rounded-md` / `rounded-sm`:** Elementos de controle interativo (botões, inputs, selects, dropdowns, dialogs e badges).
   - **`rounded-full`:** Avatares de usuários e botões circulares compactos.
-  - **Aninhamento Proporcional:** Garanta sempre que elementos filhos tenham border radius menor ou igual ao elemento pai (ex: container `rounded-2xl` -> caixas internas `rounded-xl` -> botões `rounded-md`).
+  - **Aninhamento Proporcional:** Garanta sempre que elementos filhos tenham border radius menor ou igual ao elemento pai (ex: container `rounded-xl` -> caixas internas `rounded-lg` -> controles `rounded-md` ou `rounded-sm`).
 
 - **Estrutura de Layout e Páginas:**
   - Mantenha o padrão de container das páginas: `<main className="flex-1 overflow-auto"><div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">...</div></main>`.
-  - Agrupe seções e controles de filtro/busca em cards com bordas arredondadas e backdrop blur (`rounded-3xl border border-border bg-card/80 p-5 shadow-sm sm:p-6`).
+  - Agrupe seções e controles de filtro/busca em cards com bordas arredondadas e backdrop blur (`rounded-xl border border-border bg-card/80 p-5 shadow-sm sm:p-6`).
   - Para listagens detalhadas de entidades (ex: livros, turmas, escolas), use o padrão `DataList` (`DataListItem`, `DataListHeader`, `DataListContent`, `DataListFooter`). Para visualizações tabulares densas, use `Table`.
 
 - **Estados de Interface (Loading, Empty & Error):**
   - **Loading:** Sempre exiba feedback visual de carregamento via `Skeleton` ou containers estilizados com spinner (`Loader2 className="animate-spin"`) e texto informativo.
-  - **Empty State:** Quando uma busca ou listagem não retornar itens, exiba um card padronizado com borda tracejada (`rounded-2xl border border-dashed border-border bg-card p-10 text-center`), ícone temático centralizado em container (`size-12 rounded-xl bg-primary/10 text-primary`), título em `text-sm font-medium text-foreground` e subtítulo em `text-sm text-muted-foreground`.
+  - **Empty State:** Quando uma busca ou listagem não retornar itens, exiba um card padronizado com borda tracejada (`rounded-xl border border-dashed border-border bg-card p-10 text-center`), ícone temático centralizado em container (`size-10 rounded-lg bg-primary/10 text-primary`), título em `text-sm font-medium text-foreground` e subtítulo em `text-sm text-muted-foreground`.
   - **Error State:** Trate falhas de consulta com feedbacks visuais claros e amigáveis, prevendo opção de retry.
   - **Feedback de Ações:** Utilize toasts (`notistack` / `sonner`) informando o usuário sobre o resultado de mutações assíncronas (sucesso, validação ou falha).
 
