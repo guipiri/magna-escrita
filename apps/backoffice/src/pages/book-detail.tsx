@@ -295,7 +295,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
 
   const editorSourceUrl = droppedFile
     ? URL.createObjectURL(droppedFile)
-    : page.originalImageUrl || '';
+    : page.originalImageUrl || page.drawImageUrl || '';
 
   const TypeIcon = PAGE_TYPE_ICONS[page.type] ?? Layers;
   const showText = hasText(page.type);
@@ -426,18 +426,25 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                   Desenho
                 </p>
                 {showDraw &&
-                  drawSourceUrl &&
+                  (drawSourceUrl || page.originalImageUrl) &&
                   !isImageEditorOpen &&
                   !isReadOnlyForSchool && (
-                    <div>
+                    <div className='flex items-center gap-1'>
                       <Button
-                        variant='ghost'
+                        variant={drawSourceUrl ? 'ghost' : 'outline'}
                         size='sm'
                         onClick={() => setIsImageEditorOpen(true)}
-                        aria-label='Editar imagem'
+                        aria-label={
+                          drawSourceUrl ? 'Editar corte' : 'Recortar imagem'
+                        }
+                        className={
+                          drawSourceUrl
+                            ? ''
+                            : 'border-primary/40 text-primary hover:bg-primary/10'
+                        }
                       >
-                        <Crop className='size-3.5' />
-                        Editar imagem
+                        <Crop className='size-3.5 mr-1.5' />
+                        {drawSourceUrl ? 'Editar corte' : 'Recortar imagem'}
                       </Button>
                       <Button
                         variant='ghost'
@@ -445,7 +452,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                         onClick={() => fileInputRef.current?.click()}
                         aria-label='Trocar imagem'
                       >
-                        <FileImage className='size-3.5' />
+                        <FileImage className='size-3.5 mr-1.5' />
                         Trocar imagem
                       </Button>
                     </div>
@@ -459,6 +466,46 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                     className='w-full object-contain'
                     style={{ maxHeight: 320 }}
                   />
+                </div>
+              ) : page.originalImageUrl ? (
+                <div className='relative flex flex-col items-center justify-center gap-3 overflow-hidden rounded-xl border-2 border-dashed border-primary/40 bg-muted/10 p-5 text-center transition-colors'>
+                  <div className='relative max-h-64 w-full overflow-hidden rounded-lg bg-black/5 dark:bg-white/5 flex items-center justify-center border border-border/50 group'>
+                    <img
+                      src={page.originalImageUrl}
+                      alt={`Folha original da página ${page.number}`}
+                      className='max-h-64 w-full object-contain transition-transform duration-200 group-hover:scale-[1.02]'
+                    />
+                    {!isReadOnlyForSchool && (
+                      <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2'>
+                        <Button
+                          size='sm'
+                          onClick={() => setIsImageEditorOpen(true)}
+                          className='shadow-lg'
+                        >
+                          <Crop className='size-4 mr-1.5' />
+                          Recortar desenho
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <div className='flex flex-col items-center gap-1'>
+                    <p className='text-sm font-medium text-foreground'>
+                      Folha escaneada aguardando recorte
+                    </p>
+                    <p className='text-xs text-muted-foreground'>
+                      Selecione a área do desenho na folha original para definir a imagem final do livro.
+                    </p>
+                  </div>
+                  {!isReadOnlyForSchool && (
+                    <Button
+                      type='button'
+                      onClick={() => setIsImageEditorOpen(true)}
+                      className='mt-1'
+                    >
+                      <Crop className='size-4 mr-2' />
+                      Recortar desenho agora
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div
@@ -927,7 +974,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                   <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
                     Foto do(a) Aluno(a)
                   </p>
-                  {drawSourceUrl &&
+                  {(drawSourceUrl || page.originalImageUrl) &&
                     !isImageEditorOpen &&
                     !isReadOnlyForSchool && (
                       <div className='flex gap-1'>
@@ -936,7 +983,9 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                           size='sm'
                           className='h-7 px-2'
                           onClick={() => setIsImageEditorOpen(true)}
-                          aria-label='Editar foto'
+                          aria-label={
+                            drawSourceUrl ? 'Editar foto' : 'Recortar foto'
+                          }
                         >
                           <Crop className='size-3.5' />
                         </Button>
@@ -977,6 +1026,26 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                         >
                           <FileImage className='size-3.5 mr-1.5' />
                           Alterar
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : page.originalImageUrl ? (
+                  <div className='overflow-hidden rounded-xl border-2 border-dashed border-primary/40 bg-muted/10 aspect-[3/4] relative group flex flex-col items-center justify-center p-3'>
+                    <img
+                      src={page.originalImageUrl}
+                      alt='Foto original do(a) aluno(a)'
+                      className='w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-opacity'
+                    />
+                    {!isReadOnlyForSchool && (
+                      <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-2 p-2'>
+                        <Button
+                          size='sm'
+                          onClick={() => setIsImageEditorOpen(true)}
+                          className='shadow-lg'
+                        >
+                          <Crop className='size-3.5 mr-1.5' />
+                          Recortar foto
                         </Button>
                       </div>
                     )}

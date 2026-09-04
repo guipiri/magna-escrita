@@ -1,8 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { HttpException, Inject, Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../db/db.service.js';
-import type { ExtractDrawService } from './providers/extract-draw.service.js';
 import type { ExtractTextService } from './providers/extract-text.service.js';
 import type { ReadQrCodeService } from './providers/read-qr-code.service.js';
 import type { BucketService } from '../common/bucket/bucket.contract.js';
@@ -17,7 +16,6 @@ import {
 import { generateMagnificCode } from './books.utils.js';
 import {
   getOriginalPageUploadBucketPath,
-  getProcessedPageUploadBucketPath,
 } from '../common/bucket/bucket.utils.js';
 import {
   BadRequestBookTemplateMismatchException,
@@ -28,7 +26,7 @@ import {
   NotFoundBookTemplatePageException,
   NotFoundStudentException,
 } from './books-scan.errors.js';
-import { ScanPageStatusEnum } from '@repo/shared';
+import { ScanPageResult, ScanPageStatusEnum } from '@repo/shared';
 import { ScanPageJobPayload } from './books-scan.queue.js';
 
 interface QrCodeData {
@@ -64,8 +62,6 @@ export class BooksScanProcessor extends WorkerHost {
     private readonly prisma: PrismaService,
     @Inject('BucketService')
     private readonly bucketService: BucketService,
-    @Inject('ExtractDrawService')
-    private readonly processDrawService: ExtractDrawService,
     @Inject('ExtractTextService')
     private readonly extractTextService: ExtractTextService,
     @Inject('ReadQrCodeService')
@@ -82,30 +78,36 @@ export class BooksScanProcessor extends WorkerHost {
       `Processing scan image job ${job.id} for file ${filename} in batch ${batchId}`,
     );
 
-    const fileBuffer = await this.bucketService.get(storageKey);
-    if (!fileBuffer)
-      throw new InternalFileNotFoundException(
-        `file in ${storageKey} not found in bucket`,
-      );
-
-    const mockFile: Express.Multer.File = {
-      buffer: fileBuffer,
-      originalname: filename,
-      mimetype,
-      size: fileBuffer.length,
-      fieldname: 'images',
-      encoding: '7bit',
-      destination: '',
-      filename: '',
-      path: '',
-      stream: null as any,
-    };
-
-    let resultDetail: any;
     let studentId = '';
     let pageNumber = 0;
+    let resultDetail: ScanPageResult = {
+      filename,
+      studentId,
+      pageNumber,
+      status: ScanPageStatusEnum.ERROR,
+      error: 'Erro no processamento',
+    };
 
     try {
+      const fileBuffer = await this.bucketService.get(storageKey);
+      if (!fileBuffer)
+        throw new InternalFileNotFoundException(
+          `file in ${storageKey} not found in bucket`,
+        );
+
+      const mockFile: Express.Multer.File = {
+        buffer: fileBuffer,
+        originalname: filename,
+        mimetype,
+        size: fileBuffer.length,
+        fieldname: 'images',
+        encoding: '7bit',
+        destination: '',
+        filename: '',
+        path: '',
+        stream: null as any,
+      };
+
       // 1. Read QR Code locally with Jimp + jsQR
       const qrStringData = await this.readQrCodeService.execute(mockFile);
       if (!qrStringData) throw new BadRequestQrCodeNotReadableException();
@@ -126,7 +128,20 @@ export class BooksScanProcessor extends WorkerHost {
       this.logger.log(`Successfully processed file ${filename}`);
     } catch (err: unknown) {
       this.logger.error(`Failed to process scan image job ${job.id}:`, err);
-      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      let message = 'Erro desconhecido';
+      if (err instanceof HttpException) {
+        const resp = err.getResponse();
+        if (typeof resp === 'string') {
+          message = resp;
+        } else if (resp && typeof resp === 'object' && 'message' in resp) {
+          message = String((resp as any).message);
+        } else {
+          message = err.message;
+        }
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+
       resultDetail = {
         filename,
         studentId,
@@ -339,38 +354,8 @@ export class BooksScanProcessor extends WorkerHost {
 
     // 8. Process page content based on type
     let textContent: string | undefined;
-    let drawImageUrl: string | undefined;
 
     const pageType = templatePage.pageType;
-
-    if (
-      pageType === PageType.DRAW ||
-      pageType === PageType.DRAW_TEXT ||
-      pageType === PageType.COVER
-    ) {
-      this.logger.debug(`Processing page type: ${pageType}`);
-
-      const processedDrawKey = getProcessedPageUploadBucketPath({
-        unitId: student.class.unitId,
-        eventId: activeEvent.id,
-        studentId: student.id,
-        bookId: book.id,
-        pageNumber: qrData.page,
-        ext: this.getExtension(file.mimetype),
-      });
-
-      const processedDrawFile = await this.processDrawService.execute(file);
-      const processedDrawBuffer = Buffer.from(
-        await processedDrawFile.arrayBuffer(),
-      );
-
-      drawImageUrl = await this.bucketService.upload({
-        key: processedDrawKey,
-        body: processedDrawBuffer,
-        contentType: processedDrawFile.type || file.mimetype,
-      });
-      this.logger.debug(`Processed draw image uploaded: ${drawImageUrl}`);
-    }
 
     if (pageType === PageType.TEXT || pageType === PageType.DRAW_TEXT)
       textContent = await this.extractTextService.execute(file);
@@ -388,7 +373,7 @@ export class BooksScanProcessor extends WorkerHost {
         number: qrData.page,
         type: pageType,
         textContent: textContent ?? null,
-        drawImageUrl: drawImageUrl ?? null,
+        drawImageUrl: null,
         originalImageUrl,
         imageUrl: null,
         status: PageStatus.IN_PROGRESS,
@@ -396,7 +381,7 @@ export class BooksScanProcessor extends WorkerHost {
       update: {
         type: pageType,
         textContent: textContent ?? null,
-        drawImageUrl: drawImageUrl ?? null,
+        drawImageUrl: null,
         originalImageUrl,
         imageUrl: null,
         status: PageStatus.IN_PROGRESS,

@@ -1,14 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import nodemailer from 'nodemailer';
+import { ScanPageResult, ScanPageStatusEnum } from '@repo/shared';
 
-export interface ScanResultDetail {
-  filename: string;
-  studentId: string;
-  pageNumber: number;
-  status: 'success' | 'error';
-  error?: string;
-}
+export type ScanResultDetail = ScanPageResult;
 
 export interface BookPdfResultDetail {
   bookTitle: string;
@@ -61,36 +56,40 @@ export class MailService {
 
   async sendScanSummaryEmail(
     toEmail: string,
-    results: ScanResultDetail[],
+    results: ScanPageResult[],
   ): Promise<void> {
-    const succeeded = results.filter((r) => r.status === 'success');
-    const failed = results.filter((r) => r.status === 'error');
+    const succeeded = results.filter(
+      (r) => r.status === ScanPageStatusEnum.SUCCESS,
+    );
+    const failed = results.filter((r) => r.status === ScanPageStatusEnum.ERROR);
 
-    const subject = `[Magna Escrita] Resumo de Processamento de Escaneamento - ${succeeded.length} Sucessos, ${failed.length} Erros`;
+    const subject = `[Magna Escrita] Resumo de Processamento de Escaneamento - ${succeeded.length} Sucessos, ${failed.length} Falhas`;
 
-    const succeededRowsHtml = succeeded
-      .map(
-        (r) => `
-      <tr style="border-bottom: 1px solid #e2e8f0;">
-        <td style="padding: 10px; font-size: 14px; color: #1e293b;">${r.filename}</td>
-        <td style="padding: 10px; font-size: 14px; color: #10b981; font-weight: bold;">Sucesso</td>
-        <td style="padding: 10px; font-size: 14px; color: #1e293b;">Página ${r.pageNumber}</td>
-      </tr>
-    `,
-      )
-      .join('');
-
-    const failedRowsHtml = failed
-      .map(
-        (r) => `
-      <tr style="border-bottom: 1px solid #e2e8f0; background-color: #fef2f2;">
-        <td style="padding: 10px; font-size: 14px; color: #1e293b;">${r.filename}</td>
-        <td style="padding: 10px; font-size: 14px; color: #ef4444; font-weight: bold;">Erro</td>
-        <td style="padding: 10px; font-size: 14px; color: #7f1d1d;">${r.error ?? 'Falha desconhecida'}</td>
-      </tr>
-    `,
-      )
-      .join('');
+    const rowsHtml =
+      results.length > 0
+        ? results
+            .map((r) => {
+              const isSuccess = r.status === ScanPageStatusEnum.SUCCESS;
+              return `
+          <tr style="border-bottom: 1px solid #e2e8f0; ${isSuccess ? '' : 'background-color: #fef2f2;'}">
+            <td style="padding: 10px; font-size: 14px; color: #1e293b;">${r.filename}</td>
+            <td style="padding: 10px; font-size: 14px; color: ${isSuccess ? '#10b981' : '#ef4444'}; font-weight: bold;">
+              ${isSuccess ? 'Sucesso' : 'Erro'}
+            </td>
+            <td style="padding: 10px; font-size: 14px; color: ${isSuccess ? '#1e293b' : '#7f1d1d'};">
+              ${isSuccess ? `Página ${r.pageNumber}` : (r.error ?? 'Falha desconhecida')}
+            </td>
+          </tr>
+        `;
+            })
+            .join('')
+        : `
+          <tr>
+            <td colspan="3" style="padding: 15px; text-align: center; font-size: 14px; color: #64748b;">
+              Nenhum detalhe de processamento disponível.
+            </td>
+          </tr>
+        `;
 
     const htmlContent = `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #ffffff;">
@@ -101,7 +100,11 @@ export class MailService {
         <div style="padding: 20px;">
           <p style="font-size: 16px; color: #334155; line-height: 1.5;">Olá,</p>
           <p style="font-size: 16px; color: #334155; line-height: 1.5;">
-            O processamento do lote de upload em massa que você enviou foi concluído com sucesso. Aqui estão os resultados detalhados:
+            ${
+              failed.length === 0
+                ? 'O processamento do lote de upload em massa que você enviou foi concluído com sucesso. Aqui estão os resultados detalhados:'
+                : 'O processamento do lote de upload em massa que você enviou foi concluído. Aqui estão os resultados detalhados:'
+            }
           </p>
           
           <div style="margin: 20px 0; padding: 15px; border-radius: 6px; background-color: #f8fafc; border: 1px solid #e2e8f0;">
@@ -121,8 +124,7 @@ export class MailService {
               </tr>
             </thead>
             <tbody>
-              ${succeededRowsHtml}
-              ${failedRowsHtml}
+              ${rowsHtml}
             </tbody>
           </table>
           

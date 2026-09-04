@@ -4,7 +4,6 @@ import { DbModule } from '../db/db.module.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { BooksScanController } from './books-scan.controller.js';
 import { BooksScanService } from './books-scan.service.js';
-import { GeminiDrawExtractor } from './providers/extract-draw.service.js';
 import { GeminiTextExtractor } from './providers/extract-text.service.js';
 import { JsqrQrCodeReader } from './providers/read-qr-code.service.js';
 import { BucketModule } from '../common/bucket/bucket.module.js';
@@ -30,7 +29,6 @@ import { BOOK_SCAN_QUEUE_NAME } from './books-scan.queue.js';
   controllers: [BooksScanController],
   providers: [
     BooksScanService,
-    { provide: 'ExtractDrawService', useClass: GeminiDrawExtractor },
     {
       provide: 'ExtractTextService',
       useClass: GeminiTextExtractor,
@@ -39,7 +37,6 @@ import { BOOK_SCAN_QUEUE_NAME } from './books-scan.queue.js';
   ],
   exports: [
     BooksScanService,
-    'ExtractDrawService',
     'ExtractTextService',
     'ReadQrCodeService',
   ],
