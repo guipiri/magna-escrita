@@ -134,7 +134,18 @@ function PageCard({ page, book, isActive }: PageCardProps) {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
-  const drawSourceUrl = page.drawImageUrl || '';
+  const [imageVersion, setImageVersion] = useState(() => Date.now());
+
+  useEffect(() => {
+    setImageVersion(Date.now());
+  }, [page.drawImageUrl, page.originalImageUrl, book.updatedAt]);
+
+  const drawSourceUrl = page.drawImageUrl
+    ? `${page.drawImageUrl}${page.drawImageUrl.includes('?') ? '&' : '?'}v=${imageVersion}`
+    : '';
+  const originalSourceUrl = page.originalImageUrl
+    ? `${page.originalImageUrl}${page.originalImageUrl.includes('?') ? '&' : '?'}v=${imageVersion}`
+    : '';
 
   const statusMutation = useMutation({
     mutationFn: (newStatus: PageStatus) => {
@@ -236,6 +247,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
     mutationFn: ({ file, originalFile }: { file: File; originalFile?: File }) =>
       updateBookPageDraw(bookId, page.number, file, originalFile),
     onSuccess: () => {
+      setImageVersion(Date.now());
       enqueueSnackbar('Imagem salva com sucesso!', { variant: 'success' });
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
       setIsImageEditorOpen(false);
@@ -295,7 +307,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
 
   const editorSourceUrl = droppedFile
     ? URL.createObjectURL(droppedFile)
-    : page.originalImageUrl || page.drawImageUrl || '';
+    : originalSourceUrl || drawSourceUrl;
 
   const TypeIcon = PAGE_TYPE_ICONS[page.type] ?? Layers;
   const showText = hasText(page.type);
@@ -426,7 +438,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                   Desenho
                 </p>
                 {showDraw &&
-                  (drawSourceUrl || page.originalImageUrl) &&
+                  (drawSourceUrl || originalSourceUrl) &&
                   !isImageEditorOpen &&
                   !isReadOnlyForSchool && (
                     <div className='flex items-center gap-1'>
@@ -461,18 +473,22 @@ function PageCard({ page, book, isActive }: PageCardProps) {
               {drawSourceUrl ? (
                 <div className='overflow-hidden rounded-xl border border-border/70 bg-muted/20'>
                   <img
+                    key={drawSourceUrl}
                     src={drawSourceUrl}
                     alt={`Desenho da página ${page.number}`}
+                    crossOrigin='anonymous'
                     className='w-full object-contain'
                     style={{ maxHeight: 320 }}
                   />
                 </div>
-              ) : page.originalImageUrl ? (
+              ) : originalSourceUrl ? (
                 <div className='relative flex flex-col items-center justify-center gap-3 overflow-hidden rounded-xl border-2 border-dashed border-primary/40 bg-muted/10 p-5 text-center transition-colors'>
                   <div className='relative max-h-64 w-full overflow-hidden rounded-lg bg-black/5 dark:bg-white/5 flex items-center justify-center border border-border/50 group'>
                     <img
-                      src={page.originalImageUrl}
+                      key={originalSourceUrl}
+                      src={originalSourceUrl}
                       alt={`Folha original da página ${page.number}`}
+                      crossOrigin='anonymous'
                       className='max-h-64 w-full object-contain transition-transform duration-200 group-hover:scale-[1.02]'
                     />
                     {!isReadOnlyForSchool && (
@@ -974,7 +990,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                   <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
                     Foto do(a) Aluno(a)
                   </p>
-                  {(drawSourceUrl || page.originalImageUrl) &&
+                  {(drawSourceUrl || originalSourceUrl) &&
                     !isImageEditorOpen &&
                     !isReadOnlyForSchool && (
                       <div className='flex gap-1'>
@@ -1005,8 +1021,10 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                 {drawSourceUrl ? (
                   <div className='overflow-hidden rounded-xl border border-border/70 bg-muted/20 aspect-[3/4] relative group'>
                     <img
+                      key={drawSourceUrl}
                       src={drawSourceUrl}
                       alt='Foto do(a) aluno(a)'
+                      crossOrigin='anonymous'
                       className='w-full h-full object-cover transition-transform duration-300 group-hover:scale-105'
                     />
                     {!isReadOnlyForSchool && (
@@ -1030,11 +1048,13 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                       </div>
                     )}
                   </div>
-                ) : page.originalImageUrl ? (
+                ) : originalSourceUrl ? (
                   <div className='overflow-hidden rounded-xl border-2 border-dashed border-primary/40 bg-muted/10 aspect-[3/4] relative group flex flex-col items-center justify-center p-3'>
                     <img
-                      src={page.originalImageUrl}
+                      key={originalSourceUrl}
+                      src={originalSourceUrl}
                       alt='Foto original do(a) aluno(a)'
+                      crossOrigin='anonymous'
                       className='w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-opacity'
                     />
                     {!isReadOnlyForSchool && (

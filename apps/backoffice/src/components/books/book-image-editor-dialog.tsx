@@ -18,12 +18,38 @@ function getRadianAngle(degreeValue: number) {
 }
 
 async function createImage(url: string): Promise<HTMLImageElement> {
+  if (url.startsWith('blob:') || url.startsWith('data:')) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = url;
+    });
+  }
+
+  // To prevent browser cache collision where the image was previously cached
+  // without CORS headers by standard <img> tags, fetch as blob using a cache-busting parameter
+  const separator = url.includes('?') ? '&' : '?';
+  const corsUrl = `${url}${separator}t=${Date.now()}`;
+  const response = await fetch(corsUrl);
+  if (!response.ok) {
+    throw new Error('Não foi possível carregar a imagem original.');
+  }
+
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+
   return new Promise((resolve, reject) => {
     const image = new Image();
-    image.crossOrigin = 'anonymous';
-    image.onload = () => resolve(image);
-    image.onerror = reject;
-    image.src = url;
+    image.onload = () => {
+      URL.revokeObjectURL(blobUrl);
+      resolve(image);
+    };
+    image.onerror = (err) => {
+      URL.revokeObjectURL(blobUrl);
+      reject(err);
+    };
+    image.src = blobUrl;
   });
 }
 
@@ -200,6 +226,7 @@ export function BookImageEditorDialog({
               <div className='relative h-[calc(100vh-38rem)] w-full overflow-hidden rounded-3xl border border-white/10 bg-black shadow-2xl'>
                 {effectiveSourceUrl ? (
                   <Cropper
+                    key={effectiveSourceUrl}
                     image={effectiveSourceUrl}
                     crop={crop}
                     zoom={zoom}
@@ -215,6 +242,7 @@ export function BookImageEditorDialog({
                     onCropComplete={(_, croppedPixels) =>
                       setCroppedAreaPixels(croppedPixels)
                     }
+                    mediaProps={{ crossOrigin: 'anonymous' }}
                     classes={{
                       containerClassName: 'rounded-3xl',
                       cropAreaClassName:
