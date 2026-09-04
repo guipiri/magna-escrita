@@ -6,6 +6,8 @@ import { createBook } from '../../services/books-service';
 import { getErrorMessage } from '../../services/error-messages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { AlertCircle } from 'lucide-react';
 
 export function CreateBookDialog({
   onClose,
@@ -29,43 +31,51 @@ export function CreateBookDialog({
   } = useQuery({
     queryKey: ['classes'],
     queryFn: getClasses,
+    enabled: isOpen,
   });
 
   const {
     data: students,
     isLoading: studentsLoading,
+    error: studentsError,
   } = useQuery({
     queryKey: ['class-students', classId],
     queryFn: () => getClassStudents(classId),
     enabled: !!classId,
   });
 
-  // Reset student selection when class changes
+  // Reset student when class changes
   useEffect(() => {
     setStudentId('');
   }, [classId]);
 
-  const createBookMutation = useMutation({
-    mutationFn: createBook,
-    onSuccess: (data) => {
+  // Reset form when dialog opens/closes
+  useEffect(() => {
+    if (!isOpen) {
       setClassId('');
       setStudentId('');
       setTitle('');
-      enqueueSnackbar(
-        `Livro "${data.title || 'Sem título'}" criado com sucesso para o(a) aluno(a) ${data.student.name}!`,
-        { variant: 'success' },
-      );
+    }
+  }, [isOpen]);
+
+  const createBookMutation = useMutation({
+    mutationFn: createBook,
+    onSuccess: () => {
+      enqueueSnackbar('Livro criado com sucesso!', { variant: 'success' });
       if (onSuccess) onSuccess();
+      if (onClose) onClose();
     },
   });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!studentId) return;
+    if (!classId || !studentId) {
+      return;
+    }
 
     createBookMutation.mutate({
       studentId,
-      title: title.trim() || null,
+      title: title.trim() || undefined,
     });
   };
 
@@ -77,24 +87,29 @@ export function CreateBookDialog({
         </DialogHeader>
         <div className='max-w-lg'>
           {createBookMutation.isError && (
-            <div className='mb-6 p-4 bg-red-100 text-red-700 rounded text-sm'>
-              {getErrorMessage(createBookMutation.error) ||
-                'Erro ao criar livro. Tente novamente.'}
+            <div className='mb-6 flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive'>
+              <AlertCircle className='size-4 shrink-0 translate-y-0.5' />
+              <span>
+                {getErrorMessage(createBookMutation.error) ||
+                  'Erro ao criar livro. Tente novamente.'}
+              </span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className='space-y-4'>
             <div>
-              <label className='block text-sm font-medium mb-1'>Turma</label>
+              <label className='block text-sm font-medium text-foreground mb-1'>
+                Turma
+              </label>
               {classesLoading ? (
-                <div className='text-sm text-gray-500'>Carregando turmas...</div>
+                <div className='text-xs text-muted-foreground'>Carregando turmas...</div>
               ) : classesError ? (
-                <div className='text-sm text-red-500'>Erro ao carregar turmas.</div>
+                <div className='text-xs text-destructive'>Erro ao carregar turmas.</div>
               ) : (
                 <select
                   value={classId}
                   onChange={(e) => setClassId(e.target.value)}
-                  className='w-full border border-gray-300 rounded px-3 py-2 bg-background'
+                  className='h-9 w-full rounded-md border border-input bg-input-background px-3 py-1 text-sm text-foreground shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]'
                   required
                 >
                   <option value=''>Selecione uma turma</option>
@@ -109,14 +124,18 @@ export function CreateBookDialog({
 
             {classId && (
               <div>
-                <label className='block text-sm font-medium mb-1'>Aluno(a)</label>
+                <label className='block text-sm font-medium text-foreground mb-1'>
+                  Aluno(a)
+                </label>
                 {studentsLoading ? (
-                  <div className='text-sm text-gray-500'>Carregando alunos...</div>
+                  <div className='text-xs text-muted-foreground'>Carregando alunos...</div>
+                ) : studentsError ? (
+                  <div className='text-xs text-destructive'>Erro ao carregar alunos.</div>
                 ) : (
                   <select
                     value={studentId}
                     onChange={(e) => setStudentId(e.target.value)}
-                    className='w-full border border-gray-300 rounded px-3 py-2 bg-background'
+                    className='h-9 w-full rounded-md border border-input bg-input-background px-3 py-1 text-sm text-foreground shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]'
                     required
                   >
                     <option value=''>Selecione um(a) aluno(a)</option>
@@ -135,12 +154,13 @@ export function CreateBookDialog({
             )}
 
             <div>
-              <label className='block text-sm font-medium mb-1'>Título do Livro</label>
-              <input
+              <label className='block text-sm font-medium text-foreground mb-1'>
+                Título do Livro
+              </label>
+              <Input
                 type='text'
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className='w-full border border-gray-300 rounded px-3 py-2 bg-background'
                 placeholder='Ex: As Aventuras no Espaço'
               />
             </div>

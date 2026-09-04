@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../hooks/auth-hook';
 import { useState } from 'react';
+import { Button } from '../components/ui/button';
+import { AlertCircle } from 'lucide-react';
 
 export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
@@ -20,24 +22,36 @@ export function LoginPage() {
     },
   });
 
+  const errorMessage = error || authError;
+
   return (
-    <main className='max-w-md mx-auto mt-20 p-6 bg-white rounded shadow'>
-      <h2 className='text-2xl font-semibold mb-4'>Entrar no Backoffice</h2>
-      <p className='text-sm text-gray-600 mb-6'>
-        Use sua conta Google autorizada.
-      </p>
-      {error || authError ? (
-        <div className='mb-4 p-3 bg-red-100 text-red-700 rounded'>
-          {error || authError}
-        </div>
-      ) : null}
-      <button
-        onClick={handleGoogleLogin}
-        className='flex items-center justify-center gap-3 w-full px-6 py-3 bg-white border border-gray-300 rounded-sm shadow-md hover:shadow-lg hover:border-gray-400 transition-all duration-200 hover:cursor-pointer'
-      >
-        <GoogleSvgLogo />
-        <span className='text-gray-700 font-medium'>Entrar com Google</span>
-      </button>
+    <main className='flex min-h-[80vh] items-center justify-center px-4 py-12'>
+      <div className='w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8'>
+        <h2 className='text-2xl font-semibold text-foreground mb-2'>
+          Entrar no Backoffice
+        </h2>
+        <p className='text-sm text-muted-foreground mb-6'>
+          Use sua conta Google autorizada para continuar.
+        </p>
+
+        {errorMessage ? (
+          <div className='mb-6 flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive'>
+            <AlertCircle className='size-4 shrink-0 translate-y-0.5' />
+            <span>{errorMessage}</span>
+          </div>
+        ) : null}
+
+        <Button
+          type='button'
+          variant='outline'
+          size='lg'
+          onClick={() => handleGoogleLogin()}
+          className='w-full gap-3 py-5 text-sm font-medium'
+        >
+          <GoogleSvgLogo />
+          <span>Entrar com Google</span>
+        </Button>
+      </div>
     </main>
   );
 }

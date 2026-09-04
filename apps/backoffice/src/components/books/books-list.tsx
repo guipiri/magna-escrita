@@ -47,9 +47,9 @@ interface BooksListProps {
 
 function BooksEmptyState() {
   return (
-    <div className='rounded-2xl border border-dashed border-border bg-card p-10 text-center'>
-      <div className='mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary'>
-        <BookOpen className='size-6' />
+    <div className='rounded-xl border border-dashed border-border bg-card p-10 text-center'>
+      <div className='mx-auto mb-4 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary'>
+        <BookOpen className='size-5' />
       </div>
       <p className='text-sm font-medium text-foreground'>
         Nenhum livro encontrado
@@ -107,7 +107,7 @@ export function BooksList({ books }: BooksListProps) {
                   <DataListTitle className='truncate'>
                     {bookTitle}
                   </DataListTitle>
-                  <Badge variant={status.variant} className={status.bgColor}>
+                  <Badge variant={status.variant}>
                     <StatusIcon className='size-3' />
                     {status.label}
                   </Badge>
@@ -170,7 +170,7 @@ export function BooksList({ books }: BooksListProps) {
 
             <DataListContent className='sm:grid-cols-3'>
               {/* Student */}
-              <div className='rounded-xl border border-border/70 bg-muted/20 p-3'>
+              <div className='rounded-lg border border-border/70 bg-muted/20 p-3'>
                 <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
                   <GraduationCap className='h-4 w-4' />
                   <span className='text-xs font-medium uppercase tracking-wide'>
@@ -183,7 +183,7 @@ export function BooksList({ books }: BooksListProps) {
               </div>
 
               {/* Class + school year */}
-              <div className='rounded-xl border border-border/70 bg-muted/20 p-3'>
+              <div className='rounded-lg border border-border/70 bg-muted/20 p-3'>
                 <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
                   <BookOpen className='h-4 w-4' />
                   <span className='text-xs font-medium uppercase tracking-wide'>
@@ -199,7 +199,7 @@ export function BooksList({ books }: BooksListProps) {
               </div>
 
               {/* Unit + school */}
-              <div className='rounded-xl border border-border/70 bg-muted/20 p-3'>
+              <div className='rounded-lg border border-border/70 bg-muted/20 p-3'>
                 <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
                   <School className='h-4 w-4' />
                   <span className='text-xs font-medium uppercase tracking-wide'>

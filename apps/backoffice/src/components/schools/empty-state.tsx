@@ -7,21 +7,23 @@ interface EmptyStateProps {
 
 export function EmptyState({ onAddSchool }: EmptyStateProps) {
   return (
-    <div className='flex flex-col items-center justify-center py-16 px-4'>
-      <div className='w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4'>
-        <Building2 className='w-10 h-10 text-muted-foreground' />
+    <div className='rounded-xl border border-dashed border-border bg-card p-10 text-center flex flex-col items-center justify-center'>
+      <div className='size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-4'>
+        <Building2 className='size-5' />
       </div>
-      <h3 className='font-semibold text-lg text-foreground mb-2'>
+      <h3 className='font-medium text-sm text-foreground mb-1'>
         Nenhuma unidade encontrada
       </h3>
-      <p className='text-muted-foreground text-sm text-center max-w-md mb-6'>
+      <p className='text-muted-foreground text-sm text-center max-w-sm mb-6'>
         Parece que você ainda não tem unidades escolares cadastradas. Comece
         adicionando sua primeira unidade!
       </p>
-      <Button onClick={onAddSchool}>
-        <Building2 className='w-4 h-4' />
-        Adicionar Unidade
-      </Button>
+      {onAddSchool && (
+        <Button onClick={onAddSchool}>
+          <Building2 className='size-4 mr-2' />
+          Adicionar Unidade
+        </Button>
+      )}
     </div>
   );
 }

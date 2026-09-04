@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Loader2, RotateCw } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getClasses } from '../services/classes-service';
 import { ClassesList, ClassData } from '../components/classes/classes-list';
@@ -8,6 +8,7 @@ import { CreateClassButton } from '../components/classes/create-class-button';
 import { EditClassDialog } from '../components/classes/edit-class-dialog';
 import { DeleteClassDialog } from '../components/classes/delete-class-dialog';
 import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
 
 export function ClassesPage() {
   const [search, setSearch] = useState('');
@@ -30,6 +31,7 @@ export function ClassesPage() {
     data: classes,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['classes'],
     queryFn: getClasses,
@@ -81,10 +83,9 @@ export function ClassesPage() {
     return (
       <main className='flex-1 overflow-auto'>
         <div className='mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8'>
-          <div className='rounded-3xl border border-border bg-card p-6 shadow-sm'>
-            <p className='text-sm text-muted-foreground'>
-              Carregando turmas...
-            </p>
+          <div className='flex items-center justify-center gap-3 rounded-xl border border-border bg-card p-10 text-center shadow-sm'>
+            <Loader2 className='size-5 animate-spin text-primary' />
+            <p className='text-sm text-muted-foreground'>Carregando turmas...</p>
           </div>
         </div>
       </main>
@@ -95,10 +96,19 @@ export function ClassesPage() {
     return (
       <main className='flex-1 overflow-auto'>
         <div className='mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8'>
-          <div className='rounded-3xl border border-red-200 bg-red-50 p-6 shadow-sm'>
-            <p className='text-sm text-red-600'>
+          <div className='flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-destructive shadow-sm'>
+            <p className='text-sm font-medium'>
               Erro ao carregar turmas. Tente novamente.
             </p>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => refetch()}
+              className='gap-2 text-destructive border-destructive/30 hover:bg-destructive/10'
+            >
+              <RotateCw className='size-3.5' />
+              Recarregar
+            </Button>
           </div>
         </div>
       </main>
@@ -108,7 +118,7 @@ export function ClassesPage() {
   return (
     <main className='flex-1 overflow-auto'>
       <div className='mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8'>
-        <section className='rounded-3xl border border-border bg-card/80 p-5 shadow-sm sm:p-6 flex flex-wrap sm:flex-nowrap items-center gap-3'>
+        <section className='rounded-xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6 flex flex-wrap sm:flex-nowrap items-center gap-3'>
           <div className='relative w-full'>
             <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
             <Input

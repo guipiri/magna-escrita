@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { Search, Plus, Mail, ShieldAlert, Building2, User, Pencil, Trash2 } from 'lucide-react';
+import { Search, Plus, Mail, ShieldAlert, Building2, User, Pencil, Trash2, Loader2, RotateCw } from 'lucide-react';
 import { useSnackbar } from 'notistack';
 import { UserRole, UpdateUserRequest, UserListResponse } from '@repo/shared';
 import { getUsers, createUser, updateUser, deleteUser } from '../services/users-service';
@@ -39,6 +39,7 @@ export function UsersPage() {
     data: users,
     isLoading: usersLoading,
     error: usersError,
+    refetch,
   } = useQuery({
     queryKey: ['users'],
     queryFn: getUsers,
@@ -192,8 +193,9 @@ export function UsersPage() {
     return (
       <main className='flex-1 overflow-auto'>
         <div className='mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8'>
-          <div className='rounded-3xl border border-border bg-card p-6 shadow-sm'>
-            <p className='text-sm text-muted-foreground animate-pulse'>
+          <div className='flex items-center justify-center gap-3 rounded-xl border border-border bg-card p-10 text-center shadow-sm'>
+            <Loader2 className='size-5 animate-spin text-primary' />
+            <p className='text-sm text-muted-foreground'>
               Carregando lista de usuários...
             </p>
           </div>
@@ -206,10 +208,19 @@ export function UsersPage() {
     return (
       <main className='flex-1 overflow-auto'>
         <div className='mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8'>
-          <div className='rounded-3xl border border-red-200 bg-red-50 p-6 shadow-sm'>
-            <p className='text-sm text-red-600'>
+          <div className='flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-destructive shadow-sm'>
+            <p className='text-sm font-medium'>
               Erro ao carregar usuários. Tente novamente mais tarde.
             </p>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => refetch()}
+              className='gap-2 text-destructive border-destructive/30 hover:bg-destructive/10'
+            >
+              <RotateCw className='size-3.5' />
+              Recarregar
+            </Button>
           </div>
         </div>
       </main>
@@ -217,11 +228,11 @@ export function UsersPage() {
   }
 
   return (
-    <main className='flex-1 overflow-auto bg-background/95'>
+    <main className='flex-1 overflow-auto'>
       <div className='mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6'>
         
         {/* Page Header and Counters */}
-        <section className='rounded-3xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6'>
+        <section className='rounded-xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6'>
           <div className='flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between'>
             <div className='space-y-2'>
               <h1 className='text-2xl font-semibold tracking-tight text-foreground sm:text-3xl'>
@@ -234,10 +245,10 @@ export function UsersPage() {
                 <span className='inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary'>
                   Total: {counts.total}
                 </span>
-                <span className='inline-flex items-center rounded-full bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-600 dark:text-violet-400'>
+                <span className='inline-flex items-center rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary'>
                   ADMIN: {counts.admins}
                 </span>
-                <span className='inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400'>
+                <span className='inline-flex items-center rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success'>
                   ESCOLA: {counts.schools}
                 </span>
               </div>
@@ -267,7 +278,7 @@ export function UsersPage() {
         </section>
 
         {/* Users List Table */}
-        <div className='rounded-3xl border border-border bg-card shadow-sm overflow-hidden'>
+        <div className='rounded-xl border border-border bg-card shadow-sm overflow-hidden'>
           <div className='overflow-x-auto'>
             <table className='w-full text-left border-collapse'>
               <thead>
@@ -468,15 +479,15 @@ export function UsersPage() {
                       Carregando unidades escolares...
                     </p>
                   ) : schoolsError ? (
-                    <p className='text-xs text-red-500 py-2'>
+                    <p className='text-xs text-destructive py-2'>
                       Erro ao carregar unidades. Feche e abra o diálogo novamente.
                     </p>
                   ) : schools && schools.length === 0 ? (
-                    <p className='text-xs text-amber-500 py-2'>
+                    <p className='text-xs text-warning-foreground py-2'>
                       Nenhuma escola/unidade disponível para associação. Crie uma escola primeiro.
                     </p>
                   ) : (
-                    <div className='space-y-4 max-h-56 overflow-y-auto border border-border/80 rounded-xl p-3 bg-muted/10 divide-y divide-border/40'>
+                    <div className='space-y-4 max-h-56 overflow-y-auto border border-border/80 rounded-lg p-3 bg-muted/10 divide-y divide-border/40'>
                       {schools?.map((school) => (
                         <div key={school.id} className='space-y-2 pb-2.5 pt-2.5 first:pt-0 last:pb-0'>
                           <div className='flex items-center gap-1.5'>

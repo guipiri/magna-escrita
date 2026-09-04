@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, Loader2 } from 'lucide-react';
 import type { SchoolYear, SchoolYearOption } from '@repo/shared';
 import { createEvent } from '../../services/events-service';
 import { getErrorMessage } from '../../services/error-messages';
@@ -194,7 +194,7 @@ export function CreateEventDialog({
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader className='flex flex-row items-center gap-3'>
-          <div className='flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary'>
+          <div className='flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary'>
             <CalendarDays className='size-5' />
           </div>
           <div>
@@ -206,15 +206,16 @@ export function CreateEventDialog({
         </DialogHeader>
 
         {createEventMutation.isError ? (
-          <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700'>
+          <div className='rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive'>
             {getErrorMessage(createEventMutation.error) ||
               'Erro ao criar evento. Tente novamente.'}
           </div>
         ) : null}
 
         {isLoading ? (
-          <div className='rounded-2xl border border-border bg-muted/30 p-6 text-sm text-muted-foreground'>
-            Carregando opções do evento...
+          <div className='rounded-lg border border-border bg-muted/30 p-6 text-sm text-muted-foreground flex items-center justify-center gap-2'>
+            <Loader2 className='size-4 animate-spin text-primary' />
+            <span>Carregando opções do evento...</span>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className='space-y-6'>

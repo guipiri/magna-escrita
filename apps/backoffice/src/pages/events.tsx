@@ -12,6 +12,8 @@ import {
   ChevronDown,
   ChevronUp,
   Pencil,
+  RotateCw,
+  Loader2,
 } from 'lucide-react';
 import type { EventResponse } from '@repo/shared';
 import { getEvents } from '../services/events-service';
@@ -84,14 +86,10 @@ function EventTimeline({
       {timeline.map((item, idx) => {
         const itemDate = new Date(item.date);
         const isPast =
-          new Date().setHours(0, 0, 0, 0) >=
-          itemDate.setHours(0, 0, 0, 0);
+          new Date().setHours(0, 0, 0, 0) >= itemDate.setHours(0, 0, 0, 0);
 
         return (
-          <div
-            key={item.id || idx}
-            className='relative flex items-start gap-4'
-          >
+          <div key={item.id || idx} className='relative flex items-start gap-4'>
             <div
               className={`absolute left-[-24px] flex size-6 items-center justify-center rounded-full border bg-background ${
                 isPast
@@ -138,7 +136,7 @@ export function EventsPage() {
       dateStyle: 'medium',
     }).format(new Date(isoString));
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['events'],
     queryFn: getEvents,
   });
@@ -184,14 +182,13 @@ export function EventsPage() {
   if (isLoading) {
     return (
       <main className='flex-1 overflow-auto'>
-        <div className='mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8'>
-          <Card>
-            <CardContent className='p-6'>
-              <p className='text-sm text-muted-foreground'>
-                Carregando eventos...
-              </p>
-            </CardContent>
-          </Card>
+        <div className='mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8'>
+          <div className='flex items-center justify-center gap-3 rounded-xl border border-border bg-card p-10 text-center shadow-sm'>
+            <Loader2 className='size-5 animate-spin text-primary' />
+            <p className='text-sm text-muted-foreground'>
+              Carregando eventos...
+            </p>
+          </div>
         </div>
       </main>
     );
@@ -200,14 +197,21 @@ export function EventsPage() {
   if (error) {
     return (
       <main className='flex-1 overflow-auto'>
-        <div className='mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8'>
-          <Card className='border-red-200 bg-red-50'>
-            <CardContent className='p-6'>
-              <p className='text-sm text-red-600'>
-                Erro ao carregar eventos. Tente novamente.
-              </p>
-            </CardContent>
-          </Card>
+        <div className='mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8'>
+          <div className='flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-destructive shadow-sm'>
+            <p className='text-sm font-medium'>
+              Erro ao carregar eventos. Tente novamente.
+            </p>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => refetch()}
+              className='gap-2 text-destructive border-destructive/30 hover:bg-destructive/10'
+            >
+              <RotateCw className='size-3.5' />
+              Recarregar
+            </Button>
+          </div>
         </div>
       </main>
     );
@@ -215,11 +219,11 @@ export function EventsPage() {
 
   return (
     <main className='flex-1 overflow-auto'>
-      <div className='mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8'>
+      <div className='mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8'>
         <motion.section
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className='rounded-3xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6'
+          className='rounded-xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6'
         >
           <div className='flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between'>
             <div className='space-y-2'>
@@ -268,7 +272,7 @@ export function EventsPage() {
           <div className='mt-6 grid gap-4 md:grid-cols-3'>
             <Card>
               <CardContent className='flex items-center gap-3 p-5'>
-                <div className='flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary'>
+                <div className='flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary'>
                   <CalendarDays className='size-5' />
                 </div>
                 <div>
@@ -282,7 +286,7 @@ export function EventsPage() {
 
             <Card>
               <CardContent className='flex items-center gap-3 p-5'>
-                <div className='flex size-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600'>
+                <div className='flex size-10 items-center justify-center rounded-lg bg-success/15 text-success'>
                   <CalendarDays className='size-5' />
                 </div>
                 <div>
@@ -296,7 +300,7 @@ export function EventsPage() {
 
             <Card>
               <CardContent className='flex items-center gap-3 p-5'>
-                <div className='flex size-10 items-center justify-center rounded-xl bg-slate-500/10 text-slate-600'>
+                <div className='flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground'>
                   <Building2 className='size-5' />
                 </div>
                 <div>
@@ -339,7 +343,10 @@ export function EventsPage() {
                         >
                           <div className='space-y-1.5 min-w-0 flex-1'>
                             <div className='flex flex-wrap items-center gap-2'>
-                              <Badge variant={status.variant} className='shrink-0'>
+                              <Badge
+                                variant={status.variant}
+                                className='shrink-0'
+                              >
                                 <StatusIcon className='size-3 mr-1' />
                                 {status.label}
                               </Badge>

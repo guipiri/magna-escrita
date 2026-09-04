@@ -13,7 +13,7 @@ export function DataListItem({ className, ...props }: DataListItemProps) {
   return (
     <article
       className={cn(
-        'rounded-2xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5',
+        'rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5',
         className,
       )}
       {...props}

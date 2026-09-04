@@ -6,6 +6,9 @@ import { getErrorMessage } from '../../services/error-messages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { CreateClassButton } from './create-class-button';
 import { createClass } from '../../services/classes-service';
+import { Input } from '../ui/input';
+import { Textarea } from '../ui/textarea';
+import { AlertCircle } from 'lucide-react';
 
 export function CreateClassDialog({
   onClose,
@@ -102,23 +105,23 @@ export function CreateClassDialog({
 
   if (schoolsLoading) {
     return (
-      <main className='px-4 py-12 text-center text-gray-500'>
+      <div className='px-4 py-12 text-center text-muted-foreground'>
         Carregando...
-      </main>
+      </div>
     );
   }
 
   if (schools && schools.length === 0) {
     return (
-      <main className='px-4 py-12 text-center text-gray-500'>
+      <div className='px-4 py-12 text-center text-muted-foreground'>
         Nenhuma escola encontrada. Verifique se você tem acesso a alguma escola.
-      </main>
+      </div>
     );
   }
 
   if (!schools || error) {
     return (
-      <main className='px-4 py-12 text-center text-red-500'>
+      <main className='px-4 py-12 text-center text-destructive'>
         Erro ao carregar escolas. Tente novamente.
       </main>
     );
@@ -132,20 +135,23 @@ export function CreateClassDialog({
         </DialogHeader>
         <div className='max-w-lg'>
           {createClassMutation.isError && (
-            <div className='mb-6 p-4 bg-red-100 text-red-700 rounded'>
-              {getErrorMessage(createClassMutation.error) ||
-                'Erro ao criar turma. Tente novamente.'}
+            <div className='mb-6 flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive'>
+              <AlertCircle className='size-4 shrink-0 translate-y-0.5' />
+              <span>
+                {getErrorMessage(createClassMutation.error) ||
+                  'Erro ao criar turma. Tente novamente.'}
+              </span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className='space-y-4'>
             {units && units.length > 1 && (
               <div>
-                <label className='block text-sm font-medium mb-1'>Escola</label>
+                <label className='block text-sm font-medium text-foreground mb-1'>Escola</label>
                 <select
                   value={unitId || ''}
                   onChange={(e) => setUnitId(e.target.value)}
-                  className='w-full border border-gray-300 rounded px-3 py-2'
+                  className='h-9 w-full rounded-md border border-input bg-input-background px-3 py-1 text-sm text-foreground shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]'
                   required
                 >
                   <option value=''>Selecione uma escola</option>
@@ -159,14 +165,13 @@ export function CreateClassDialog({
             )}
 
             <div>
-              <label className='block text-sm font-medium mb-1'>
+              <label className='block text-sm font-medium text-foreground mb-1'>
                 Nome da Turma
               </label>
-              <input
+              <Input
                 type='text'
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className='w-full border border-gray-300 rounded px-3 py-2'
                 placeholder='Ex: 3º Ano A'
                 required
               />
@@ -174,13 +179,13 @@ export function CreateClassDialog({
 
             {templatesForSelectedUnit.length !== 1 && (
               <div className='flex-2'>
-                <label className='block text-sm font-medium mb-1'>
+                <label className='block text-sm font-medium text-foreground mb-1'>
                   Template de Livro
                 </label>
                 <select
                   value={bookTemplateId}
                   onChange={(e) => setBookTemplateId(e.target.value)}
-                  className='w-full border border-gray-300 rounded px-3 py-2'
+                  className='h-9 w-full rounded-md border border-input bg-input-background px-3 py-1 text-sm text-foreground shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]'
                   required
                 >
                   <option value=''>Selecione um template</option>
@@ -194,34 +199,33 @@ export function CreateClassDialog({
             )}
 
             {unitId && templatesForSelectedUnit.length === 0 && (
-              <p className='text-sm text-red-600'>
+              <p className='text-sm text-destructive'>
                 Nenhum template de livro encontrado. Crie um template antes de
                 cadastrar turmas.
               </p>
             )}
 
             <div>
-              <label className='block text-sm font-medium mt-4 mb-1'>
+              <label className='block text-sm font-medium text-foreground mt-4 mb-1'>
                 Nome da Professora
               </label>
-              <input
+              <Input
                 type='text'
                 value={teacherName}
                 onChange={(e) => setTeacherName(e.target.value)}
-                className='w-full border border-gray-300 rounded px-3 py-2'
                 placeholder='Profª Claudia'
                 required
               />
             </div>
 
             <div>
-              <label className='block text-sm font-medium mb-1'>
+              <label className='block text-sm font-medium text-foreground mb-1'>
                 Alunos (um por linha)
               </label>
-              <textarea
+              <Textarea
                 value={studentsText}
                 onChange={(e) => setStudentsText(e.target.value)}
-                className='w-full border border-gray-300 rounded px-3 py-2 h-40'
+                className='h-40'
                 placeholder={`Maria Souza\nJoão Silva\nAna Oliveira`}
                 required
               />

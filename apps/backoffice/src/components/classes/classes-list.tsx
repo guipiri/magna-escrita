@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/auth-hook';
+import { UserRole } from '@repo/shared';
 import {
   BookOpen,
   Edit,
@@ -78,7 +79,7 @@ export function ClassesList({
 }: ClassesListProps) {
   const { enqueueSnackbar } = useSnackbar();
   const { user } = useAuth();
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === UserRole.ADMIN;
 
   const pdfMutation = useMutation({
     mutationFn: downloadClassPdf,
@@ -151,7 +152,7 @@ export function ClassesList({
             </DataListHeader>
 
             <DataListContent className='sm:grid-cols-3'>
-              <div className='rounded-xl border border-border/70 bg-muted/20 p-3'>
+              <div className='rounded-lg border border-border/70 bg-muted/20 p-3'>
                 <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
                   <Users className='h-4 w-4' />
                   <span className='text-xs font-medium uppercase tracking-wide'>
@@ -163,7 +164,7 @@ export function ClassesList({
                 </p>
               </div>
 
-              <div className='rounded-xl border border-border/70 bg-muted/20 p-3'>
+              <div className='rounded-lg border border-border/70 bg-muted/20 p-3'>
                 <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
                   <BookOpen className='h-4 w-4' />
                   <span className='text-xs font-medium uppercase tracking-wide'>
@@ -179,7 +180,7 @@ export function ClassesList({
                 </p>
               </div>
 
-              <div className='rounded-xl border border-border/70 bg-muted/20 p-3'>
+              <div className='rounded-lg border border-border/70 bg-muted/20 p-3'>
                 <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
                   <GraduationCap className='h-4 w-4' />
                   <span className='text-xs font-medium uppercase tracking-wide'>
@@ -188,9 +189,9 @@ export function ClassesList({
                 </div>
                 <div className='space-y-3 mt-2'>
                   <div>
-                    <div className='h-2 overflow-hidden rounded-full bg-background'>
+                    <div className='h-2 overflow-hidden rounded-full bg-muted'>
                       <div
-                        className='h-full rounded-full bg-linear-to-r from-emerald-500 to-green-500 transition-all duration-300'
+                        className='h-full rounded-full bg-success transition-all duration-300'
                         style={{ width: `${progress}%` }}
                       />
                     </div>
@@ -200,9 +201,9 @@ export function ClassesList({
                   </div>
                   {isAdmin && (
                     <div>
-                      <div className='h-2 overflow-hidden rounded-full bg-background'>
+                      <div className='h-2 overflow-hidden rounded-full bg-muted'>
                         <div
-                          className='h-full rounded-full bg-linear-to-r from-blue-500 to-indigo-500 transition-all duration-300'
+                          className='h-full rounded-full bg-primary transition-all duration-300'
                           style={{ width: `${progressRevised}%` }}
                         />
                       </div>

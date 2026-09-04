@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { Search, Coins, AlertCircle, Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Coins, Plus, ChevronDown, ChevronUp, Loader2, RotateCw } from 'lucide-react';
 import { getPrices } from '../services/prices-service';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
@@ -144,6 +144,7 @@ export function PricesPage() {
     data: prices,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['prices'],
     queryFn: getPrices,
@@ -167,12 +168,11 @@ export function PricesPage() {
 
   if (isLoading) {
     return (
-      <main className='flex-1 overflow-auto bg-background/95'>
+      <main className='flex-1 overflow-auto'>
         <div className='mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8'>
-          <div className='rounded-3xl border border-border bg-card p-6 shadow-sm'>
-            <p className='text-sm text-muted-foreground'>
-              Carregando preços...
-            </p>
+          <div className='flex items-center justify-center gap-3 rounded-xl border border-border bg-card p-10 text-center shadow-sm'>
+            <Loader2 className='size-5 animate-spin text-primary' />
+            <p className='text-sm text-muted-foreground'>Carregando preços...</p>
           </div>
         </div>
       </main>
@@ -181,13 +181,21 @@ export function PricesPage() {
 
   if (error) {
     return (
-      <main className='flex-1 overflow-auto bg-background/95'>
+      <main className='flex-1 overflow-auto'>
         <div className='mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8'>
-          <div className='rounded-3xl border border-red-200 bg-red-50 p-6 shadow-sm'>
-            <p className='text-sm text-red-600 flex items-center gap-2'>
-              <AlertCircle className='w-4 h-4' />
+          <div className='flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-destructive shadow-sm'>
+            <p className='text-sm font-medium'>
               Erro ao carregar os preços. Tente novamente mais tarde.
             </p>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => refetch()}
+              className='gap-2 text-destructive border-destructive/30 hover:bg-destructive/10'
+            >
+              <RotateCw className='size-3.5' />
+              Recarregar
+            </Button>
           </div>
         </div>
       </main>
@@ -195,11 +203,11 @@ export function PricesPage() {
   }
 
   return (
-    <main className='flex-1 overflow-auto bg-background/95'>
+    <main className='flex-1 overflow-auto'>
       <div className='mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6'>
         
         {/* Header */}
-        <section className='rounded-3xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6'>
+        <section className='rounded-xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6'>
           <div className='flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between'>
             <div className='space-y-2'>
               <h1 className='text-2xl font-semibold tracking-tight text-foreground sm:text-3xl flex items-center gap-2'>

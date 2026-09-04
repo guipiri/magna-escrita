@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, Loader2 } from 'lucide-react';
 import type { SchoolYear, SchoolYearOption, EventResponse, EventStatus } from '@repo/shared';
 import { updateEvent } from '../../services/events-service';
 import { getErrorMessage } from '../../services/error-messages';
@@ -224,7 +224,7 @@ export function EditEventDialog({
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader className='flex flex-row items-center gap-3'>
-          <div className='flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary'>
+          <div className='flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary'>
             <CalendarDays className='size-5' />
           </div>
           <div>
@@ -236,15 +236,16 @@ export function EditEventDialog({
         </DialogHeader>
 
         {updateEventMutation.isError ? (
-          <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700'>
+          <div className='rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive'>
             {getErrorMessage(updateEventMutation.error) ||
               'Erro ao salvar alterações do evento. Tente novamente.'}
           </div>
         ) : null}
 
         {isLoading ? (
-          <div className='rounded-2xl border border-border bg-muted/30 p-6 text-sm text-muted-foreground'>
-            Carregando opções do evento...
+          <div className='rounded-lg border border-border bg-muted/30 p-6 text-sm text-muted-foreground flex items-center justify-center gap-2'>
+            <Loader2 className='size-4 animate-spin text-primary' />
+            <span>Carregando opções do evento...</span>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className='space-y-6'>
@@ -337,7 +338,7 @@ export function EditEventDialog({
               </div>
 
               {event?.hasBooks && (
-                <div className='md:col-span-2 rounded-xl border border-blue-100 bg-blue-50/40 px-4 py-3 text-xs text-blue-700'>
+                <div className='md:col-span-2 rounded-lg border border-info/30 bg-info/10 px-4 py-3 text-xs text-info-foreground'>
                   Ano letivo e unidade não podem ser alterados porque já existem livros vinculados a este evento.
                 </div>
               )}

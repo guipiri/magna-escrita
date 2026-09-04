@@ -7,21 +7,24 @@ interface ClassesEmptyStateProps {
 
 export function ClassesEmptyState({ onAddClass }: ClassesEmptyStateProps) {
   return (
-    <div className='flex flex-col items-center justify-center py-16 px-4 border border-dashed border-border rounded-md bg-muted/20'>
-      <div className='w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4'>
-        <GraduationCap className='w-10 h-10 text-muted-foreground' />
+    <div className='rounded-xl border border-dashed border-border bg-card p-10 text-center'>
+      <div className='mx-auto mb-4 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary'>
+        <GraduationCap className='size-5' />
       </div>
-      <h3 className='font-semibold text-lg text-foreground mb-2'>
+      <p className='text-sm font-medium text-foreground'>
         Nenhuma turma encontrada
-      </h3>
-      <p className='text-muted-foreground text-sm text-center max-w-md mb-6'>
-        Comece criando turmas para organizar os alunos e seus livros. Você pode
-        adicionar professores, turnos e muito mais.
       </p>
-      <Button onClick={onAddClass}>
-        <GraduationCap className='w-4 h-4' />
-        Adicionar Turma
-      </Button>
+      <p className='mt-1 text-sm text-muted-foreground max-w-md mx-auto'>
+        Comece criando turmas para organizar os alunos e seus livros.
+      </p>
+      {onAddClass && (
+        <div className='mt-6'>
+          <Button onClick={onAddClass} className='gap-2'>
+            <GraduationCap className='size-4' />
+            Adicionar Turma
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

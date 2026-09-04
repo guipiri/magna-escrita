@@ -11,7 +11,10 @@ import {
   X,
   Palette,
   FileText,
+  Loader2,
+  RotateCw,
 } from 'lucide-react';
+import { Button } from '../components/ui/button';
 import type {
   BookPageType,
   BookTemplatePage,
@@ -42,14 +45,14 @@ const PAGE_TYPE_LABELS: Record<BookPageType, string> = {
 };
 
 const PAGE_TYPE_COLORS: Record<BookPageType, string> = {
-  [BookPageTypeEnum.COVER]: 'bg-violet-100 text-violet-700',
-  [BookPageTypeEnum.TEXT]: 'bg-blue-100 text-blue-700',
-  [BookPageTypeEnum.DRAW]: 'bg-green-100 text-green-700',
-  [BookPageTypeEnum.DRAW_TEXT]: 'bg-teal-100 text-teal-700',
-  [BookPageTypeEnum.BLANK]: 'bg-muted text-muted-foreground',
-  [BookPageTypeEnum.PREFACE]: 'bg-orange-100 text-orange-700',
-  [BookPageTypeEnum.THANKS]: 'bg-pink-100 text-pink-700',
-  [BookPageTypeEnum.BACK_COVER]: 'bg-indigo-100 text-indigo-700',
+  [BookPageTypeEnum.COVER]: 'bg-primary/10 text-primary border border-primary/20',
+  [BookPageTypeEnum.TEXT]: 'bg-info/10 text-info-foreground border border-info/20',
+  [BookPageTypeEnum.DRAW]: 'bg-success/10 text-success border border-success/20',
+  [BookPageTypeEnum.DRAW_TEXT]: 'bg-secondary text-secondary-foreground border border-border',
+  [BookPageTypeEnum.BLANK]: 'bg-muted text-muted-foreground border border-border',
+  [BookPageTypeEnum.PREFACE]: 'bg-warning/10 text-warning-foreground border border-warning/20',
+  [BookPageTypeEnum.THANKS]: 'bg-primary/15 text-primary border border-primary/25',
+  [BookPageTypeEnum.BACK_COVER]: 'bg-accent text-accent-foreground border border-border',
 };
 
 function TemplateCard({
@@ -799,7 +802,12 @@ export function BookTemplatesPage() {
   const [editingTemplate, setEditingTemplate] =
     useState<BookTemplateResponse | null>(null);
 
-  const { data, isLoading, error } = useQuery<BookTemplateResponse[]>({
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery<BookTemplateResponse[]>({
     queryKey: ['book-templates'],
     queryFn: getBookTemplates,
     retry: false,
@@ -836,7 +844,7 @@ export function BookTemplatesPage() {
     <main className='flex-1 overflow-auto'>
       <div className='mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8'>
         {/* Page header */}
-        <section className='rounded-3xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6 mb-6'>
+        <section className='rounded-xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6 mb-6'>
           <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
             <div>
               <h1 className='text-2xl font-semibold tracking-tight text-foreground sm:text-3xl'>
@@ -848,40 +856,59 @@ export function BookTemplatesPage() {
                 {templates.length !== 1 ? 's' : ''}
               </p>
             </div>
-            <button
+            <Button
               type='button'
               onClick={handleOpenCreatePanel}
-              className='inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium shadow-sm hover:opacity-90 transition-opacity shrink-0'
+              className='gap-2 shrink-0'
             >
-              <Plus className='w-4 h-4' />
+              <Plus className='size-4' />
               Novo Template
-            </button>
+            </Button>
           </div>
         </section>
 
         {/* Loading / Error / Content */}
         {isLoading ? (
-          <div className='rounded-xl border border-border bg-card p-6 text-center text-sm text-muted-foreground shadow-sm'>
-            Carregando templates...
+          <div className='flex items-center justify-center gap-3 rounded-xl border border-border bg-card p-10 text-center shadow-sm'>
+            <Loader2 className='size-5 animate-spin text-primary' />
+            <p className='text-sm text-muted-foreground'>Carregando templates...</p>
           </div>
         ) : error ? (
-          <div className='rounded-xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-600 shadow-sm'>
-            Não foi possível carregar os templates agora.
+          <div className='flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-destructive shadow-sm'>
+            <p className='text-sm font-medium'>
+              Não foi possível carregar os templates agora.
+            </p>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => refetch()}
+              className='gap-2 text-destructive border-destructive/30 hover:bg-destructive/10'
+            >
+              <RotateCw className='size-3.5' />
+              Recarregar
+            </Button>
           </div>
         ) : templates.length === 0 ? (
-          <div className='rounded-xl border border-border bg-card p-10 text-center shadow-sm'>
-            <BookOpen className='w-9 h-9 text-muted-foreground mx-auto mb-3' />
-            <p className='text-sm text-muted-foreground'>
-              Nenhum template criado ainda.
+          <div className='rounded-xl border border-dashed border-border bg-card p-10 text-center'>
+            <div className='mx-auto mb-4 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary'>
+              <BookOpen className='size-5' />
+            </div>
+            <p className='text-sm font-medium text-foreground'>
+              Nenhum template encontrado
             </p>
-            <button
-              type='button'
-              onClick={handleOpenCreatePanel}
-              className='mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-sm hover:bg-accent transition-colors'
-            >
-              <Plus className='w-4 h-4' />
-              Criar primeiro template
-            </button>
+            <p className='mt-1 text-sm text-muted-foreground'>
+              Nenhum template de livro cadastrado até o momento.
+            </p>
+            <div className='mt-6'>
+              <Button
+                type='button'
+                onClick={handleOpenCreatePanel}
+                className='gap-2'
+              >
+                <Plus className='size-4' />
+                Criar primeiro template
+              </Button>
+            </div>
           </div>
         ) : (
           <div className='space-y-3'>

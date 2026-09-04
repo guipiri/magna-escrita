@@ -19,6 +19,7 @@ import {
   School,
   UploadCloud,
   X,
+  RotateCw,
 } from 'lucide-react';
 import {
   type BookDetailPage,
@@ -323,7 +324,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
       transition={{ duration: 0.25 }}
       className='h-full'
     >
-      <div className='flex h-full flex-col rounded-2xl border border-border bg-card shadow-sm'>
+      <div className='flex h-full flex-col rounded-xl border border-border bg-card shadow-sm'>
         {/* card header */}
         <div className='flex items-center justify-between border-b border-border/70 px-5 py-3'>
           <div className='flex items-center gap-2'>
@@ -341,7 +342,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
           </div>
 
           {/* Page status checkbox based on role */}
-          {user?.role === 'SCHOOL' && (
+          {user?.role === UserRole.SCHOOL && (
             <div className='flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-1.5 border border-border/50'>
               <label
                 htmlFor={`revise-page-${page.number}`}
@@ -370,7 +371,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
             </div>
           )}
 
-          {user?.role === 'ADMIN' &&
+          {user?.role === UserRole.ADMIN &&
             (() => {
               const isRevisedBySchool =
                 page.status === PageStatusEnum.REVISED_BY_SCHOOL ||
@@ -1190,6 +1191,7 @@ export function BookDetailPage() {
     data: book,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['book', id],
     queryFn: () => getBookById(id!),
@@ -1226,7 +1228,8 @@ export function BookDetailPage() {
     return (
       <main className='flex-1 overflow-auto'>
         <div className='mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8'>
-          <div className='rounded-3xl border border-border bg-card p-6 shadow-sm'>
+          <div className='flex items-center justify-center gap-3 rounded-xl border border-border bg-card p-10 text-center shadow-sm'>
+            <Loader2 className='size-5 animate-spin text-primary' />
             <p className='text-sm text-muted-foreground'>Carregando livro...</p>
           </div>
         </div>
@@ -1238,10 +1241,19 @@ export function BookDetailPage() {
     return (
       <main className='flex-1 overflow-auto'>
         <div className='mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8'>
-          <div className='rounded-3xl border border-red-200 bg-red-50 p-6 shadow-sm'>
-            <p className='text-sm text-red-600'>
+          <div className='flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-destructive shadow-sm'>
+            <p className='text-sm font-medium'>
               Erro ao carregar livro. Tente novamente.
             </p>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => refetch()}
+              className='gap-2 text-destructive border-destructive/30 hover:bg-destructive/10'
+            >
+              <RotateCw className='size-3.5' />
+              Recarregar
+            </Button>
           </div>
         </div>
       </main>
@@ -1254,12 +1266,9 @@ export function BookDetailPage() {
   return (
     <main className='flex-1 overflow-auto'>
       <div className='mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8'>
-        {user?.role === 'SCHOOL' &&
+        {user?.role === UserRole.SCHOOL &&
           book.status === BookStatusEnum.READY_FOR_SALE && (
-            <Alert
-              variant='destructive'
-              className='mb-6 bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-500 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-500'
-            >
+            <Alert variant='warning' className='mb-6'>
               <AlertCircle className='size-4' />
               <AlertTitle>Modificações Desabilitadas</AlertTitle>
               <AlertDescription>
@@ -1273,7 +1282,7 @@ export function BookDetailPage() {
         <motion.section
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className='rounded-3xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6'
+          className='rounded-xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6'
         >
           <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
             <div className='space-y-3'>
@@ -1292,10 +1301,7 @@ export function BookDetailPage() {
                   <h1 className='text-2xl font-semibold tracking-tight text-foreground sm:text-3xl'>
                     {book.title ?? 'Sem título'}
                   </h1>
-                  <Badge
-                    variant={statusCfg.variant}
-                    className={statusCfg.bgColor}
-                  >
+                  <Badge variant={statusCfg.variant}>
                     <StatusIcon className='size-3' />
                     {statusCfg.label}
                   </Badge>
@@ -1357,7 +1363,7 @@ export function BookDetailPage() {
 
         {/* ── Carousel ── */}
         {totalPages === 0 ? (
-          <div className='mt-6 flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground'>
+          <div className='mt-6 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground'>
             <Layers className='size-8' />
             <p className='text-sm'>Nenhuma página disponível ainda.</p>
           </div>

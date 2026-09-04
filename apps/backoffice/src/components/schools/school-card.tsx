@@ -33,12 +33,6 @@ const statusConfig = {
 
 export function SchoolCard({ school, onClick }: SchoolCardProps) {
   const status = statusConfig[school.status];
-  const badgeVariant =
-    school.status === 'active'
-      ? 'default'
-      : school.status === 'completed'
-        ? 'secondary'
-        : 'outline';
 
   return (
     <motion.div
@@ -46,62 +40,62 @@ export function SchoolCard({ school, onClick }: SchoolCardProps) {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
-      className='bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group'
+      className='bg-card border border-border rounded-xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group'
       onClick={onClick}
     >
       {/* Header */}
       <div className='flex items-start justify-between mb-4'>
         <div className='flex items-start gap-3'>
-          <div className='w-12 h-12 rounded-md bg-linear-to-br from-blue-500 to-indigo-500 flex items-center justify-center shrink-0'>
-            <Building2 className='w-6 h-6 text-white' />
+          <div className='size-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0'>
+            <Building2 className='size-5.5' />
           </div>
           <div>
             <h3 className='font-semibold text-card-foreground group-hover:text-primary transition-colors'>
               {school.name}
             </h3>
             <div className='flex items-center gap-2 mt-1'>
-              <Calendar className='w-3.5 h-3.5 text-muted-foreground' />
+              <Calendar className='size-3.5 text-muted-foreground' />
               <span className='text-xs text-muted-foreground'>
                 {school.lastActivity}
               </span>
             </div>
           </div>
         </div>
-        <Badge variant={badgeVariant}>{status.label}</Badge>
+        <Badge variant={status.variant}>{status.label}</Badge>
       </div>
 
       {/* Stats */}
-      <div className='grid grid-cols-3 gap-4 mb-4'>
-        <div className='flex items-center gap-2'>
-          <div className='w-8 h-8 rounded-sm bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center'>
-            <GraduationCap className='w-4 h-4 text-purple-600 dark:text-purple-400' />
+      <div className='grid grid-cols-3 gap-3 mb-4'>
+        <div className='flex items-center gap-2 p-2 rounded-lg border border-border/70 bg-muted/20'>
+          <div className='size-8 rounded-md bg-muted flex items-center justify-center shrink-0'>
+            <GraduationCap className='size-4 text-foreground' />
           </div>
-          <div>
-            <p className='text-xs text-muted-foreground'>Turmas</p>
+          <div className='min-w-0'>
+            <p className='text-xs text-muted-foreground truncate'>Turmas</p>
             <p className='text-sm font-semibold text-card-foreground'>
               {school.classCount}
             </p>
           </div>
         </div>
 
-        <div className='flex items-center gap-2'>
-          <div className='w-8 h-8 rounded-sm bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center'>
-            <Users className='w-4 h-4 text-blue-600 dark:text-blue-400' />
+        <div className='flex items-center gap-2 p-2 rounded-lg border border-border/70 bg-muted/20'>
+          <div className='size-8 rounded-md bg-muted flex items-center justify-center shrink-0'>
+            <Users className='size-4 text-foreground' />
           </div>
-          <div>
-            <p className='text-xs text-muted-foreground'>Alunos</p>
+          <div className='min-w-0'>
+            <p className='text-xs text-muted-foreground truncate'>Alunos</p>
             <p className='text-sm font-semibold text-card-foreground'>
               {school.studentCount}
             </p>
           </div>
         </div>
 
-        <div className='flex items-center gap-2'>
-          <div className='w-8 h-8 rounded-sm bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center'>
-            <BookOpen className='w-4 h-4 text-pink-600 dark:text-pink-400' />
+        <div className='flex items-center gap-2 p-2 rounded-lg border border-border/70 bg-muted/20'>
+          <div className='size-8 rounded-md bg-muted flex items-center justify-center shrink-0'>
+            <BookOpen className='size-4 text-foreground' />
           </div>
-          <div>
-            <p className='text-xs text-muted-foreground'>Livros</p>
+          <div className='min-w-0'>
+            <p className='text-xs text-muted-foreground truncate'>Livros</p>
             <p className='text-sm font-semibold text-card-foreground'>
               {school.bookCount}
             </p>
@@ -111,9 +105,9 @@ export function SchoolCard({ school, onClick }: SchoolCardProps) {
 
       {/* Actions */}
       <div className='flex gap-2'>
-        <Button variant='outline' className='flex-1' onClick={onClick}>
-          Visualizar
-          <ArrowRight className='w-4 h-4 group-hover:translate-x-1 transition-transform' />
+        <Button variant='outline' className='flex-1 justify-between' onClick={onClick}>
+          <span>Visualizar</span>
+          <ArrowRight className='size-4 group-hover:translate-x-1 transition-transform' />
         </Button>
       </div>
     </motion.div>

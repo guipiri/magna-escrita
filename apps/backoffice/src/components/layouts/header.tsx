@@ -1,4 +1,5 @@
 import { LogOut, Menu } from 'lucide-react';
+import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import {
   Select,
@@ -38,13 +39,16 @@ export function Header({
     <header className='h-16 border-b border-border bg-background flex items-center justify-between px-6'>
       <div className='flex items-center gap-4'>
         {onMenuToggle && (
-          <button
+          <Button
+            variant='ghost'
+            size='icon'
             onClick={onMenuToggle}
-            className='md:hidden p-2 -ml-2 hover:bg-accent rounded-md transition-colors duration-200'
+            className='md:hidden -ml-2 text-muted-foreground'
+            aria-label='Menu'
             title='Menu'
           >
-            <Menu className='w-5 h-5 text-muted-foreground' />
-          </button>
+            <Menu className='size-5' />
+          </Button>
         )}
         {selectedUnit && (
           <div className='text-foreground hidden sm:block'>
@@ -85,15 +89,16 @@ export function Header({
           </Avatar>
         </div>
 
-        <button
-          className='p-2 hover:bg-accent rounded-md transition-colors duration-200'
+        <Button
+          variant='ghost'
+          size='icon'
+          onClick={() => logout()}
+          className='text-muted-foreground hover:text-foreground'
+          aria-label='Sair'
           title='Sair'
         >
-          <LogOut
-            onClick={() => logout()}
-            className='w-5 h-5 text-muted-foreground'
-          />
-        </button>
+          <LogOut className='size-5' />
+        </Button>
       </div>
     </header>
   );

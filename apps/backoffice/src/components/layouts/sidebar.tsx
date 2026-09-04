@@ -134,8 +134,8 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
             className='overflow-hidden'
           >
             <div className='flex items-center gap-2'>
-              <div className='w-9 h-9 rounded-lg bg-linear-to-br from-violet-500 via-purple-500 to-fuchsia-500 flex items-center justify-center shadow-sm'>
-                <BookOpen className='w-5 h-5 text-white' />
+              <div className='size-9 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center shadow-xs'>
+                <BookOpen className='size-5' />
               </div>
               {isLogoVisible && (
                 <span className='font-semibold text-sidebar-foreground whitespace-nowrap'>
@@ -183,16 +183,18 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
         {/* Toggle Button */}
         <button
           onClick={() => setCollapsed(!collapsed)}
+          aria-label={collapsed ? 'Expandir barra lateral' : 'Recolher barra lateral'}
+          title={collapsed ? 'Expandir barra lateral' : 'Recolher barra lateral'}
           className={cn(
             'absolute -right-3 top-20 w-6 h-6 rounded-full bg-background border border-border',
-            'hidden md:flex items-center justify-center shadow-sm',
+            'hidden md:flex items-center justify-center shadow-xs',
             'hover:bg-accent transition-colors duration-200',
           )}
         >
           {collapsed ? (
-            <ChevronRight className='w-3.5 h-3.5' />
+            <ChevronRight className='size-3.5 text-foreground' />
           ) : (
-            <ChevronLeft className='w-3.5 h-3.5' />
+            <ChevronLeft className='size-3.5 text-foreground' />
           )}
         </button>
       </motion.aside>

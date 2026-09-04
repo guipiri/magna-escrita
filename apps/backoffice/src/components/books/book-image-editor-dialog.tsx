@@ -223,7 +223,7 @@ export function BookImageEditorDialog({
             </DialogHeader>
 
             <div className='flex items-center justify-center px-2 pb-6'>
-              <div className='relative h-[calc(100vh-38rem)] w-full overflow-hidden rounded-3xl border border-white/10 bg-black shadow-2xl'>
+              <div className='relative h-[calc(100vh-38rem)] w-full overflow-hidden rounded-xl border border-white/10 bg-black shadow-2xl'>
                 {effectiveSourceUrl ? (
                   <Cropper
                     key={effectiveSourceUrl}
@@ -244,7 +244,7 @@ export function BookImageEditorDialog({
                     }
                     mediaProps={{ crossOrigin: 'anonymous' }}
                     classes={{
-                      containerClassName: 'rounded-3xl',
+                      containerClassName: 'rounded-xl',
                       cropAreaClassName:
                         'border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]',
                     }}
@@ -332,7 +332,7 @@ export function BookImageEditorDialog({
               </div>
 
               {error ? (
-                <p className='rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600'>
+                <p className='rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive'>
                   {error}
                 </p>
               ) : null}

@@ -5,7 +5,9 @@ import { createSchool } from '../../services/schools-service';
 import { getErrorMessage } from '../../services/error-messages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { Plus, X, Building2 } from 'lucide-react';
+import { Input } from '../ui/input';
+import { Alert, AlertDescription } from '../ui/alert';
+import { AlertCircle, Plus, Trash2, Building2 } from 'lucide-react';
 
 interface UnitInput {
   tempId: string;
@@ -78,22 +80,24 @@ export function CreateSchoolDialog({
         </DialogHeader>
         <div className='max-w-lg'>
           {createSchoolMutation.isError && (
-            <div className='mb-6 p-4 bg-red-100 text-red-700 rounded'>
-              {getErrorMessage(createSchoolMutation.error) ||
-                'Erro ao criar unidade escolar. Tente novamente.'}
-            </div>
+            <Alert variant='destructive' className='mb-6'>
+              <AlertCircle className='size-4' />
+              <AlertDescription>
+                {getErrorMessage(createSchoolMutation.error) ||
+                  'Erro ao criar unidade escolar. Tente novamente.'}
+              </AlertDescription>
+            </Alert>
           )}
 
           <form onSubmit={handleSubmit} className='space-y-4'>
             <div>
-              <label className='block text-sm font-medium mb-1'>
+              <label className='block text-sm font-medium mb-1 text-foreground'>
                 Nome da Escola
               </label>
-              <input
+              <Input
                 type='text'
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className='w-full border border-gray-300 rounded px-3 py-2'
                 placeholder='Ex: EMEF Professor João Silva'
                 required
               />
@@ -101,50 +105,55 @@ export function CreateSchoolDialog({
 
             <div>
               <div className='flex items-center justify-between mb-1'>
-                <label className='block text-sm font-medium'>Unidades</label>
+                <label className='block text-sm font-medium text-foreground'>Unidades</label>
                 <Button
                   type='button'
                   variant='ghost'
                   size='sm'
                   onClick={addUnit}
-                  className='text-blue-600'
+                  className='text-primary hover:text-primary'
                 >
-                  <Plus className='w-4 h-4 mr-1' />
+                  <Plus className='size-4 mr-1' />
                   Adicionar
                 </Button>
               </div>
               <div className='space-y-2 max-h-60 overflow-y-auto'>
                 {units.map((unit) => (
                   <div key={unit.tempId} className='flex gap-2 items-center'>
-                    <input
+                    <Input
                       type='text'
                       value={unit.name}
                       onChange={(e) =>
                         updateUnitName(unit.tempId, e.target.value)
                       }
-                      className='flex-1 border border-gray-300 rounded px-3 py-2 text-sm'
                       placeholder='Nome da unidade'
                       required
+                      className='flex-1 text-sm'
                     />
-                    <button
+                    <Button
                       type='button'
+                      variant='ghost'
+                      size='icon'
                       onClick={() => removeUnit(unit.tempId)}
-                      className='p-1 text-red-500 hover:text-red-700'
+                      className='text-destructive hover:text-destructive hover:bg-destructive/10'
+                      aria-label='Remover unidade'
                     >
-                      <X className='w-4 h-4' />
-                    </button>
+                      <Trash2 className='size-4' />
+                    </Button>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className='mt-6'>
+            <div className='flex justify-end gap-2 mt-6'>
+              <Button variant='outline' type='button' onClick={onClose}>
+                Cancelar
+              </Button>
               <Button
-                variant='outline'
                 type='submit'
                 disabled={createSchoolMutation.isPending}
               >
-                <Building2 className='w-4 h-4' />
+                <Building2 className='size-4 mr-2' />
                 {createSchoolMutation.isPending
                   ? 'Criando...'
                   : 'Criar Unidade'}

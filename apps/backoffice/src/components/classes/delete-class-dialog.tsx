@@ -51,12 +51,6 @@ export function DeleteClassDialog({
             ação vai excluir também os livros da turma e não pode ser desfeita.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        {/* {deleteMutation.isError && (
-          <div className='p-3 bg-red-100 text-red-700 rounded text-sm'>
-            {getErrorMessage(deleteMutation.error) ||
-              'Erro ao excluir turma. Tente novamente.'}
-          </div>
-        )} */}
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onCancel}>Cancelar</AlertDialogCancel>
           <AlertDialogAction

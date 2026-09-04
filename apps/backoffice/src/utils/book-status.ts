@@ -5,7 +5,14 @@ import type { ElementType } from 'react';
 
 export interface BookStatusConfig {
   label: string;
-  variant: 'default' | 'secondary' | 'outline' | 'destructive';
+  variant:
+    | 'default'
+    | 'secondary'
+    | 'outline'
+    | 'destructive'
+    | 'success'
+    | 'warning'
+    | 'info';
   icon: ElementType;
   bgColor?: string;
 }
@@ -15,30 +22,26 @@ export function getBookStatusConfig(status: BookStatus): BookStatusConfig {
     case BookStatusEnum.READY_FOR_SALE:
       return {
         label: 'Pronto para venda',
-        variant: 'default',
+        variant: 'success',
         icon: Sparkles,
-        bgColor: 'bg-emerald-600',
       };
     case BookStatusEnum.REVISED_BY_MAGNA:
       return {
         label: 'Revisado pela Magna',
-        variant: 'default',
+        variant: 'info',
         icon: CheckCircle2,
-        bgColor: 'bg-emerald-600',
       };
     case BookStatusEnum.REVISED_BY_SCHOOL:
       return {
         label: 'Revisado pela escola',
-        variant: 'default',
+        variant: 'warning',
         icon: Clock3,
-        bgColor: 'bg-amber-600',
       };
     case BookStatusEnum.ARCHIVED:
       return {
         label: 'Arquivado',
-        variant: 'outline',
+        variant: 'secondary',
         icon: Eye,
-        bgColor: 'bg-red-100',
       };
     case BookStatusEnum.DRAFT:
     default:
@@ -46,7 +49,6 @@ export function getBookStatusConfig(status: BookStatus): BookStatusConfig {
         label: 'Rascunho',
         variant: 'outline',
         icon: CircleDashed,
-        bgColor: 'bg-gray-100',
       };
   }
 }

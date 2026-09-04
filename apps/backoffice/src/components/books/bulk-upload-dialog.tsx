@@ -153,8 +153,8 @@ export function BulkUploadDialog({ isOpen, onClose }: BulkUploadDialogProps) {
       );
     }
     return (
-      <span className='flex items-center gap-1 text-xs font-medium text-blue-600'>
-        <CheckCircle2 className='size-3.5 shrink-0 text-emerald-600' />
+      <span className='flex items-center gap-1 text-xs font-medium text-primary'>
+        <CheckCircle2 className='size-3.5 shrink-0 text-success' />
         Enviado para a fila
       </span>
     );
@@ -194,7 +194,7 @@ export function BulkUploadDialog({ isOpen, onClose }: BulkUploadDialogProps) {
           >
             <div
               className={cn(
-                'flex size-12 items-center justify-center rounded-xl transition-colors duration-200',
+                'flex size-10 items-center justify-center rounded-lg transition-colors duration-200',
                 isDragging
                   ? 'bg-primary/10 text-primary'
                   : 'bg-muted text-muted-foreground',
@@ -261,10 +261,10 @@ export function BulkUploadDialog({ isOpen, onClose }: BulkUploadDialogProps) {
         {isDone && result && (
           <div
             className={cn(
-              'flex items-center gap-3 rounded-xl border p-4',
+              'flex items-center gap-3 rounded-lg border p-4',
               result.failed === 0
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                : 'border-amber-200 bg-amber-50 text-amber-700',
+                ? 'border-success/30 bg-success/15 text-success-foreground'
+                : 'border-warning/30 bg-warning/15 text-warning-foreground',
             )}
           >
             {result.failed === 0 ? (
@@ -291,7 +291,7 @@ export function BulkUploadDialog({ isOpen, onClose }: BulkUploadDialogProps) {
         )}
 
         {isDone && mutation.isError && (
-          <div className='flex items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-destructive'>
+          <div className='flex items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-destructive'>
             <AlertCircle className='size-5 shrink-0' />
             <div>
               <p className='text-sm font-semibold'>
