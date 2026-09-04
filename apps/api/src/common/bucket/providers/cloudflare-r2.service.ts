@@ -1,10 +1,15 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ErrorKeys } from '@repo/shared';
 import { HttpExceptionConstructor } from '../../filters/http-exception.filter.js';
 import { BucketService } from '../bucket.contract.js';
@@ -97,6 +102,38 @@ export class CloudflareR2Service implements BucketService {
     } catch (err) {
       this.logger.warn(`Cloudflare R2 get file failed for key ${key}:`, err);
       return null;
+    }
+  }
+
+  /**
+   * Generates a presigned URL for direct client PUT upload to Cloudflare R2.
+   */
+  async getPresignedUploadUrl(params: {
+    key: string;
+    contentType: string;
+    expiresInSeconds?: number;
+  }): Promise<string> {
+    const { key, contentType, expiresInSeconds = 3600 } = params;
+
+    try {
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        ContentType: contentType,
+      });
+
+      return await getSignedUrl(this.s3Client, command, {
+        expiresIn: expiresInSeconds,
+      });
+    } catch (err) {
+      this.logger.error(
+        `Failed to generate presigned upload URL for key ${key}:`,
+        err,
+      );
+      throw new InternalServerErrorException({
+        key: ErrorKeys.INTERNAL_CLOUDFLARE_UPLOAD_FAILED,
+        message: 'Failed to generate presigned upload URL for Cloudflare R2',
+      } satisfies HttpExceptionConstructor);
     }
   }
 }

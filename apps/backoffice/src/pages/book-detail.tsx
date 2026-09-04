@@ -128,7 +128,8 @@ function PageCard({ page, book, isActive }: PageCardProps) {
   const [isDragging, setIsDragging] = useState(false);
   const { user } = useAuth();
   const isReadOnlyForSchool =
-    user?.role === UserRole.SCHOOL && book.status === BookStatusEnum.READY_FOR_SALE;
+    user?.role === UserRole.SCHOOL &&
+    book.status === BookStatusEnum.READY_FOR_SALE;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -145,7 +146,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
       enqueueSnackbar('Status da página atualizado!', { variant: 'success' });
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
     },
-    onError: (err: any) => {
+    onError: (err: { response?: { data?: { message?: string } } }) => {
       const msg =
         err?.response?.data?.message ||
         'Erro ao atualizar status. Tente novamente.';
@@ -342,11 +343,14 @@ function PageCard({ page, book, isActive }: PageCardProps) {
               <Checkbox
                 id={`revise-page-${page.number}`}
                 checked={
-                  page.status === PageStatusEnum.REVISED_BY_SCHOOL || page.status === PageStatusEnum.READY
+                  page.status === PageStatusEnum.REVISED_BY_SCHOOL ||
+                  page.status === PageStatusEnum.READY
                 }
                 onCheckedChange={(checked) => {
                   statusMutation.mutate(
-                    checked ? PageStatusEnum.REVISED_BY_SCHOOL : PageStatusEnum.IN_PROGRESS,
+                    checked
+                      ? PageStatusEnum.REVISED_BY_SCHOOL
+                      : PageStatusEnum.IN_PROGRESS,
                   );
                 }}
                 disabled={statusMutation.isPending || isReadOnlyForSchool}
@@ -357,7 +361,8 @@ function PageCard({ page, book, isActive }: PageCardProps) {
           {user?.role === 'ADMIN' &&
             (() => {
               const isRevisedBySchool =
-                page.status === PageStatusEnum.REVISED_BY_SCHOOL || page.status === PageStatusEnum.READY;
+                page.status === PageStatusEnum.REVISED_BY_SCHOOL ||
+                page.status === PageStatusEnum.READY;
               return (
                 <div className='flex items-center gap-4 rounded-lg bg-muted/30 px-3 py-1.5 border border-border/50'>
                   <div className='flex items-center gap-2'>
@@ -373,7 +378,9 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                       disabled={statusMutation.isPending}
                       onCheckedChange={(checked) => {
                         statusMutation.mutate(
-                          checked ? PageStatusEnum.REVISED_BY_SCHOOL : PageStatusEnum.IN_PROGRESS,
+                          checked
+                            ? PageStatusEnum.REVISED_BY_SCHOOL
+                            : PageStatusEnum.IN_PROGRESS,
                         );
                       }}
                     />
@@ -397,7 +404,9 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                       disabled={!isRevisedBySchool || statusMutation.isPending}
                       onCheckedChange={(checked) => {
                         statusMutation.mutate(
-                          checked ? PageStatusEnum.READY : PageStatusEnum.REVISED_BY_SCHOOL,
+                          checked
+                            ? PageStatusEnum.READY
+                            : PageStatusEnum.REVISED_BY_SCHOOL,
                         );
                       }}
                     />
@@ -1156,19 +1165,20 @@ export function BookDetailPage() {
   return (
     <main className='flex-1 overflow-auto'>
       <div className='mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8'>
-        {user?.role === 'SCHOOL' && book.status === BookStatusEnum.READY_FOR_SALE && (
-          <Alert
-            variant='destructive'
-            className='mb-6 bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-500 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-500'
-          >
-            <AlertCircle className='size-4' />
-            <AlertTitle>Modificações Desabilitadas</AlertTitle>
-            <AlertDescription>
-              Este livro está finalizado (status Pronto). Usuários com perfil da
-              escola não podem fazer modificações em livros finalizados.
-            </AlertDescription>
-          </Alert>
-        )}
+        {user?.role === 'SCHOOL' &&
+          book.status === BookStatusEnum.READY_FOR_SALE && (
+            <Alert
+              variant='destructive'
+              className='mb-6 bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-500 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-500'
+            >
+              <AlertCircle className='size-4' />
+              <AlertTitle>Modificações Desabilitadas</AlertTitle>
+              <AlertDescription>
+                Este livro está finalizado (status Pronto). Usuários com perfil
+                da escola não podem fazer modificações em livros finalizados.
+              </AlertDescription>
+            </Alert>
+          )}
 
         {/* ── Header ── */}
         <motion.section
@@ -1193,7 +1203,10 @@ export function BookDetailPage() {
                   <h1 className='text-2xl font-semibold tracking-tight text-foreground sm:text-3xl'>
                     {book.title ?? 'Sem título'}
                   </h1>
-                  <Badge variant={statusCfg.variant} className={statusCfg.bgColor}>
+                  <Badge
+                    variant={statusCfg.variant}
+                    className={statusCfg.bgColor}
+                  >
                     <StatusIcon className='size-3' />
                     {statusCfg.label}
                   </Badge>

@@ -84,15 +84,55 @@ export interface GenerateBookPdfResponse {
   message: string;
 }
 
+export enum ScanPageStatusEnum {
+  SUCCESS = 'SUCCESS',
+  ERROR = 'ERROR',
+  ENQUEUED = 'ENQUEUED',
+}
+
+export type ScanPageStatus = keyof typeof ScanPageStatusEnum;
+
 export interface ScanPageResult {
   filename: string;
   studentId: string;
   pageNumber: number;
-  status: 'success' | 'error' | 'enqueued';
+  status: ScanPageStatusEnum;
   error?: string;
 }
 
+export interface ScanFileInput {
+  filename: string;
+  mimetype: string;
+}
+
+export interface CreateScanPresignedUrlsRequest {
+  files: ScanFileInput[];
+}
+
+export interface ScanPresignedUrlItem {
+  filename: string;
+  storageKey: string;
+  uploadUrl: string;
+}
+
+export interface CreateScanPresignedUrlsResponse {
+  batchId: string;
+  uploads: ScanPresignedUrlItem[];
+}
+
+export interface EnqueueScanItemInput {
+  filename: string;
+  storageKey: string;
+  mimetype: string;
+}
+
+export interface EnqueueScanBatchRequest {
+  batchId: string;
+  items: EnqueueScanItemInput[];
+}
+
 export interface ScanBooksResult {
+  batchId?: string;
   received: number;
   enqueued: number;
   failed: number;

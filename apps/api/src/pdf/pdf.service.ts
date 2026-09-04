@@ -46,7 +46,6 @@ const require = createRequire(import.meta.url);
 const fontkit = require('@pdf-lib/fontkit');
 const execFileAsync = promisify(execFile);
 
-
 const ELIGIBLE_PAGE_TYPES: PageType[] = [
   PageType.DRAW,
   PageType.DRAW_TEXT,
@@ -1831,10 +1830,7 @@ export class PdfService {
         unitId: book.student.class.unitId,
         schoolYear: book.student.class.schoolYear,
         status: {
-          in: [
-            AuthographsEventStatus.ONGOING,
-            AuthographsEventStatus.PLANNED,
-          ],
+          in: [AuthographsEventStatus.ONGOING, AuthographsEventStatus.PLANNED],
         },
       },
       select: { id: true },
@@ -1925,10 +1921,7 @@ export class PdfService {
         unitId: book.student.class.unitId,
         schoolYear: book.student.class.schoolYear,
         status: {
-          in: [
-            AuthographsEventStatus.ONGOING,
-            AuthographsEventStatus.PLANNED,
-          ],
+          in: [AuthographsEventStatus.ONGOING, AuthographsEventStatus.PLANNED],
         },
       },
       select: { id: true },
@@ -1995,4 +1988,3 @@ export class PdfService {
     return results;
   }
 }
-

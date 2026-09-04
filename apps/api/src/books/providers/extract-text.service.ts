@@ -64,9 +64,7 @@ export class GeminiTextExtractor implements ExtractTextService {
 
 @Injectable()
 export class GoogleCloudVisionTextExtractor implements ExtractTextService {
-  private readonly logger = new Logger(
-    GoogleCloudVisionTextExtractor.name,
-  );
+  private readonly logger = new Logger(GoogleCloudVisionTextExtractor.name);
   private readonly client: ImageAnnotatorClient;
   private readonly headerCropRatio = 0.28;
   private readonly rotationCandidates = [0, 90, 180, 270];

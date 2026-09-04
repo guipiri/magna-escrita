@@ -58,7 +58,6 @@ export class BooksController {
     return this.booksService.generateBookPagesImages(id, user);
   }
 
-
   @Patch('backoffice/:id/pages/:pageNumber')
   @UseGuards(AuthGuard, BackofficeGuard)
   updatePage(

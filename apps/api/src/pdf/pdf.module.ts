@@ -8,9 +8,7 @@ import { BucketModule } from '../common/bucket/bucket.module.js';
 @Module({
   imports: [DbModule, AuthModule, BucketModule],
   controllers: [PdfController],
-  providers: [
-    PdfService,
-  ],
+  providers: [PdfService],
   exports: [PdfService],
 })
 export class PdfModule {}

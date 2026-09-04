@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Patch, Param, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '../auth/guards/auth.guard.js';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { GetPricesResponse, CreatePriceResponse } from '@repo/shared';

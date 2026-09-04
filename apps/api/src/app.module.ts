@@ -32,15 +32,7 @@ import { MailModule } from './common/mail/mail.module.js';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        connection: {
-          url: configService.getOrThrow<string>('REDIS_URL'),
-          connectTimeout: 10000,
-          keepAlive: 10000,
-          pingInterval: 10000,
-          family: 4,
-          maxRetries: 5,
-          maxRetriesPerRequest: null,
-        } as any,
+        connection: { url: configService.getOrThrow<string>('REDIS_URL') },
       }),
       inject: [ConfigService],
     }),

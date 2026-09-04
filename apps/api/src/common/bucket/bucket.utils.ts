@@ -102,3 +102,15 @@ export function getBookPageImageBucketKey({
   return `units/${unitId}/events/${eventId}/students/${studentId}/books/${bookId}/pages/${pageNumber}.${ext}`;
 }
 
+export function getRawScanBucketKey({
+  batchId,
+  fileId,
+  filename,
+}: {
+  batchId: string;
+  fileId: string;
+  filename: string;
+}) {
+  const sanitizedName = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return `raw-scans/${batchId}/${fileId}-${sanitizedName}`;
+}

@@ -8,6 +8,7 @@ import { GeminiDrawExtractor } from './providers/extract-draw.service.js';
 import { GeminiTextExtractor } from './providers/extract-text.service.js';
 import { JsqrQrCodeReader } from './providers/read-qr-code.service.js';
 import { BucketModule } from '../common/bucket/bucket.module.js';
+import { BOOK_SCAN_QUEUE_NAME } from './books-scan.queue.js';
 
 @Module({
   imports: [
@@ -15,7 +16,15 @@ import { BucketModule } from '../common/bucket/bucket.module.js';
     AuthModule,
     BucketModule,
     BullModule.registerQueue({
-      name: 'books-scan',
+      name: BOOK_SCAN_QUEUE_NAME,
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+        removeOnComplete: true,
+      },
     }),
   ],
   controllers: [BooksScanController],

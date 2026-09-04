@@ -8,8 +8,6 @@ import { BucketModule } from '../common/bucket/bucket.module.js';
 @Module({
   imports: [DbModule, AuthModule, BucketModule],
   controllers: [BookTemplatesController],
-  providers: [
-    BookTemplatesService,
-  ],
+  providers: [BookTemplatesService],
 })
 export class BookTemplatesModule {}

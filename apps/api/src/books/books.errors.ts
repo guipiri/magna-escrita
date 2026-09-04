@@ -25,7 +25,6 @@ export class ConflictBookAlreadyExistsException extends ConflictException {
   }
 }
 
-
 export class BadRequestDrawSquareNotFoundException extends BadRequestException {
   constructor() {
     super({
@@ -43,7 +42,6 @@ export class BadRequestImageFileRequiredException extends BadRequestException {
     } satisfies HttpExceptionConstructor);
   }
 }
-
 
 export class ForbiddenBookReadyException extends ForbiddenException {
   constructor() {
@@ -77,7 +75,8 @@ export class BadRequestPageNotRevisedBySchoolException extends BadRequestExcepti
   constructor() {
     super({
       key: ErrorKeys.BAD_REQUEST_PAGE_NOT_REVISED_BY_SCHOOL,
-      message: 'Alteração para Pronto permitida apenas se já revisado pela escola',
+      message:
+        'Alteração para Pronto permitida apenas se já revisado pela escola',
     } satisfies HttpExceptionConstructor);
   }
 }

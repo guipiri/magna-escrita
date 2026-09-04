@@ -88,3 +88,12 @@ export class BadRequestPageAlreadyProcessedException extends BadRequestException
     } satisfies HttpExceptionConstructor);
   }
 }
+
+export class InternalFileNotFoundException extends InternalServerErrorException {
+  constructor(detail?: string) {
+    super({
+      key: 'INTERNAL_FILE_NOT_FOUND',
+      message: `Arquivo não encontrado${detail ? ': ' + detail : '.'}`,
+    });
+  }
+}

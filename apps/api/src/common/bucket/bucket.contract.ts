@@ -5,4 +5,9 @@ export interface BucketService {
     contentType: string;
   }): Promise<string>;
   get(key: string): Promise<Buffer | null>;
+  getPresignedUploadUrl(params: {
+    key: string;
+    contentType: string;
+    expiresInSeconds?: number;
+  }): Promise<string>;
 }

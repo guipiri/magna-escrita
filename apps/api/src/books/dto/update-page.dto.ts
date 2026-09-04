@@ -1,5 +1,9 @@
 import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { PageStatusEnum, type PageStatus, type UpdatePageRequest } from '@repo/shared';
+import {
+  PageStatusEnum,
+  type PageStatus,
+  type UpdatePageRequest,
+} from '@repo/shared';
 
 export class UpdatePageDto implements UpdatePageRequest {
   @IsString()

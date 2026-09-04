@@ -36,9 +36,7 @@ export class BooksPdfProcessor extends WorkerHost {
 
   async process(job: Job<GeneratePdfJobPayload>): Promise<void> {
     const { bookId, user, activeEventId, unitId, studentId } = job.data;
-    this.logger.log(
-      `Processing generate-pdf job ${job.id} for book ${bookId}`,
-    );
+    this.logger.log(`Processing generate-pdf job ${job.id} for book ${bookId}`);
 
     const book = await this.prisma.book.findUnique({
       where: { id: bookId },

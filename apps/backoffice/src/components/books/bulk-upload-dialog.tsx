@@ -19,7 +19,10 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { cn } from '../ui/utils';
-import { scanBooks } from '../../services/books-service';
+import {
+  scanBooks,
+  UploadProgressCallback,
+} from '../../services/books-service';
 import type { ScanBooksResult } from '@repo/shared';
 
 interface BulkUploadDialogProps {
@@ -42,11 +45,14 @@ function formatBytes(bytes: number): string {
 export function BulkUploadDialog({ isOpen, onClose }: BulkUploadDialogProps) {
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] =
+    useState<UploadProgressCallback | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (filesToUpload: File[]) => scanBooks(filesToUpload),
+    mutationFn: (filesToUpload: File[]) =>
+      scanBooks(filesToUpload, (p) => setUploadProgress(p)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['books'] });
     },
@@ -120,6 +126,7 @@ export function BulkUploadDialog({ isOpen, onClose }: BulkUploadDialogProps) {
   const handleClose = useCallback(() => {
     if (isUploading) return;
     clearAll();
+    setUploadProgress(null);
     mutation.reset();
     onClose();
   }, [isUploading, clearAll, mutation, onClose]);
@@ -130,6 +137,7 @@ export function BulkUploadDialog({ isOpen, onClose }: BulkUploadDialogProps) {
 
   const handleReset = useCallback(() => {
     clearAll();
+    setUploadProgress(null);
     mutation.reset();
   }, [clearAll, mutation]);
 
@@ -198,17 +206,44 @@ export function BulkUploadDialog({ isOpen, onClose }: BulkUploadDialogProps) {
                 <UploadCloud className='size-6' />
               )}
             </div>
-            <div>
+            <div className='w-full max-w-xs space-y-2 text-center'>
               <p className='text-sm font-medium text-foreground'>
                 {isUploading
-                  ? 'Enviando imagens...'
+                  ? uploadProgress && uploadProgress.total > 0
+                    ? `Enviando imagens... ${uploadProgress.completed} de ${uploadProgress.total}`
+                    : 'Preparando envio...'
                   : isDragging
                     ? 'Solte os arquivos aqui'
                     : 'Arraste imagens ou clique para selecionar'}
               </p>
-              <p className='mt-1 text-xs text-muted-foreground'>
-                PNG, JPG, WEBP — sem limite de quantidade
-              </p>
+              {isUploading && uploadProgress && uploadProgress.total > 0 && (
+                <div className='space-y-1'>
+                  <div className='h-2 w-full overflow-hidden rounded-full bg-muted'>
+                    <div
+                      className='h-full bg-primary transition-all duration-200 ease-out'
+                      style={{
+                        width: `${Math.round((uploadProgress.completed / uploadProgress.total) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                  <p className='text-xs text-muted-foreground'>
+                    {Math.round(
+                      (uploadProgress.completed / uploadProgress.total) * 100,
+                    )}
+                    % concluído
+                    {uploadProgress.currentFilename && (
+                      <span className='mt-0.5 block truncate text-[11px] text-muted-foreground/80'>
+                        {uploadProgress.currentFilename}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
+              {!isUploading && (
+                <p className='mt-1 text-xs text-muted-foreground'>
+                  PNG, JPG, WEBP — sem limite de quantidade
+                </p>
+              )}
             </div>
             <input
               ref={inputRef}
@@ -248,9 +283,7 @@ export function BulkUploadDialog({ isOpen, onClose }: BulkUploadDialogProps) {
                 {result.failed === 0
                   ? 'O processamento das imagens será realizado em segundo plano.'
                   : `${result.failed} ${
-                      result.failed === 1
-                        ? 'imagem falhou'
-                        : 'imagens falharam'
+                      result.failed === 1 ? 'imagem falhou' : 'imagens falharam'
                     } ao entrar na fila.`}
               </p>
             </div>

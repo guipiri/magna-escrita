@@ -19,7 +19,12 @@ import type {
   UpdatePageRequest,
 } from '@repo/shared';
 import { UserRole, type AuthUser } from '@repo/shared';
-import { AuthographsEventStatus, BookStatus, PageStatus, PageType } from '@prisma/client';
+import {
+  AuthographsEventStatus,
+  BookStatus,
+  PageStatus,
+  PageType,
+} from '@prisma/client';
 import { PdfService } from '../pdf/pdf.service.js';
 import {
   getBookCoverBucketKey,
@@ -478,10 +483,7 @@ export class BooksService {
         unitId: student.class.unitId,
         schoolYear: student.class.schoolYear,
         status: {
-          in: [
-            AuthographsEventStatus.ONGOING,
-            AuthographsEventStatus.PLANNED,
-          ],
+          in: [AuthographsEventStatus.ONGOING, AuthographsEventStatus.PLANNED],
         },
       },
       select: { id: true },
@@ -746,10 +748,7 @@ export class BooksService {
         unitId: bookDetail.student.class.unitId,
         schoolYear: bookDetail.student.class.schoolYear,
         status: {
-          in: [
-            AuthographsEventStatus.ONGOING,
-            AuthographsEventStatus.PLANNED,
-          ],
+          in: [AuthographsEventStatus.ONGOING, AuthographsEventStatus.PLANNED],
         },
       },
       select: { id: true },
@@ -777,7 +776,6 @@ export class BooksService {
   ): Promise<Array<{ pageNumber: number; imageUrl: string }>> {
     return this.pdfService.generateBookPagesImages(bookId, user);
   }
-
 
   async createBook(
     body: CreateBookDto,
@@ -810,10 +808,7 @@ export class BooksService {
         unitId: student.class.unitId,
         schoolYear: student.class.schoolYear,
         status: {
-          in: [
-            AuthographsEventStatus.ONGOING,
-            AuthographsEventStatus.PLANNED,
-          ],
+          in: [AuthographsEventStatus.ONGOING, AuthographsEventStatus.PLANNED],
         },
       },
       select: { id: true },

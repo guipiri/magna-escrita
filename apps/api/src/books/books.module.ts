@@ -18,10 +18,7 @@ import { PdfModule } from '../pdf/pdf.module.js';
     }),
   ],
   controllers: [BooksController],
-  providers: [
-    BooksService,
-  ],
+  providers: [BooksService],
   exports: [BooksService],
 })
 export class BooksModule {}
-

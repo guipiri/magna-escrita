@@ -23,17 +23,13 @@ import {
   BadRequestBookTemplateMismatchException,
   BadRequestPageAlreadyProcessedException,
   BadRequestQrCodeNotReadableException,
+  InternalFileNotFoundException,
   NotFoundActiveEventForStudentException,
   NotFoundBookTemplatePageException,
   NotFoundStudentException,
 } from './books-scan.errors.js';
-
-interface ScanJobPayload {
-  batchId: string;
-  filename: string;
-  mimetype: string;
-  buffer: string; // base64 string
-}
+import { ScanPageStatusEnum } from '@repo/shared';
+import { ScanPageJobPayload } from './books-scan.queue.js';
 
 interface QrCodeData {
   studentId: string;
@@ -80,13 +76,18 @@ export class BooksScanProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<ScanJobPayload>): Promise<void> {
-    const { batchId, filename, mimetype, buffer } = job.data;
+  async process(job: Job<ScanPageJobPayload>): Promise<void> {
+    const { batchId, filename, mimetype, storageKey } = job.data;
     this.logger.log(
       `Processing scan image job ${job.id} for file ${filename} in batch ${batchId}`,
     );
 
-    const fileBuffer = Buffer.from(buffer, 'base64');
+    const fileBuffer = await this.bucketService.get(storageKey);
+    if (!fileBuffer)
+      throw new InternalFileNotFoundException(
+        `file in ${storageKey} not found in bucket`,
+      );
+
     const mockFile: Express.Multer.File = {
       buffer: fileBuffer,
       originalname: filename,
@@ -120,7 +121,7 @@ export class BooksScanProcessor extends WorkerHost {
         filename,
         studentId,
         pageNumber,
-        status: 'success',
+        status: ScanPageStatusEnum.SUCCESS,
       };
       this.logger.log(`Successfully processed file ${filename}`);
     } catch (err: unknown) {
@@ -130,7 +131,7 @@ export class BooksScanProcessor extends WorkerHost {
         filename,
         studentId,
         pageNumber,
-        status: 'error',
+        status: ScanPageStatusEnum.ERROR,
         error: message,
       };
       throw err;
@@ -257,7 +258,7 @@ export class BooksScanProcessor extends WorkerHost {
         authographsEventId: activeEvent.id,
       },
       update: {},
-      select: { id: true, pages: { select: { number: true, status: true } } },
+      select: { id: true },
     });
 
     await Promise.all(
@@ -288,21 +289,34 @@ export class BooksScanProcessor extends WorkerHost {
     );
     this.logger.debug(`Book upserted: ${book.id}`);
 
+    const currentPage = await this.prisma.page.findUnique({
+      where: {
+        bookId_number: {
+          bookId: book.id,
+          number: qrData.page,
+        },
+      },
+      select: {
+        status: true,
+      },
+    });
+
+    if (!currentPage) {
+      throw new NotFoundBookTemplatePageException();
+    }
+
     const allowedStatuses: PageStatus[] = [
       PageStatus.NOT_STARTED,
       PageStatus.IN_PROGRESS,
     ];
-    const currentPageStatus = book.pages.find(
-      (p) => p.number === qrData.page,
-    )?.status;
 
-    if (!currentPageStatus || !allowedStatuses.includes(currentPageStatus)) {
+    if (!allowedStatuses.includes(currentPage.status)) {
       this.logger.log(
-        `Page ${qrData.page} of book ${book.id} is on status ${currentPageStatus} and does not have an allowed status to be processed, skipping file upload`,
+        `Page ${qrData.page} of book ${book.id} is on status ${currentPage.status} and does not have an allowed status to be processed, skipping file upload`,
       );
       throw new BadRequestPageAlreadyProcessedException(
         qrData.page,
-        currentPageStatus,
+        currentPage.status,
       );
     }
 

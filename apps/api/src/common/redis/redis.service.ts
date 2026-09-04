@@ -9,13 +9,7 @@ export class RedisService implements OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {
     const redisUrl = this.configService.getOrThrow<string>('REDIS_URL');
 
-    this.client = new Redis(redisUrl, {
-      connectTimeout: 10000,
-      keepAlive: 10000,
-      pingInterval: 10000,
-      family: 4,
-      maxRetriesPerRequest: null,
-    } as any);
+    this.client = new Redis(redisUrl);
   }
 
   getClient(): Redis {
