@@ -1,24 +1,21 @@
 import { UserRole, type GetBooksListResponse } from '@repo/shared';
 import {
   BookOpen,
-  Eye,
   GraduationCap,
   School,
   MoreHorizontal,
   FileDown,
   Loader2,
   Sparkles,
+  Pencil,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   DataList,
-  DataListActions,
   DataListContent,
   DataListDescription,
-  DataListFooter,
   DataListHeader,
   DataListItem,
-  DataListMeta,
   DataListTitle,
 } from '../ui/data-list';
 import { Badge } from '../ui/badge';
@@ -133,6 +130,14 @@ export function BooksList({ books }: BooksListProps) {
                     align='end'
                     onCloseAutoFocus={(e) => e.preventDefault()}
                   >
+                    <DropdownMenuItem
+                      onClick={() =>
+                        navigate(`${routes.books.path}/${book.id}`)
+                      }
+                    >
+                      <Pencil className='h-4 w-4 mr-2' />
+                      Editar
+                    </DropdownMenuItem>
                     {book.interiorPdfUrl && (
                       <DropdownMenuItem
                         onClick={() =>
@@ -216,28 +221,6 @@ export function BooksList({ books }: BooksListProps) {
                 )}
               </div>
             </DataListContent>
-
-            <DataListFooter>
-              <DataListMeta>
-                <span className='inline-flex items-center rounded-full border border-border/70 px-3 py-1 text-xs text-muted-foreground'>
-                  {book.class.name} · {formatSchoolYear(book.class.schoolYear)}
-                </span>
-                <span className='inline-flex items-center rounded-full border border-border/70 px-3 py-1 text-xs text-muted-foreground'>
-                  {book.unit.schoolName}
-                </span>
-              </DataListMeta>
-
-              <DataListActions>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => navigate(`${routes.books.path}/${book.id}`)}
-                >
-                  <Eye className='h-4 w-4' />
-                  Ver livro
-                </Button>
-              </DataListActions>
-            </DataListFooter>
           </DataListItem>
         );
       })}

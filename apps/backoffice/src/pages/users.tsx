@@ -1,6 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { Search, Plus, Mail, ShieldAlert, Building2, User, Pencil, Trash2, Loader2, RotateCw } from 'lucide-react';
+import { motion } from 'motion/react';
+import {
+  Search,
+  Plus,
+  Mail,
+  ShieldAlert,
+  Building2,
+  User,
+  Pencil,
+  Trash2,
+  Loader2,
+  RotateCw,
+  MoreHorizontal,
+} from 'lucide-react';
 import { useSnackbar } from 'notistack';
 import { UserRole, UpdateUserRequest, UserListResponse } from '@repo/shared';
 import { getUsers, createUser, updateUser, deleteUser } from '../services/users-service';
@@ -10,6 +23,21 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Checkbox } from '../components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
+import {
+  DataList,
+  DataListContent,
+  DataListDescription,
+  DataListHeader,
+  DataListItem,
+  DataListTitle,
+} from '../components/ui/data-list';
 import {
   Dialog,
   DialogContent,
@@ -121,16 +149,6 @@ export function UsersPage() {
     });
   }, [users, search]);
 
-  // Compute metrics for header
-  const counts = useMemo(() => {
-    if (!users) return { total: 0, admins: 0, schools: 0 };
-    return {
-      total: users.length,
-      admins: users.filter((u) => u.role === UserRole.ADMIN).length,
-      schools: users.filter((u) => u.role === UserRole.SCHOOL).length,
-    };
-  }, [users]);
-
   // Handle Form Submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,166 +247,194 @@ export function UsersPage() {
 
   return (
     <main className='flex-1 overflow-auto'>
-      <div className='mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 space-y-6'>
-        
-        {/* Page Header and Counters */}
-        <section className='rounded-xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6'>
-          <div className='flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between'>
-            <div className='space-y-2'>
-              <h1 className='text-2xl font-semibold tracking-tight text-foreground sm:text-3xl'>
-                Usuários
-              </h1>
-              <p className='mt-2 text-sm text-muted-foreground'>
-                Gerencie permissões de acesso ao sistema do Backoffice.
+      <div className='mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8'>
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className='rounded-xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6'
+        >
+          <div className='flex w-full gap-3 flex-wrap'>
+            <div className='relative w-full flex-10'>
+              <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+              <Input
+                type='search'
+                placeholder='Buscar por nome, e-mail ou escola...'
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className='pl-9'
+              />
+            </div>
+
+            <Button
+              onClick={() => setCreateModalOpen(true)}
+              className='w-full md:w-auto'
+            >
+              <Plus className='h-4 w-4' />
+              Adicionar Usuário
+            </Button>
+          </div>
+        </motion.section>
+
+        <div className='mt-6'>
+          {filteredUsers.length === 0 ? (
+            <div className='rounded-xl border border-dashed border-border bg-card p-10 text-center'>
+              <div className='mx-auto mb-4 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary'>
+                <User className='size-5' />
+              </div>
+              <p className='text-sm font-medium text-foreground'>
+                Nenhum usuário encontrado
               </p>
-              <div className='flex flex-wrap gap-2 pt-2'>
-                <span className='inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary'>
-                  Total: {counts.total}
-                </span>
-                <span className='inline-flex items-center rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary'>
-                  ADMIN: {counts.admins}
-                </span>
-                <span className='inline-flex items-center rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success'>
-                  ESCOLA: {counts.schools}
-                </span>
-              </div>
+              <p className='mt-1 text-sm text-muted-foreground'>
+                Nenhum usuário corresponde ao filtro atual.
+              </p>
             </div>
-
-            <div className='flex w-full flex-col gap-3 sm:max-w-md'>
-              <div className='relative'>
-                <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
-                <Input
-                  type='search'
-                  placeholder='Buscar por nome, e-mail ou escola...'
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className='pl-9'
-                />
-              </div>
-
-              <Button
-                onClick={() => setCreateModalOpen(true)}
-                className='w-full sm:w-auto sm:self-end flex items-center justify-center gap-1.5'
-              >
-                <Plus className='w-4 h-4' />
-                Adicionar Usuário
-              </Button>
-            </div>
-          </div>
-        </section>
-
-        {/* Users List Table */}
-        <div className='rounded-xl border border-border bg-card shadow-sm overflow-hidden'>
-          <div className='overflow-x-auto'>
-            <table className='w-full text-left border-collapse'>
-              <thead>
-                <tr className='border-b border-border bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
-                  <th className='p-4 pl-6'>Usuário</th>
-                  <th className='p-4'>Perfil</th>
-                  <th className='p-4'>Unidades Associadas</th>
-                  <th className='p-4 text-center'>Cadastro</th>
-                  <th className='p-4 pr-6 text-right'>Ações</th>
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-border/60 text-sm'>
-                {filteredUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className='p-8 text-center text-muted-foreground'>
-                      Nenhum usuário correspondente encontrado.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredUsers.map((userItem) => (
-                    <tr key={userItem.id} className='hover:bg-muted/10 transition-colors'>
-                       <td className='p-4 pl-6'>
-                        <div className='flex items-center gap-3'>
-                          {userItem.picture ? (
-                            <img
-                              src={userItem.picture}
-                              alt={userItem.name || 'avatar'}
-                              className='w-9 h-9 rounded-full border border-border/80 object-cover'
-                            />
+          ) : (
+            <DataList>
+              {filteredUsers.map((userItem) => (
+                <DataListItem key={userItem.id}>
+                  <DataListHeader className='mb-4 flex items-start'>
+                    <div className='flex items-center gap-3 min-w-0'>
+                      {userItem.picture ? (
+                        <img
+                          src={userItem.picture}
+                          alt={userItem.name || 'avatar'}
+                          className='size-10 rounded-full border border-border object-cover shrink-0'
+                        />
+                      ) : (
+                        <div className='size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold uppercase shrink-0'>
+                          {userItem.name ? (
+                            userItem.name.substring(0, 2)
                           ) : (
-                            <div className='w-9 h-9 rounded-full bg-linear-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold shadow-xs uppercase'>
-                              {userItem.name ? userItem.name.substring(0, 2) : <User className='w-4 h-4' />}
-                            </div>
+                            <User className='size-4' />
                           )}
-                          <div className='flex flex-col'>
-                            <span className='font-medium text-foreground'>
-                              {userItem.name || 'Pendente (Primeiro Login)'}
-                            </span>
-                            <span className='text-xs text-muted-foreground flex items-center gap-1 mt-0.5'>
-                              <Mail className='w-3.5 h-3.5 shrink-0 opacity-60' />
-                              {userItem.email}
-                            </span>
-                          </div>
                         </div>
-                      </td>
-                      <td className='p-4 vertical-middle'>
-                        {userItem.role === UserRole.ADMIN ? (
-                          <Badge variant='default' className='bg-violet-500 hover:bg-violet-600 text-white rounded-full px-2.5 py-0.5 border-transparent gap-1'>
-                            <ShieldAlert className='w-3 h-3' />
-                            ADMIN
-                          </Badge>
-                        ) : (
-                          <Badge variant='secondary' className='bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-transparent rounded-full px-2.5 py-0.5 gap-1'>
-                            <Building2 className='w-3 h-3' />
-                            ESCOLA
-                          </Badge>
-                        )}
-                      </td>
-                      <td className='p-4 vertical-middle max-w-sm'>
-                        {userItem.role === UserRole.ADMIN ? (
-                          <span className='text-xs text-muted-foreground italic'>
-                            Todos os acessos (Administrador)
-                          </span>
-                        ) : userItem.units.length === 0 ? (
-                          <span className='text-xs text-destructive font-medium'>
-                            Nenhuma unidade associada (Alerta!)
-                          </span>
-                        ) : (
-                          <div className='flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1'>
-                            {userItem.units.map((unit) => (
-                              <span
-                                key={unit.id}
-                                className='inline-flex items-center text-[11px] px-2 py-0.5 rounded bg-muted border border-border/80 text-muted-foreground font-medium'
-                              >
-                                {unit.schoolName} - {unit.name || 'Unidade principal'}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                      <td className='p-4 text-center text-xs text-muted-foreground vertical-middle'>
-                        {new Date(userItem.createdAt).toLocaleDateString('pt-BR')}
-                      </td>
-                      <td className='p-4 pr-6 text-right vertical-middle whitespace-nowrap'>
-                        <div className='flex items-center justify-end gap-2'>
-                          <Button
-                            variant='ghost'
-                            size='icon'
-                            className='h-8 w-8 text-muted-foreground hover:text-foreground'
-                            onClick={() => handleOpenEdit(userItem)}
-                          >
-                            <Pencil className='w-4 h-4' />
-                          </Button>
-                          <Button
-                            variant='ghost'
-                            size='icon'
-                            className='h-8 w-8 text-muted-foreground hover:text-destructive'
-                            onClick={() => handleOpenDelete(userItem)}
-                          >
-                            <Trash2 className='w-4 h-4' />
-                          </Button>
+                      )}
+                      <div className='min-w-0'>
+                        <div className='flex flex-wrap items-center gap-2'>
+                          <DataListTitle className='truncate'>
+                            {userItem.name || 'Pendente (Primeiro Login)'}
+                          </DataListTitle>
+                          {userItem.role === UserRole.ADMIN ? (
+                            <Badge variant='default'>
+                              <ShieldAlert className='size-3 mr-1' />
+                              ADMIN
+                            </Badge>
+                          ) : (
+                            <Badge variant='secondary'>
+                              <Building2 className='size-3 mr-1' />
+                              ESCOLA
+                            </Badge>
+                          )}
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                        <DataListDescription className='mt-0.5 flex items-center gap-1.5'>
+                          <Mail className='size-3.5 opacity-70' />
+                          {userItem.email}
+                        </DataListDescription>
+                      </div>
+                    </div>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          className='h-8 w-8 p-0'
+                          variant='ghost'
+                          size='icon'
+                          aria-label='Ações do usuário'
+                        >
+                          <MoreHorizontal className='h-4 w-4' />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align='end'
+                        onCloseAutoFocus={(e) => e.preventDefault()}
+                      >
+                        <DropdownMenuItem
+                          onClick={() => handleOpenEdit(userItem)}
+                        >
+                          <Pencil className='mr-2 h-4 w-4' />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => handleOpenDelete(userItem)}
+                          className='text-destructive focus:text-destructive'
+                        >
+                          <Trash2 className='mr-2 h-4 w-4' />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </DataListHeader>
+
+                  <DataListContent className='sm:grid-cols-3'>
+                    <div className='rounded-lg border border-border/70 bg-muted/20 p-3'>
+                      <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
+                        <Mail className='h-4 w-4' />
+                        <span className='text-xs font-medium uppercase tracking-wide'>
+                          E-mail
+                        </span>
+                      </div>
+                      <p className='text-sm font-semibold text-foreground truncate'>
+                        {userItem.email}
+                      </p>
+                    </div>
+
+                    <div className='rounded-lg border border-border/70 bg-muted/20 p-3'>
+                      <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
+                        <ShieldAlert className='h-4 w-4' />
+                        <span className='text-xs font-medium uppercase tracking-wide'>
+                          Perfil / Acesso
+                        </span>
+                      </div>
+                      <p className='text-sm font-semibold text-foreground'>
+                        {userItem.role === UserRole.ADMIN
+                          ? 'Administrador'
+                          : 'Escola'}
+                      </p>
+                      <p className='text-xs text-muted-foreground'>
+                        Desde{' '}
+                        {new Date(userItem.createdAt).toLocaleDateString(
+                          'pt-BR',
+                        )}
+                      </p>
+                    </div>
+
+                    <div className='rounded-lg border border-border/70 bg-muted/20 p-3'>
+                      <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
+                        <Building2 className='h-4 w-4' />
+                        <span className='text-xs font-medium uppercase tracking-wide'>
+                          Unidades Vinculadas
+                        </span>
+                      </div>
+                      {userItem.role === UserRole.ADMIN ? (
+                        <p className='text-xs text-muted-foreground italic'>
+                          Acesso a todas as unidades
+                        </p>
+                      ) : userItem.units.length === 0 ? (
+                        <p className='text-xs text-destructive font-medium'>
+                          Nenhuma unidade associada
+                        </p>
+                      ) : (
+                        <div className='flex flex-wrap gap-1 mt-1 max-h-16 overflow-y-auto'>
+                          {userItem.units.map((unit) => (
+                            <span
+                              key={unit.id}
+                              className='inline-flex items-center rounded border border-border/40 bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground'
+                            >
+                              {unit.schoolName} -{' '}
+                              {unit.name || 'Unidade principal'}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </DataListContent>
+                </DataListItem>
+              ))}
+            </DataList>
+          )}
         </div>
+      </div>
 
         {/* Create / Edit User Dialog */}
         <Dialog open={createModalOpen} onOpenChange={handleCloseModal}>
@@ -611,7 +657,6 @@ export function UsersPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
     </main>
   );
 }

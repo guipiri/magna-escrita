@@ -22,13 +22,10 @@ import {
 } from '../ui/dropdown-menu';
 import {
   DataList,
-  DataListActions,
   DataListContent,
   DataListDescription,
-  DataListFooter,
   DataListHeader,
   DataListItem,
-  DataListMeta,
   DataListTitle,
 } from '../ui/data-list';
 import { ClassesEmptyState } from './empty-state';
@@ -104,22 +101,25 @@ export function ClassesList({
 
         return (
           <DataListItem key={classItem.id}>
-            <DataListHeader className='items-start flex mb-4'>
-              <div className=''>
+            <DataListHeader className='mb-4 flex items-start'>
+              <div>
                 <div className='flex flex-wrap items-center gap-2'>
                   <DataListTitle className='truncate'>
                     {classItem.name}
                   </DataListTitle>
-                  <DataListDescription>
-                    {classItem.schoolName}
-                  </DataListDescription>
+                  <span className='inline-flex items-center rounded-full border border-border/70 px-2.5 py-0.5 text-xs text-muted-foreground'>
+                    Ano {classItem.schoolYear.replace('YEAR_', '')}
+                  </span>
                 </div>
+                <DataListDescription className='mt-0.5'>
+                  {classItem.schoolName} · Profª {classItem.teacher} · {classItem.bookTemplateName}
+                </DataListDescription>
               </div>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    className='h-fit'
+                    className='h-8 w-8 p-0'
                     variant='ghost'
                     size='icon'
                     aria-label='Ações da turma'
@@ -132,19 +132,31 @@ export function ClassesList({
                   onCloseAutoFocus={(e) => e.preventDefault()}
                 >
                   <DropdownMenuItem onClick={() => onView?.(classItem.id)}>
-                    <Eye className='h-4 w-4' />
-                    Visualizar
+                    <Eye className='mr-2 h-4 w-4' />
+                    Ver livros
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onEdit?.(classItem.id)}>
-                    <Edit className='h-4 w-4' />
+                    <Edit className='mr-2 h-4 w-4' />
                     Editar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={pdfMutation.isPending}
+                    onClick={() => pdfMutation.mutate(classItem.id)}
+                  >
+                    {pdfMutation.isPending &&
+                    pdfMutation.variables === classItem.id ? (
+                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                    ) : (
+                      <FileDown className='mr-2 h-4 w-4' />
+                    )}
+                    Baixar PDF
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => onDelete?.(classItem.id)}
                     className='text-destructive focus:text-destructive'
                   >
-                    <Trash2 className='h-4 w-4' />
+                    <Trash2 className='mr-2 h-4 w-4' />
                     Excluir
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -215,48 +227,6 @@ export function ClassesList({
                 </div>
               </div>
             </DataListContent>
-
-            <DataListFooter>
-              <DataListMeta>
-                <span className='inline-flex items-center rounded-full border border-border/70 px-3 py-1 text-xs text-muted-foreground'>
-                  {classItem.schoolYear.replace('YEAR_', '')}
-                </span>
-                <span className='inline-flex items-center rounded-full border border-border/70 px-3 py-1 text-xs text-muted-foreground'>
-                  Profª {classItem.teacher}
-                </span>
-                <span className='inline-flex items-center rounded-full border border-border/70 px-3 py-1 text-xs text-muted-foreground'>
-                  Modelo: {classItem.bookTemplateName}
-                </span>
-              </DataListMeta>
-
-              <DataListActions>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  disabled={pdfMutation.isPending}
-                  onClick={() => pdfMutation.mutate(classItem.id)}
-                  aria-label={`Baixar PDF da turma ${classItem.name}`}
-                >
-                  {pdfMutation.isPending &&
-                  pdfMutation.variables === classItem.id ? (
-                    <Loader2 className='h-4 w-4 animate-spin' />
-                  ) : (
-                    <FileDown className='h-4 w-4' />
-                  )}
-                  {pdfMutation.isPending &&
-                  pdfMutation.variables === classItem.id
-                    ? 'Gerando...'
-                    : 'Baixar PDF'}
-                </Button>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => onView?.(classItem.id)}
-                >
-                  Ver Livros
-                </Button>
-              </DataListActions>
-            </DataListFooter>
           </DataListItem>
         );
       })}

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { motion } from 'motion/react';
 import { Search, Loader2, RotateCw } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getClasses } from '../services/classes-service';
@@ -118,25 +119,31 @@ export function ClassesPage() {
   return (
     <main className='flex-1 overflow-auto'>
       <div className='mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8'>
-        <section className='rounded-xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6 flex flex-wrap sm:flex-nowrap items-center gap-3'>
-          <div className='relative w-full'>
-            <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
-            <Input
-              type='search'
-              placeholder='Buscar turmas...'
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className='pl-9'
-            />
-          </div>
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className='rounded-xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6'
+        >
+          <div className='flex w-full gap-3 flex-wrap'>
+            <div className='relative w-full flex-10'>
+              <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+              <Input
+                type='search'
+                placeholder='Buscar por turma, escola ou professor...'
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className='pl-9'
+              />
+            </div>
 
-          <CreateClassButton
-            onClick={() => setCreateClassModalOpen(true)}
-            className='w-full sm:w-auto sm:self-end'
-          >
-            Adicionar turma
-          </CreateClassButton>
-        </section>
+            <CreateClassButton
+              onClick={() => setCreateClassModalOpen(true)}
+              className='w-full md:w-auto'
+            >
+              Adicionar turma
+            </CreateClassButton>
+          </div>
+        </motion.section>
 
         <div className='mt-6'>
           <ClassesList

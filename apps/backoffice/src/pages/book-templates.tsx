@@ -1,11 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   AlertCircle,
   BookOpen,
-  ChevronDown,
-  ChevronUp,
   Plus,
   Trash2,
   X,
@@ -13,8 +11,29 @@ import {
   FileText,
   Loader2,
   RotateCw,
+  Search,
+  MoreHorizontal,
+  Pencil,
+  Layers,
+  School,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Badge } from '../components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
+import {
+  DataList,
+  DataListContent,
+  DataListDescription,
+  DataListHeader,
+  DataListItem,
+  DataListTitle,
+} from '../components/ui/data-list';
 import type {
   BookPageType,
   BookTemplatePage,
@@ -55,7 +74,7 @@ const PAGE_TYPE_COLORS: Record<BookPageType, string> = {
   [BookPageTypeEnum.BACK_COVER]: 'bg-accent text-accent-foreground border border-border',
 };
 
-function TemplateCard({
+function TemplateItem({
   template,
   allUnits,
   onEdit,
@@ -72,93 +91,135 @@ function TemplateCard({
       .filter(Boolean) ?? [];
 
   return (
-    <div className='rounded-xl border border-border bg-card shadow-sm overflow-hidden'>
-      <div
-        role='button'
-        tabIndex={0}
-        onClick={() => setExpanded((prev) => !prev)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            setExpanded((prev) => !prev);
-          }
-        }}
-        className='w-full cursor-pointer text-left px-5 py-4 flex items-center justify-between gap-4 hover:bg-accent/50 transition-colors'
-      >
-        <div className='flex items-center gap-3 min-w-0'>
-          <span className='shrink-0 w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center'>
-            <BookOpen className='w-4 h-4 text-violet-600' />
-          </span>
-          <div className='min-w-0'>
-            <p className='font-medium text-foreground truncate'>
+    <DataListItem>
+      <DataListHeader className='mb-4 flex items-start'>
+        <div>
+          <div className='flex flex-wrap items-center gap-2'>
+            <DataListTitle className='truncate'>
               {template.name}
-            </p>
-            <p className='text-xs text-muted-foreground'>
-              {template.pageCount} página
-              {template.pageCount !== 1 ? 's' : ''}
-            </p>
-            {template.bookTemplateTheme && (
-              <div className='flex items-center gap-1.5 mt-1'>
+            </DataListTitle>
+            <Badge variant='secondary'>
+              {template.pageCount}{' '}
+              {template.pageCount === 1 ? 'página' : 'páginas'}
+            </Badge>
+          </div>
+          <DataListDescription className='mt-0.5'>
+            {template.bookTemplateTheme?.name
+              ? `Tema: ${template.bookTemplateTheme.name}`
+              : 'Sem tema associado'}
+          </DataListDescription>
+        </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              className='h-8 w-8 p-0'
+              variant='ghost'
+              size='icon'
+              aria-label='Ações do template'
+            >
+              <MoreHorizontal className='h-4 w-4' />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align='end'
+            onCloseAutoFocus={(e) => e.preventDefault()}
+          >
+            <DropdownMenuItem onClick={onEdit}>
+              <Pencil className='mr-2 h-4 w-4' />
+              Editar
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setExpanded((prev) => !prev)}>
+              <Layers className='mr-2 h-4 w-4' />
+              {expanded ? 'Ocultar páginas' : 'Ver páginas'}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </DataListHeader>
+
+      <DataListContent className='sm:grid-cols-3'>
+        <div className='rounded-lg border border-border/70 bg-muted/20 p-3'>
+          <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
+            <BookOpen className='h-4 w-4' />
+            <span className='text-xs font-medium uppercase tracking-wide'>
+              Páginas
+            </span>
+          </div>
+          <p className='text-lg font-semibold text-foreground'>
+            {template.pageCount}
+          </p>
+          <button
+            type='button'
+            onClick={() => setExpanded((prev) => !prev)}
+            className='text-xs text-primary hover:underline mt-0.5 text-left flex items-center gap-1 cursor-pointer'
+          >
+            {expanded ? 'Ocultar estrutura' : 'Ver estrutura'}
+          </button>
+        </div>
+
+        <div className='rounded-lg border border-border/70 bg-muted/20 p-3'>
+          <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
+            <Palette className='h-4 w-4' />
+            <span className='text-xs font-medium uppercase tracking-wide'>
+              Tema
+            </span>
+          </div>
+          {template.bookTemplateTheme ? (
+            <div>
+              <div className='flex items-center gap-2'>
                 <span
-                  className='w-2.5 h-2.5 rounded-full border border-black/10 shrink-0'
+                  className='size-3 rounded-full border border-border shrink-0'
                   style={{
                     backgroundColor:
                       template.bookTemplateTheme.colorTheme || '#ccc',
                   }}
                 />
-                <span className='text-xs text-muted-foreground font-medium truncate'>
-                  Tema: {template.bookTemplateTheme.name}
+                <span className='text-sm font-semibold text-foreground truncate'>
+                  {template.bookTemplateTheme.name}
                 </span>
-                {template.bookTemplateTheme.coverThemePdfUrl && (
-                  <a
-                    href={template.bookTemplateTheme.coverThemePdfUrl}
-                    target='_blank'
-                    rel='noreferrer'
-                    onClick={(e) => e.stopPropagation()}
-                    className='text-[10px] text-primary hover:underline flex items-center gap-0.5 ml-2'
-                  >
-                    <FileText className='w-3 h-3' />
-                    PDF
-                  </a>
-                )}
               </div>
-            )}
-            {unitNames.length > 0 ? (
-              <div className='flex flex-wrap gap-1 mt-1.5'>
-                {unitNames.map((name) => (
-                  <span
-                    key={name}
-                    className='inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground border border-border/30'
-                  >
-                    {name}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className='text-xs text-muted-foreground mt-1'>
-                Nenhuma unidade associada
-              </p>
-            )}
-          </div>
-        </div>
-        <div className='flex items-center gap-2'>
-          <button
-            type='button'
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
-            className='px-2.5 py-1 text-xs font-medium rounded-md border border-border bg-card text-foreground hover:bg-accent transition-colors'
-          >
-            Editar
-          </button>
-          {expanded ? (
-            <ChevronUp className='w-4 h-4 text-muted-foreground shrink-0' />
+              {template.bookTemplateTheme.coverThemePdfUrl && (
+                <a
+                  href={template.bookTemplateTheme.coverThemePdfUrl}
+                  target='_blank'
+                  rel='noreferrer'
+                  className='text-xs text-primary hover:underline flex items-center gap-1 mt-1'
+                >
+                  <FileText className='size-3' />
+                  Ver PDF da Capa
+                </a>
+              )}
+            </div>
           ) : (
-            <ChevronDown className='w-4 h-4 text-muted-foreground shrink-0' />
+            <p className='text-sm text-muted-foreground'>Padrão</p>
           )}
         </div>
-      </div>
+
+        <div className='rounded-lg border border-border/70 bg-muted/20 p-3'>
+          <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
+            <School className='h-4 w-4' />
+            <span className='text-xs font-medium uppercase tracking-wide'>
+              Unidades Vinculadas
+            </span>
+          </div>
+          {unitNames.length > 0 ? (
+            <div className='flex flex-wrap gap-1 mt-1 max-h-16 overflow-y-auto'>
+              {unitNames.map((name) => (
+                <span
+                  key={name}
+                  className='inline-flex items-center rounded border border-border/40 bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground'
+                >
+                  {name}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className='text-xs text-muted-foreground mt-0.5'>
+              Disponível para todas as unidades
+            </p>
+          )}
+        </div>
+      </DataListContent>
 
       <AnimatePresence>
         {expanded && (
@@ -168,47 +229,45 @@ function TemplateCard({
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className='overflow-hidden'
+            className='overflow-hidden mt-4'
           >
-            <div className='px-5 pb-4 border-t border-border'>
-              <div className='mt-3 overflow-x-auto rounded-lg border border-border'>
-                <table className='w-full text-sm'>
-                  <thead>
-                    <tr className='bg-muted/60'>
-                      <th className='px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide w-24'>
-                        Página
-                      </th>
-                      <th className='px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide'>
-                        Tipo
-                      </th>
+            <div className='overflow-x-auto rounded-lg border border-border bg-muted/10'>
+              <table className='w-full text-sm'>
+                <thead>
+                  <tr className='bg-muted/60'>
+                    <th className='px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide w-24'>
+                      Página
+                    </th>
+                    <th className='px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide'>
+                      Tipo
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {template.pages.map((page) => (
+                    <tr
+                      key={page.pageNumber}
+                      className='border-t border-border hover:bg-muted/30'
+                    >
+                      <td className='px-4 py-2 font-mono text-sm text-muted-foreground'>
+                        {page.pageNumber}
+                      </td>
+                      <td className='px-4 py-2'>
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${PAGE_TYPE_COLORS[page.pageType] ?? 'bg-muted text-muted-foreground'}`}
+                        >
+                          {PAGE_TYPE_LABELS[page.pageType] ?? page.pageType}
+                        </span>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {template.pages.map((page) => (
-                      <tr
-                        key={page.pageNumber}
-                        className='border-t border-border hover:bg-muted/30'
-                      >
-                        <td className='px-4 py-2 font-mono text-sm text-muted-foreground'>
-                          {page.pageNumber}
-                        </td>
-                        <td className='px-4 py-2'>
-                          <span
-                            className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${PAGE_TYPE_COLORS[page.pageType] ?? 'bg-muted text-muted-foreground'}`}
-                          >
-                            {PAGE_TYPE_LABELS[page.pageType] ?? page.pageType}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </DataListItem>
   );
 }
 
@@ -798,6 +857,7 @@ function TemplatePanel({
 }
 
 export function BookTemplatesPage() {
+  const [search, setSearch] = useState('');
   const [panelOpen, setPanelOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] =
     useState<BookTemplateResponse | null>(null);
@@ -820,15 +880,33 @@ export function BookTemplatesPage() {
     queryFn: getSchoolUnits,
   });
 
-  const allUnits =
-    schools?.flatMap((school) =>
-      school.units.map((unit) => ({
-        id: unit.id,
-        name: `${school.name} - ${unit.name || 'Sem nome'}`,
-      })),
-    ) ?? [];
+  const allUnits = useMemo(() => {
+    return (
+      schools?.flatMap((school) =>
+        school.units.map((unit) => ({
+          id: unit.id,
+          name: `${school.name} - ${unit.name || 'Sem nome'}`,
+        })),
+      ) ?? []
+    );
+  }, [schools]);
 
   const templates = data ?? [];
+
+  const filteredTemplates = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return templates;
+
+    return templates.filter((template) => {
+      const templateName = template.name.toLowerCase();
+      const themeName = template.bookTemplateTheme?.name.toLowerCase() ?? '';
+      const unitsMatch = template.units?.some((uid) => {
+        const u = allUnits.find((unit) => unit.id === uid);
+        return u?.name.toLowerCase().includes(term);
+      });
+      return templateName.includes(term) || themeName.includes(term) || unitsMatch;
+    });
+  }, [templates, search, allUnits]);
 
   const handleOpenCreatePanel = () => {
     setEditingTemplate(null);
@@ -840,40 +918,23 @@ export function BookTemplatesPage() {
     setPanelOpen(true);
   };
 
-  return (
-    <main className='flex-1 overflow-auto'>
-      <div className='mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8'>
-        {/* Page header */}
-        <section className='rounded-xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6 mb-6'>
-          <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
-            <div>
-              <h1 className='text-2xl font-semibold tracking-tight text-foreground sm:text-3xl'>
-                Book Templates
-              </h1>
-              <p className='mt-1 text-sm text-muted-foreground'>
-                {templates.length} template
-                {templates.length !== 1 ? 's' : ''} cadastrado
-                {templates.length !== 1 ? 's' : ''}
-              </p>
-            </div>
-            <Button
-              type='button'
-              onClick={handleOpenCreatePanel}
-              className='gap-2 shrink-0'
-            >
-              <Plus className='size-4' />
-              Novo Template
-            </Button>
-          </div>
-        </section>
-
-        {/* Loading / Error / Content */}
-        {isLoading ? (
+  if (isLoading) {
+    return (
+      <main className='flex-1 overflow-auto'>
+        <div className='mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8'>
           <div className='flex items-center justify-center gap-3 rounded-xl border border-border bg-card p-10 text-center shadow-sm'>
             <Loader2 className='size-5 animate-spin text-primary' />
             <p className='text-sm text-muted-foreground'>Carregando templates...</p>
           </div>
-        ) : error ? (
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className='flex-1 overflow-auto'>
+        <div className='mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8'>
           <div className='flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-destructive shadow-sm'>
             <p className='text-sm font-medium'>
               Não foi possível carregar os templates agora.
@@ -888,40 +949,68 @@ export function BookTemplatesPage() {
               Recarregar
             </Button>
           </div>
-        ) : templates.length === 0 ? (
-          <div className='rounded-xl border border-dashed border-border bg-card p-10 text-center'>
-            <div className='mx-auto mb-4 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary'>
-              <BookOpen className='size-5' />
-            </div>
-            <p className='text-sm font-medium text-foreground'>
-              Nenhum template encontrado
-            </p>
-            <p className='mt-1 text-sm text-muted-foreground'>
-              Nenhum template de livro cadastrado até o momento.
-            </p>
-            <div className='mt-6'>
-              <Button
-                type='button'
-                onClick={handleOpenCreatePanel}
-                className='gap-2'
-              >
-                <Plus className='size-4' />
-                Criar primeiro template
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className='space-y-3'>
-            {templates.map((template) => (
-              <TemplateCard
-                key={template.id}
-                template={template}
-                allUnits={allUnits}
-                onEdit={() => handleOpenEditPanel(template)}
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className='flex-1 overflow-auto'>
+      <div className='mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8'>
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className='rounded-xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6'
+        >
+          <div className='flex w-full gap-3 flex-wrap'>
+            <div className='relative w-full flex-10'>
+              <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+              <Input
+                type='search'
+                placeholder='Buscar templates por nome, tema ou unidade...'
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className='pl-9'
               />
-            ))}
+            </div>
+
+            <Button
+              type='button'
+              onClick={handleOpenCreatePanel}
+              className='w-full md:w-auto'
+            >
+              <Plus className='size-4' />
+              Novo Template
+            </Button>
           </div>
-        )}
+        </motion.section>
+
+        <div className='mt-6'>
+          {filteredTemplates.length === 0 ? (
+            <div className='rounded-xl border border-dashed border-border bg-card p-10 text-center'>
+              <div className='mx-auto mb-4 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary'>
+                <BookOpen className='size-5' />
+              </div>
+              <p className='text-sm font-medium text-foreground'>
+                Nenhum template encontrado
+              </p>
+              <p className='mt-1 text-sm text-muted-foreground'>
+                Nenhum template de livro corresponde ao filtro atual.
+              </p>
+            </div>
+          ) : (
+            <DataList>
+              {filteredTemplates.map((template) => (
+                <TemplateItem
+                  key={template.id}
+                  template={template}
+                  allUnits={allUnits}
+                  onEdit={() => handleOpenEditPanel(template)}
+                />
+              ))}
+            </DataList>
+          )}
+        </div>
       </div>
 
       <TemplatePanel

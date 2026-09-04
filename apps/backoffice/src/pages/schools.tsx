@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
+import { motion } from 'motion/react';
 import { Search, Plus, Loader2, RotateCw } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { SchoolCard, SchoolData } from '../components/schools/school-card';
+import { SchoolsList, SchoolData } from '../components/schools/schools-list';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { EmptyState } from '../components/schools/empty-state';
 import { CreateSchoolDialog } from '../components/schools/create-school-dialog';
 import { getSchoolsList } from '../services/schools-service';
 import { useAuth } from '../hooks/auth-hook';
@@ -100,85 +100,38 @@ export default function Schools() {
   return (
     <main className='flex-1 overflow-auto'>
       <div className='mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8'>
-        {/* Search and Action Bar */}
-        <section className='rounded-xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6 mb-6'>
-          <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4'>
-            <div>
-              <h1 className='text-2xl font-semibold tracking-tight text-foreground'>
-                Unidades Escolares
-              </h1>
-              <p className='text-sm text-muted-foreground mt-1'>
-                Gerencie todas as unidades escolares do projeto
-              </p>
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className='rounded-xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6'
+        >
+          <div className='flex w-full gap-3 flex-wrap'>
+            <div className='relative w-full flex-10'>
+              <Search className='pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground' />
+              <Input
+                type='search'
+                placeholder='Buscar unidades escolares...'
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className='pl-9'
+              />
             </div>
-            <Button onClick={() => setIsCreateDialogOpen(true)} className='shrink-0'>
+            <Button
+              onClick={() => setIsCreateDialogOpen(true)}
+              className='w-full md:w-auto'
+            >
               <Plus className='size-4' />
               Nova Unidade
             </Button>
           </div>
+        </motion.section>
 
-          <div className='relative w-full'>
-            <Search className='pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground' />
-            <Input
-              type='search'
-              placeholder='Buscar unidades escolares...'
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className='pl-9'
-            />
-          </div>
-        </section>
-
-        {/* Schools Grid */}
-        {filteredSchools.length > 0 ? (
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-            {filteredSchools.map((school) => (
-              <SchoolCard key={school.id} school={school} />
-            ))}
-          </div>
-        ) : (
-          <EmptyState onAddSchool={() => setIsCreateDialogOpen(true)} />
-        )}
-
-        {/* Summary Stats */}
-        {filteredSchools.length > 0 && (
-          <div className='mt-8 pt-6 border-t border-border/70'>
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
-              <div className='rounded-lg border border-border/70 bg-muted/20 p-4'>
-                <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1'>
-                  Total de Unidades
-                </p>
-                <p className='text-2xl font-semibold text-foreground'>
-                  {filteredSchools.length}
-                </p>
-              </div>
-              <div className='rounded-lg border border-border/70 bg-muted/20 p-4'>
-                <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1'>
-                  Total de Turmas
-                </p>
-                <p className='text-2xl font-semibold text-foreground'>
-                  {filteredSchools.reduce((acc, s) => acc + s.classCount, 0)}
-                </p>
-              </div>
-              <div className='rounded-lg border border-border/70 bg-muted/20 p-4'>
-                <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1'>
-                  Total de Alunos
-                </p>
-                <p className='text-2xl font-semibold text-foreground'>
-                  {filteredSchools.reduce((acc, s) => acc + s.studentCount, 0)}
-                </p>
-              </div>
-              <div className='rounded-lg border border-border/70 bg-muted/20 p-4'>
-                <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1'>
-                  Total de Livros
-                </p>
-                <p className='text-2xl font-semibold text-foreground'>
-                  {filteredSchools.reduce((acc, s) => acc + s.bookCount, 0)}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        <div className='mt-6'>
+          <SchoolsList
+            schools={filteredSchools}
+            onAddSchool={() => setIsCreateDialogOpen(true)}
+          />
+        </div>
       </div>
 
       <CreateSchoolDialog
