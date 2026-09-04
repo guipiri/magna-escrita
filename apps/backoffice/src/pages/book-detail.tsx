@@ -29,7 +29,9 @@ import {
   type GetBookDetailResponse,
   UserRole,
   BookStatusEnum,
+  type BookStatus,
   PageStatusEnum,
+  ErrorKeys,
 } from '@repo/shared';
 import {
   getBookById,
@@ -38,6 +40,10 @@ import {
   updateBook,
 } from '../services/books-service';
 import { uploadUnitLogo } from '../services/schools-service';
+import {
+  getErrorMessage,
+  getErrorMessageByKey,
+} from '../services/error-messages';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -56,6 +62,12 @@ import { getBookStatusConfig } from '../utils/book-status';
 function formatSchoolYear(s: string) {
   return s.replace('YEAR_', '');
 }
+
+const FORBIDDEN_BOOK_STATUSES_FOR_SCHOOL: BookStatus[] = [
+  BookStatusEnum.REVISED_BY_MAGNA,
+  BookStatusEnum.READY_FOR_SALE,
+  BookStatusEnum.ARCHIVED,
+];
 
 const PAGE_TYPE_LABELS: Record<BookPageType, string> = {
   [BookPageTypeEnum.COVER]: 'Capa',
@@ -128,14 +140,22 @@ function PageCard({ page, book, isActive }: PageCardProps) {
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const { user } = useAuth();
+  const isBookReadyForSchool = FORBIDDEN_BOOK_STATUSES_FOR_SCHOOL.includes(
+    book.status,
+  );
   const isReadOnlyForSchool =
-    user?.role === UserRole.SCHOOL &&
-    book.status === BookStatusEnum.READY_FOR_SALE;
+    user?.role === UserRole.SCHOOL && isBookReadyForSchool;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
   const [imageVersion, setImageVersion] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (isReadOnlyForSchool && isEditing) {
+      setIsEditing(false);
+    }
+  }, [isReadOnlyForSchool, isEditing]);
 
   useEffect(() => {
     setImageVersion(Date.now());
@@ -150,6 +170,9 @@ function PageCard({ page, book, isActive }: PageCardProps) {
 
   const statusMutation = useMutation({
     mutationFn: (newStatus: PageStatus) => {
+      if (isReadOnlyForSchool) {
+        throw new Error(getErrorMessageByKey(ErrorKeys.FORBIDDEN_BOOK_READY));
+      }
       return updateBookPage(bookId, page.number, {
         status: newStatus,
       });
@@ -158,11 +181,8 @@ function PageCard({ page, book, isActive }: PageCardProps) {
       enqueueSnackbar('Status da página atualizado!', { variant: 'success' });
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
     },
-    onError: (err: { response?: { data?: { message?: string } } }) => {
-      const msg =
-        err?.response?.data?.message ||
-        'Erro ao atualizar status. Tente novamente.';
-      enqueueSnackbar(msg, { variant: 'error' });
+    onError: (err) => {
+      enqueueSnackbar(getErrorMessage(err), { variant: 'error' });
     },
   });
 
@@ -190,6 +210,9 @@ function PageCard({ page, book, isActive }: PageCardProps) {
 
   const saveMutation = useMutation({
     mutationFn: () => {
+      if (isReadOnlyForSchool) {
+        throw new Error(getErrorMessageByKey(ErrorKeys.FORBIDDEN_BOOK_READY));
+      }
       if (page.type === BookPageTypeEnum.COVER) {
         return updateBook(bookId, { title: titleDraft || null });
       }
@@ -224,29 +247,38 @@ function PageCard({ page, book, isActive }: PageCardProps) {
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
       setIsEditing(false);
     },
-    onError: () => {
-      enqueueSnackbar('Erro ao salvar. Tente novamente.', {
+    onError: (err) => {
+      enqueueSnackbar(getErrorMessage(err), {
         variant: 'error',
       });
     },
   });
 
   const uploadLogoMutation = useMutation({
-    mutationFn: (file: File) => uploadUnitLogo(book.unit.id, file),
+    mutationFn: (file: File) => {
+      if (isReadOnlyForSchool) {
+        throw new Error(getErrorMessageByKey(ErrorKeys.FORBIDDEN_BOOK_READY));
+      }
+      return uploadUnitLogo(book.unit.id, file);
+    },
     onSuccess: () => {
       enqueueSnackbar('Logo da escola atualizado!', { variant: 'success' });
       queryClient.invalidateQueries({ queryKey: ['book', bookId] });
     },
-    onError: () => {
-      enqueueSnackbar('Erro ao atualizar logo. Tente novamente.', {
+    onError: (err) => {
+      enqueueSnackbar(getErrorMessage(err), {
         variant: 'error',
       });
     },
   });
 
   const saveDrawMutation = useMutation({
-    mutationFn: ({ file, originalFile }: { file: File; originalFile?: File }) =>
-      updateBookPageDraw(bookId, page.number, file, originalFile),
+    mutationFn: ({ file, originalFile }: { file: File; originalFile?: File }) => {
+      if (isReadOnlyForSchool) {
+        throw new Error(getErrorMessageByKey(ErrorKeys.FORBIDDEN_BOOK_READY));
+      }
+      return updateBookPageDraw(bookId, page.number, file, originalFile);
+    },
     onSuccess: () => {
       setImageVersion(Date.now());
       enqueueSnackbar('Imagem salva com sucesso!', { variant: 'success' });
@@ -254,8 +286,8 @@ function PageCard({ page, book, isActive }: PageCardProps) {
       setIsImageEditorOpen(false);
       setDroppedFile(null);
     },
-    onError: () => {
-      enqueueSnackbar('Erro ao salvar imagem. Tente novamente.', {
+    onError: (err) => {
+      enqueueSnackbar(getErrorMessage(err), {
         variant: 'error',
       });
     },
@@ -277,6 +309,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
+    if (isReadOnlyForSchool) return;
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
@@ -292,6 +325,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isReadOnlyForSchool) return;
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       if (file?.type.startsWith('image/')) {
@@ -360,6 +394,7 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                   page.status === PageStatusEnum.READY
                 }
                 onCheckedChange={(checked) => {
+                  if (isReadOnlyForSchool) return;
                   statusMutation.mutate(
                     checked
                       ? PageStatusEnum.REVISED_BY_SCHOOL
@@ -905,7 +940,9 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                       ref={logoInputRef}
                       className='hidden'
                       accept='image/*'
+                      disabled={isReadOnlyForSchool}
                       onChange={(e) => {
+                        if (isReadOnlyForSchool) return;
                         const file = e.target.files?.[0];
                         if (file) uploadLogoMutation.mutate(file);
                         e.target.value = '';
@@ -1154,11 +1191,16 @@ function PageCard({ page, book, isActive }: PageCardProps) {
           className='hidden'
           accept='image/*'
           onChange={handleFileChange}
+          disabled={isReadOnlyForSchool}
         />
 
         <BookImageEditorDialog
-          open={isImageEditorOpen}
+          open={isImageEditorOpen && !isReadOnlyForSchool}
           onOpenChange={(open) => {
+            if (isReadOnlyForSchool) {
+              setIsImageEditorOpen(false);
+              return;
+            }
             setIsImageEditorOpen(open);
             if (!open) {
               setDroppedFile(null);
@@ -1168,6 +1210,13 @@ function PageCard({ page, book, isActive }: PageCardProps) {
           pageNumber={page.number}
           aspect={isBackCover ? 3 / 4 : 1}
           onSave={async (file) => {
+            if (isReadOnlyForSchool) {
+              enqueueSnackbar(
+                getErrorMessageByKey(ErrorKeys.FORBIDDEN_BOOK_READY),
+                { variant: 'error' },
+              );
+              return;
+            }
             await saveDrawMutation.mutateAsync({
               file,
               originalFile: droppedFile || undefined,
@@ -1243,7 +1292,7 @@ export function BookDetailPage() {
         <div className='mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8'>
           <div className='flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-destructive shadow-sm'>
             <p className='text-sm font-medium'>
-              Erro ao carregar livro. Tente novamente.
+              {error ? getErrorMessage(error) : 'Livro não encontrado.'}
             </p>
             <Button
               variant='outline'
@@ -1260,23 +1309,28 @@ export function BookDetailPage() {
     );
   }
 
+  const isBookReadyForSchool = book
+    ? FORBIDDEN_BOOK_STATUSES_FOR_SCHOOL.includes(book.status)
+    : false;
+  const isReadOnlyForSchool =
+    user?.role === UserRole.SCHOOL && isBookReadyForSchool;
+
   const statusCfg = getBookStatusConfig(book.status);
   const StatusIcon = statusCfg.icon;
 
   return (
     <main className='flex-1 overflow-auto'>
       <div className='mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8'>
-        {user?.role === UserRole.SCHOOL &&
-          book.status === BookStatusEnum.READY_FOR_SALE && (
-            <Alert variant='warning' className='mb-6'>
-              <AlertCircle className='size-4' />
-              <AlertTitle>Modificações Desabilitadas</AlertTitle>
-              <AlertDescription>
-                Este livro está finalizado (status Pronto). Usuários com perfil
-                da escola não podem fazer modificações em livros finalizados.
-              </AlertDescription>
-            </Alert>
-          )}
+        {isReadOnlyForSchool && (
+          <Alert variant='warning' className='mb-6'>
+            <AlertCircle className='size-4' />
+            <AlertTitle>Modificações Desabilitadas</AlertTitle>
+            <AlertDescription>
+              Este livro está finalizado (status Pronto). Usuários com perfil da
+              escola não podem fazer modificações em livros finalizados.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* ── Header ── */}
         <motion.section

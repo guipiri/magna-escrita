@@ -44,6 +44,12 @@ import {
 import { generateMagnificCode } from './books.utils.js';
 import { CreateBookDto } from './dto/create-book.dto.js';
 
+const FORBIDDEN_BOOK_STATUSES_FOR_SCHOOL: BookStatus[] = [
+  BookStatus.REVISED_BY_MAGNA,
+  BookStatus.READY_FOR_SALE,
+  BookStatus.ARCHIVED,
+];
+
 @Injectable()
 export class BooksService {
   constructor(
@@ -247,15 +253,9 @@ export class BooksService {
     // Ensure user has access to this book
     const bookDetail = await this.getById(bookId, user);
 
-    const forbiddenBySchoolStatusList: BookStatus[] = [
-      BookStatus.REVISED_BY_MAGNA,
-      BookStatus.READY_FOR_SALE,
-      BookStatus.ARCHIVED,
-    ];
-
     if (
       user.role === UserRole.SCHOOL &&
-      forbiddenBySchoolStatusList.includes(bookDetail.status)
+      FORBIDDEN_BOOK_STATUSES_FOR_SCHOOL.includes(bookDetail.status)
     ) {
       throw new ForbiddenBookReadyException();
     }
@@ -439,7 +439,7 @@ export class BooksService {
 
     if (
       user.role === UserRole.SCHOOL &&
-      bookDetail.status !== BookStatus.DRAFT
+      FORBIDDEN_BOOK_STATUSES_FOR_SCHOOL.includes(bookDetail.status)
     ) {
       throw new ForbiddenBookReadyException();
     }
@@ -459,7 +459,10 @@ export class BooksService {
   ): Promise<{ drawImageUrl: string; originalImageUrl?: string }> {
     const book = await this.getById(bookId, user);
 
-    if (user.role === UserRole.SCHOOL && book.status !== BookStatus.DRAFT) {
+    if (
+      user.role === UserRole.SCHOOL &&
+      FORBIDDEN_BOOK_STATUSES_FOR_SCHOOL.includes(book.status)
+    ) {
       throw new ForbiddenBookReadyException();
     }
 

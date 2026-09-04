@@ -153,17 +153,36 @@ export const getApiError = (error: unknown): ApiError => {
   return {
     statusCode: 0,
     key: ErrorKeys.UNKNOWN_ERROR,
-    message: 'Erro inesperado',
+    message: error instanceof Error ? error.message : 'Erro inesperado',
     timestamp: new Date().toISOString(),
     path: 'UNKNOWN_PATH',
   };
 };
 
 export const getErrorMessageByKey = (key: ErrorKeys): string => {
-  return errorMessages[key];
+  return errorMessages[key] || errorMessages[ErrorKeys.UNKNOWN_ERROR];
 };
 
 export const getErrorMessage = (error: unknown): string => {
+  if (axios.isAxiosError(error)) {
+    const data = (error as AxiosError<ApiError>).response?.data;
+    if (data?.key && errorMessages[data.key]) {
+      return errorMessages[data.key];
+    }
+    if (data?.message) {
+      return data.message;
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
   const apiError = getApiError(error);
-  return getErrorMessageByKey(apiError.key);
+  return (
+    getErrorMessageByKey(apiError.key) ||
+    apiError.message ||
+    errorMessages[ErrorKeys.UNKNOWN_ERROR]
+  );
 };
+
