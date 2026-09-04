@@ -18,6 +18,7 @@ import { UsersModule } from './users/users.module.js';
 import { PricesModule } from './prices/prices.module.js';
 import { RedisModule } from './common/redis/redis.module.js';
 import { MailModule } from './common/mail/mail.module.js';
+import { getRedisBullConnectionOptions } from './common/redis/redis.config.js';
 
 @Module({
   imports: [
@@ -32,7 +33,9 @@ import { MailModule } from './common/mail/mail.module.js';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        connection: { url: configService.getOrThrow<string>('REDIS_URL') },
+        connection: getRedisBullConnectionOptions(
+          configService.getOrThrow<string>('REDIS_URL'),
+        ),
       }),
       inject: [ConfigService],
     }),

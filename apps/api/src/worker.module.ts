@@ -11,6 +11,7 @@ import { PdfModule } from './pdf/pdf.module.js';
 import { RedisModule } from './common/redis/redis.module.js';
 import { validationSchema } from './config/validation.js';
 import { BucketModule } from './common/bucket/bucket.module.js';
+import { getRedisBullConnectionOptions } from './common/redis/redis.config.js';
 
 @Module({
   imports: [
@@ -25,9 +26,9 @@ import { BucketModule } from './common/bucket/bucket.module.js';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        connection: {
-          url: configService.getOrThrow<string>('REDIS_URL'),
-        },
+        connection: getRedisBullConnectionOptions(
+          configService.getOrThrow<string>('REDIS_URL'),
+        ),
       }),
       inject: [ConfigService],
     }),
