@@ -178,7 +178,7 @@ export class GeminiDrawExtractor implements ExtractDrawService {
   async execute(file: Express.Multer.File): Promise<File> {
     const baseName = file.originalname.replace(/\.[^.]+$/, '') || 'draw';
 
-    const imageBuffer = await this.extractDrawImageWithGemini(file);
+    const imageBuffer = await this.extractByCoordinates(file);
 
     return new File([new Uint8Array(imageBuffer)], `${baseName}-draw.png`, {
       type: 'image/png',
@@ -186,75 +186,7 @@ export class GeminiDrawExtractor implements ExtractDrawService {
   }
 
   /**
-   * Asks Gemini (image generation model) to crop and perspective-correct
-   * the draw square directly, returning the image as a Buffer.
-   * Falls back to coordinate-based Jimp crop if the model doesn't return an image.
-   */
-  private async extractDrawImageWithGemini(
-    file: Express.Multer.File,
-  ): Promise<Buffer> {
-    const model = this.gemini.getGenerativeModel({
-      model: this.modelName,
-      generationConfig: {
-        responseModalities: ['IMAGE', 'TEXT'],
-      } as any,
-    });
-
-    const imagePart: Part = {
-      inlineData: {
-        mimeType: file.mimetype,
-        data: file.buffer.toString('base64'),
-      },
-    };
-
-    const prompt = `Esta imagem é uma página de um livro de autógrafos escolar.
-Ela contém um cabeçalho com QR code e informações do aluno (nome, escola, turma) e abaixo um quadrado delimitado por uma borda onde o aluno fez um desenho.
-
-Sua tarefa:
-1. Localize o quadrado do desenho (ignore completamente o cabeçalho).
-2. Recorte exatamente o interior do quadrado, corrigindo qualquer distorção de perspectiva ou inclinação.
-3. Retorne apenas a imagem recortada e corrigida do desenho, sem bordas, sem o cabeçalho, sem texto ao redor.
-
-Retorne a imagem em PNG.`;
-
-    try {
-      this.logger.log(
-        'Sending image to Gemini image-generation for draw extraction...',
-      );
-
-      const result = await model.generateContent([imagePart, { text: prompt }]);
-      const parts = result.response.candidates?.[0]?.content?.parts ?? [];
-
-      for (const part of parts) {
-        if ((part as any).inlineData?.data) {
-          const inlineData = (part as any).inlineData as {
-            data: string;
-            mimeType: string;
-          };
-
-          this.logger.log(
-            `Gemini returned image directly, mimeType: ${inlineData.mimeType}`,
-          );
-
-          return Buffer.from(inlineData.data, 'base64');
-        }
-      }
-
-      this.logger.warn(
-        'Gemini image-generation did not return an image part — falling back to coordinate detection.',
-      );
-    } catch (error) {
-      this.logger.warn(
-        'Gemini image-generation failed, falling back to coordinate detection:',
-        error,
-      );
-    }
-
-    return this.extractByCoordinates(file);
-  }
-
-  /**
-   * Fallback: asks a text model for the normalised corner coordinates of the
+   * Asks Gemini for the normalised corner coordinates of the
    * draw square, then uses Jimp to crop the bounding-box from the original image.
    */
   private async extractByCoordinates(
@@ -262,6 +194,9 @@ Retorne a imagem em PNG.`;
   ): Promise<Buffer> {
     const model = this.gemini.getGenerativeModel({
       model: this.modelName,
+      generationConfig: {
+        responseMimeType: 'application/json',
+      },
     });
 
     const imagePart: Part = {
@@ -274,7 +209,7 @@ Retorne a imagem em PNG.`;
     const prompt = `Analise a imagem e encontre o quadrado que contém o desenho do aluno.
 Ignore o cabeçalho com QR code e informações do aluno, escola e turma.
 
-Retorne apenas JSON válido, sem markdown, no formato:
+Retorne apenas JSON válido no formato:
 {"found":true,"points":[{"x":0.12,"y":0.34},{"x":0.45,"y":0.33},{"x":0.46,"y":0.71},{"x":0.11,"y":0.72}]}
 
 As coordenadas devem ser relativas à imagem inteira (0 = topo/esquerda, 1 = fundo/direita).
@@ -324,7 +259,7 @@ Se não houver quadrado visível, retorne apenas: {"found":false}`;
         throw error;
       }
 
-      this.logger.error('Gemini coordinate fallback failed:', error);
+      this.logger.error('Gemini coordinate detection failed:', error);
       throw new InternalGeminiRecognitionFailedException(
         'identificação do quadrado do desenho',
       );
