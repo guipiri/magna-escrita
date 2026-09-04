@@ -71,9 +71,6 @@ export function ClassesPage() {
     });
   }, [classesData, search]);
 
-  const totalStudents = classesData.reduce((sum, c) => sum + c.studentCount, 0);
-  const schoolsCount = new Set(classesData.map((c) => c.schoolName)).size;
-
   // O(1) lookup map — avoids two O(n) .find() calls in onEdit and onDelete
   const classesMap = useMemo(
     () => new Map(classesData.map((c) => [c.id, c])),
@@ -111,48 +108,24 @@ export function ClassesPage() {
   return (
     <main className='flex-1 overflow-auto'>
       <div className='mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8'>
-        <section className='rounded-3xl border border-border bg-card/80 p-5 shadow-sm backdrop-blur sm:p-6'>
-          <div className='flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between'>
-            <div className='space-y-2'>
-              <div>
-                <h1 className='text-2xl font-semibold tracking-tight text-foreground sm:text-3xl'>
-                  Turmas
-                </h1>
-                <p className='mt-2 text-sm text-muted-foreground'>
-                  {classesData.length} turmas • {totalStudents} alunos •{' '}
-                  {schoolsCount} escolas
-                </p>
-              </div>
-              <div className='flex flex-wrap gap-2 text-xs text-muted-foreground'>
-                <span className='rounded-full border border-border/70 bg-background px-3 py-1'>
-                  Lista responsiva
-                </span>
-                <span className='rounded-full border border-border/70 bg-background px-3 py-1'>
-                  Layout reutilizável
-                </span>
-              </div>
-            </div>
-
-            <div className='flex w-full flex-col gap-3 sm:max-w-md'>
-              <div className='relative'>
-                <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
-                <Input
-                  type='search'
-                  placeholder='Buscar turmas...'
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className='pl-9'
-                />
-              </div>
-
-              <CreateClassButton
-                onClick={() => setCreateClassModalOpen(true)}
-                className='w-full sm:w-auto sm:self-end'
-              >
-                Adicionar turma
-              </CreateClassButton>
-            </div>
+        <section className='rounded-3xl border border-border bg-card/80 p-5 shadow-sm sm:p-6 flex flex-wrap sm:flex-nowrap items-center gap-3'>
+          <div className='relative w-full'>
+            <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+            <Input
+              type='search'
+              placeholder='Buscar turmas...'
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className='pl-9'
+            />
           </div>
+
+          <CreateClassButton
+            onClick={() => setCreateClassModalOpen(true)}
+            className='w-full sm:w-auto sm:self-end'
+          >
+            Adicionar turma
+          </CreateClassButton>
         </section>
 
         <div className='mt-6'>

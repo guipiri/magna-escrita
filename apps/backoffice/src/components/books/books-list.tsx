@@ -1,4 +1,4 @@
-import type { GetBooksListResponse } from '@repo/shared';
+import { UserRole, type GetBooksListResponse } from '@repo/shared';
 import {
   BookOpen,
   Eye,
@@ -35,6 +35,7 @@ import { generateFinalBookPdf } from '../../services/books-service';
 import { getErrorMessage } from '../../services/error-messages';
 import { routes } from '../../main';
 import { getBookStatusConfig } from '../../utils/book-status';
+import { useAuth } from '../../hooks/auth-hook';
 
 function formatSchoolYear(schoolYear: string): string {
   return schoolYear.replace('YEAR_', '');
@@ -62,6 +63,7 @@ function BooksEmptyState() {
 
 export function BooksList({ books }: BooksListProps) {
   const navigate = useNavigate();
+  const { user, isLoading: isUserLoading } = useAuth();
   const queryClient = useQueryClient();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -69,7 +71,8 @@ export function BooksList({ books }: BooksListProps) {
     mutationFn: generateFinalBookPdf,
     onSuccess: (data) => {
       enqueueSnackbar(
-        data.message || 'Geração de PDF do livro enviada para a fila com sucesso!',
+        data.message ||
+          'Geração de PDF do livro enviada para a fila com sucesso!',
         {
           variant: 'success',
         },
@@ -85,6 +88,9 @@ export function BooksList({ books }: BooksListProps) {
   if (books.length === 0) {
     return <BooksEmptyState />;
   }
+
+  const showDropdownMenu =
+    !isUserLoading && user && user.role === UserRole.ADMIN;
 
   return (
     <DataList>
@@ -111,60 +117,55 @@ export function BooksList({ books }: BooksListProps) {
                 </DataListDescription>
               </div>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    className='h-8 w-8 p-0'
-                    variant='ghost'
-                    size='icon'
-                    aria-label='Ações do livro'
-                  >
-                    <MoreHorizontal className='h-4 w-4' />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align='end'
-                  onCloseAutoFocus={(e) => e.preventDefault()}
-                >
-                  <DropdownMenuItem
-                    onClick={() => navigate(`${routes.books.path}/${book.id}`)}
-                  >
-                    <Eye className='mr-2 h-4 w-4' />
-                    Ver livro
-                  </DropdownMenuItem>
-
-                  {book.interiorPdfUrl && (
-                    <DropdownMenuItem
-                      onClick={() =>
-                        window.open(book.interiorPdfUrl!, '_blank')
-                      }
+              {showDropdownMenu && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      className='h-8 w-8 p-0'
+                      variant='ghost'
+                      size='icon'
+                      aria-label='Ações do livro'
                     >
-                      <FileDown className='mr-2 h-4 w-4' />
-                      Ver miolo (PDF)
-                    </DropdownMenuItem>
-                  )}
-                  {book.coverPdfUrl && (
-                    <DropdownMenuItem
-                      onClick={() => window.open(book.coverPdfUrl!, '_blank')}
-                    >
-                      <FileDown className='mr-2 h-4 w-4' />
-                      Ver capa (PDF)
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem
-                    disabled={generatePdfMutation.isPending}
-                    onClick={() => generatePdfMutation.mutate(book.id)}
+                      <MoreHorizontal className='h-4 w-4' />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align='end'
+                    onCloseAutoFocus={(e) => e.preventDefault()}
                   >
-                    {generatePdfMutation.isPending &&
-                    generatePdfMutation.variables === book.id ? (
-                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                    ) : (
-                      <Sparkles className='mr-2 h-4 w-4' />
+                    {book.interiorPdfUrl && (
+                      <DropdownMenuItem
+                        onClick={() =>
+                          window.open(book.interiorPdfUrl!, '_blank')
+                        }
+                      >
+                        <FileDown className='mr-2 h-4 w-4' />
+                        Ver miolo (PDF)
+                      </DropdownMenuItem>
                     )}
-                    Gerar PDFs
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    {book.coverPdfUrl && (
+                      <DropdownMenuItem
+                        onClick={() => window.open(book.coverPdfUrl!, '_blank')}
+                      >
+                        <FileDown className='mr-2 h-4 w-4' />
+                        Ver capa (PDF)
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      disabled={generatePdfMutation.isPending}
+                      onClick={() => generatePdfMutation.mutate(book.id)}
+                    >
+                      {generatePdfMutation.isPending &&
+                      generatePdfMutation.variables === book.id ? (
+                        <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                      ) : (
+                        <Sparkles className='mr-2 h-4 w-4' />
+                      )}
+                      Gerar PDFs
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </DataListHeader>
 
             <DataListContent className='sm:grid-cols-3'>
