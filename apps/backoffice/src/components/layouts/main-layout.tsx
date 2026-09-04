@@ -48,12 +48,14 @@ export function MainLayout() {
               ? [{ label: 'Usuários' }]
               : pathname === routes.bookTemplates.path
                 ? [{ label: 'Book Templates' }]
-                : pathname.startsWith(routes.books.path)
-                  ? [
-                      { label: 'Livros', href: routes.books.path },
-                      { label: 'Detalhe do livro' },
-                    ]
-                  : []),
+                : pathname === routes.prices.path
+                  ? [{ label: 'Preços' }]
+                  : pathname.startsWith(routes.books.path)
+                    ? [
+                        { label: 'Livros', href: routes.books.path },
+                        { label: 'Detalhe do livro' },
+                      ]
+                    : []),
   ];
 
   return (

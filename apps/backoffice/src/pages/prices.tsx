@@ -24,7 +24,6 @@ import {
 import {
   DataList,
   DataListContent,
-  DataListDescription,
   DataListHeader,
   DataListItem,
   DataListTitle,
@@ -70,9 +69,6 @@ function PriceItem({
               {price.tiers.length === 1 ? 'faixa' : 'faixas'}
             </Badge>
           </div>
-          <DataListDescription className='mt-0.5 font-mono text-xs'>
-            ID: {price.id}
-          </DataListDescription>
         </div>
 
         <DropdownMenu>
@@ -136,14 +132,11 @@ function PriceItem({
           <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
             <Coins className='h-4 w-4' />
             <span className='text-xs font-medium uppercase tracking-wide'>
-              Preço Inicial (1 un)
+              Preço Inicial
             </span>
           </div>
           <p className='text-lg font-semibold text-foreground'>
             {basePrice != null ? formatCurrency(basePrice) : '—'}
-          </p>
-          <p className='text-xs text-muted-foreground'>
-            Faixa inicial para pedidos menores
           </p>
         </div>
 
@@ -151,19 +144,21 @@ function PriceItem({
           <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
             <Layers className='h-4 w-4' />
             <span className='text-xs font-medium uppercase tracking-wide'>
-              Maior Desconto
+              Menor Faixa
             </span>
           </div>
           <p className='text-lg font-semibold text-foreground'>
             {bestPrice != null ? formatCurrency(bestPrice) : '—'}
           </p>
-          <button
+          <Button
             type='button'
+            variant='link'
+            size='sm'
             onClick={() => setExpanded((prev) => !prev)}
-            className='text-xs text-primary hover:underline mt-0.5 text-left flex items-center gap-1 cursor-pointer'
+            className='h-auto p-0 text-xs text-primary hover:underline mt-0.5 justify-start font-normal'
           >
             {expanded ? 'Ocultar tabela de faixas' : 'Ver tabela de faixas'}
-          </button>
+          </Button>
         </div>
       </DataListContent>
 
@@ -181,12 +176,8 @@ function PriceItem({
               <table className='w-full text-sm'>
                 <thead>
                   <tr className='bg-muted/60 text-xs font-semibold text-muted-foreground uppercase tracking-wide border-b border-border'>
-                    <th className='px-4 py-2 text-left w-36'>
-                      Quantidade Mínima
-                    </th>
-                    <th className='px-4 py-2 text-left'>
-                      Preço por Unidade
-                    </th>
+                    <th className='px-4 py-2 text-left w-36'>Qtd. Mínima</th>
+                    <th className='px-4 py-2 text-left'>Preço por Unidade</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -216,7 +207,9 @@ function PriceItem({
 export function PricesPage() {
   const [search, setSearch] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editingPrice, setEditingPrice] = useState<GetPricesResponse | null>(null);
+  const [editingPrice, setEditingPrice] = useState<GetPricesResponse | null>(
+    null,
+  );
 
   const {
     data: prices,
@@ -238,7 +231,7 @@ export function PricesPage() {
       const classesMatch = price.classes.some((c) =>
         `${c.name} ${c.schoolName} ${c.unitName || ''}`
           .toLowerCase()
-          .includes(term)
+          .includes(term),
       );
       return priceName.includes(term) || classesMatch;
     });
@@ -250,7 +243,9 @@ export function PricesPage() {
         <div className='mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8'>
           <div className='flex items-center justify-center gap-3 rounded-xl border border-border bg-card p-10 text-center shadow-sm'>
             <Loader2 className='size-5 animate-spin text-primary' />
-            <p className='text-sm text-muted-foreground'>Carregando preços...</p>
+            <p className='text-sm text-muted-foreground'>
+              Carregando preços...
+            </p>
           </div>
         </div>
       </main>
@@ -301,6 +296,7 @@ export function PricesPage() {
             </div>
 
             <Button
+              type='button'
               onClick={() => setCreateDialogOpen(true)}
               className='w-full md:w-auto'
             >
@@ -310,7 +306,12 @@ export function PricesPage() {
           </div>
         </motion.section>
 
-        <div className='mt-6'>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.05 }}
+          className='mt-6'
+        >
           {filteredPrices.length === 0 ? (
             <div className='rounded-xl border border-dashed border-border bg-card p-10 text-center'>
               <div className='mx-auto mb-4 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary'>
@@ -334,7 +335,7 @@ export function PricesPage() {
               ))}
             </DataList>
           )}
-        </div>
+        </motion.div>
       </div>
 
       <CreatePriceDialog

@@ -23,14 +23,18 @@ export function CreateBookButton({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button type='button' className={className} variant='outline'>
+        <Button type='button' className={className}>
           <BookPlus className='h-4 w-4' />
           Criar livro
           <ChevronDown className='h-4 w-4' />
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align='end' className='w-52' onCloseAutoFocus={(e) => e.preventDefault()}>
+      <DropdownMenuContent
+        align='end'
+        className='w-52'
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         <DropdownMenuLabel>Opções de criação</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem

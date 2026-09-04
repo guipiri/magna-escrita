@@ -10,7 +10,7 @@ export function CreateClassButton({
   childre?: React.ReactNode;
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <Button variant='outline' onClick={onClick} {...rest}>
+    <Button onClick={onClick} {...rest}>
       <Users />
       {children}
     </Button>
