@@ -2,12 +2,22 @@ import { api } from './api';
 import {
   GetSchoolsResponse,
   GetSchoolsListResponse,
+  GetSchoolDetailResponse,
   CreateSchoolRequest,
+  UpdateSchoolRequest,
+  UpdateSchoolResponse,
   SchoolYearOption,
 } from '@repo/shared';
 
 export const getSchoolsList = async (): Promise<GetSchoolsListResponse[]> => {
   const response = await api.get<GetSchoolsListResponse[]>('/schools');
+  return response.data;
+};
+
+export const getSchoolById = async (
+  id: string,
+): Promise<GetSchoolDetailResponse> => {
+  const response = await api.get<GetSchoolDetailResponse>(`/schools/${id}`);
   return response.data;
 };
 
@@ -28,6 +38,24 @@ export const createSchool = async (
     '/schools',
     data,
   );
+  return response.data;
+};
+
+export const updateSchool = async ({
+  id,
+  data,
+}: {
+  id: string;
+  data: UpdateSchoolRequest;
+}): Promise<UpdateSchoolResponse> => {
+  const response = await api.patch<UpdateSchoolResponse>(`/schools/${id}`, data);
+  return response.data;
+};
+
+export const deleteSchool = async (
+  id: string,
+): Promise<{ success: boolean }> => {
+  const response = await api.delete<{ success: boolean }>(`/schools/${id}`);
   return response.data;
 };
 

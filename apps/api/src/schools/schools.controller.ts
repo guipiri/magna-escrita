@@ -5,6 +5,7 @@ import {
   Body,
   UseGuards,
   Patch,
+  Delete,
   Param,
   UploadedFile,
   UseInterceptors,
@@ -12,6 +13,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SchoolsService } from './schools.service.js';
 import { CreateSchoolDto } from './dto/create-school.dto.js';
+import { UpdateSchoolDto } from './dto/update-school.dto.js';
 import { AuthGuard } from '../auth/guards/auth.guard.js';
 import { BackofficeGuard } from '../auth/guards/backoffice.guard.js';
 import { User } from '../auth/auth.decorator.js';
@@ -28,10 +30,32 @@ export class SchoolsController {
     return this.schoolsService.getSchools(user);
   }
 
+  @Get('schools/:id')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  getSchoolById(@Param('id') id: string, @User() user: AuthUser) {
+    return this.schoolsService.getSchoolById(id, user);
+  }
+
   @Post('schools')
   @UseGuards(AuthGuard, BackofficeGuard)
   createSchool(@Body() body: CreateSchoolDto, @User() user: AuthUser) {
     return this.schoolsService.createSchool(body, user);
+  }
+
+  @Patch('schools/:id')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  updateSchool(
+    @Param('id') id: string,
+    @Body() body: UpdateSchoolDto,
+    @User() user: AuthUser,
+  ) {
+    return this.schoolsService.updateSchool(id, body, user);
+  }
+
+  @Delete('schools/:id')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  deleteSchool(@Param('id') id: string, @User() user: AuthUser) {
+    return this.schoolsService.deleteSchool(id, user);
   }
 
   @Get('units')

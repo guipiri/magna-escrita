@@ -114,3 +114,21 @@ export class ConflictExistingBooksException extends BadRequestException {
     } satisfies HttpExceptionConstructor);
   }
 }
+
+export class ConflictSchoolHasAssociatedEntitiesException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.CONFLICT_SCHOOL_HAS_ASSOCIATED_ENTITIES,
+      message: 'Cannot delete school with associated entities',
+    } satisfies HttpExceptionConstructor);
+  }
+}
+
+export class ConflictUnitHasAssociatedEntitiesException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.CONFLICT_UNIT_HAS_ASSOCIATED_ENTITIES,
+      message: 'Cannot delete unit with associated entities',
+    } satisfies HttpExceptionConstructor);
+  }
+}

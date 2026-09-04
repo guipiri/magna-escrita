@@ -86,7 +86,7 @@ export function BooksList({ books }: BooksListProps) {
     return <BooksEmptyState />;
   }
 
-  const showDropdownMenu =
+  const isAdminMenuItem =
     !isUserLoading && user && user.role === UserRole.ADMIN;
 
   return (
@@ -114,48 +114,46 @@ export function BooksList({ books }: BooksListProps) {
                 </DataListDescription>
               </div>
 
-              {showDropdownMenu && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      className='h-8 w-8 p-0'
-                      variant='ghost'
-                      size='icon'
-                      aria-label='Ações do livro'
-                    >
-                      <MoreHorizontal className='h-4 w-4' />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align='end'
-                    onCloseAutoFocus={(e) => e.preventDefault()}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    className='h-8 w-8 p-0'
+                    variant='ghost'
+                    size='icon'
+                    aria-label='Ações do livro'
                   >
+                    <MoreHorizontal className='h-4 w-4' />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align='end'
+                  onCloseAutoFocus={(e) => e.preventDefault()}
+                >
+                  <DropdownMenuItem
+                    onClick={() => navigate(`${routes.books.path}/${book.id}`)}
+                  >
+                    <Pencil className='h-4 w-4 mr-2' />
+                    Editar
+                  </DropdownMenuItem>
+                  {book.interiorPdfUrl && isAdminMenuItem && (
                     <DropdownMenuItem
                       onClick={() =>
-                        navigate(`${routes.books.path}/${book.id}`)
+                        window.open(book.interiorPdfUrl!, '_blank')
                       }
                     >
-                      <Pencil className='h-4 w-4 mr-2' />
-                      Editar
+                      <FileDown className='mr-2 h-4 w-4' />
+                      Ver miolo (PDF)
                     </DropdownMenuItem>
-                    {book.interiorPdfUrl && (
-                      <DropdownMenuItem
-                        onClick={() =>
-                          window.open(book.interiorPdfUrl!, '_blank')
-                        }
-                      >
-                        <FileDown className='mr-2 h-4 w-4' />
-                        Ver miolo (PDF)
-                      </DropdownMenuItem>
-                    )}
-                    {book.coverPdfUrl && (
-                      <DropdownMenuItem
-                        onClick={() => window.open(book.coverPdfUrl!, '_blank')}
-                      >
-                        <FileDown className='mr-2 h-4 w-4' />
-                        Ver capa (PDF)
-                      </DropdownMenuItem>
-                    )}
+                  )}
+                  {book.coverPdfUrl && isAdminMenuItem && (
+                    <DropdownMenuItem
+                      onClick={() => window.open(book.coverPdfUrl!, '_blank')}
+                    >
+                      <FileDown className='mr-2 h-4 w-4' />
+                      Ver capa (PDF)
+                    </DropdownMenuItem>
+                  )}
+                  {isAdminMenuItem && (
                     <DropdownMenuItem
                       disabled={generatePdfMutation.isPending}
                       onClick={() => generatePdfMutation.mutate(book.id)}
@@ -168,9 +166,9 @@ export function BooksList({ books }: BooksListProps) {
                       )}
                       Gerar PDFs
                     </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </DataListHeader>
 
             <DataListContent className='sm:grid-cols-3'>

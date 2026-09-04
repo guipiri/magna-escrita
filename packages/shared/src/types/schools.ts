@@ -100,11 +100,48 @@ export interface GetSchoolsListResponse {
   bookCount: number;
   status: 'active' | 'in-progress' | 'completed';
   lastActivity: string;
+  canDelete: boolean;
 }
 
 export interface CreateSchoolRequest {
   name: string;
   unitNames: string[];
+}
+
+export interface UpdateSchoolUnitItem {
+  id?: string;
+  name: string;
+}
+
+export interface UpdateSchoolRequest {
+  name: string;
+  units: UpdateSchoolUnitItem[];
+}
+
+export interface SchoolUnitDetail {
+  id: string;
+  name: string | null;
+  hasAssociatedEntities: boolean;
+  classesCount?: number;
+  eventsCount?: number;
+  usersCount?: number;
+  templatesCount?: number;
+}
+
+export interface GetSchoolDetailResponse {
+  id: string;
+  name: string;
+  canDelete: boolean;
+  units: SchoolUnitDetail[];
+}
+
+export interface UpdateSchoolResponse {
+  id: string;
+  name: string;
+  units: Array<{
+    id: string;
+    name: string | null;
+  }>;
 }
 
 export function getCurrentSchoolYear(): SchoolYear {

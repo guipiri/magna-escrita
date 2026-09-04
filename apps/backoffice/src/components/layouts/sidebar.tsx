@@ -50,7 +50,7 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
   const menuItems: MenuItems[] = [
     {
       icon: Building2,
-      label: 'Unidades Escolares',
+      label: 'Escolas',
       path: routes.schools.path,
       shouldBeVisible: hasMultipleUnits || isAdmin,
     },

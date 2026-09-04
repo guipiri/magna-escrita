@@ -6,6 +6,8 @@ import { SchoolsList, SchoolData } from '../components/schools/schools-list';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { CreateSchoolDialog } from '../components/schools/create-school-dialog';
+import { EditSchoolDialog } from '../components/schools/edit-school-dialog';
+import { DeleteSchoolDialog } from '../components/schools/delete-school-dialog';
 import { getSchoolsList } from '../services/schools-service';
 import { useAuth } from '../hooks/auth-hook';
 import { UserRole } from '@repo/shared';
@@ -31,9 +33,12 @@ function formatRelativeTime(isoString: string): string {
 export default function Schools() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [editingSchoolId, setEditingSchoolId] = useState<string | null>(null);
+  const [deletingSchool, setDeletingSchool] = useState<SchoolData | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isAdmin = user?.role === UserRole.ADMIN;
 
   const {
     data: schools,
@@ -116,13 +121,15 @@ export default function Schools() {
                 className='pl-9'
               />
             </div>
-            <Button
-              onClick={() => setIsCreateDialogOpen(true)}
-              className='w-full md:w-auto'
-            >
-              <Plus className='size-4' />
-              Nova Unidade
-            </Button>
+            {isAdmin && (
+              <Button
+                onClick={() => setIsCreateDialogOpen(true)}
+                className='w-full md:w-auto'
+              >
+                <Plus className='size-4' />
+                Nova Unidade
+              </Button>
+            )}
           </div>
         </motion.section>
 
@@ -130,6 +137,9 @@ export default function Schools() {
           <SchoolsList
             schools={filteredSchools}
             onAddSchool={() => setIsCreateDialogOpen(true)}
+            onEditSchool={(school) => setEditingSchoolId(school.id)}
+            onDeleteSchool={(school) => setDeletingSchool(school)}
+            canManage={isAdmin}
           />
         </div>
       </div>
@@ -139,6 +149,24 @@ export default function Schools() {
         onClose={() => setIsCreateDialogOpen(false)}
         onSuccess={() => {
           setIsCreateDialogOpen(false);
+          queryClient.invalidateQueries({ queryKey: ['schools'] });
+        }}
+      />
+
+      <EditSchoolDialog
+        schoolId={editingSchoolId}
+        isOpen={!!editingSchoolId}
+        onClose={() => setEditingSchoolId(null)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['schools'] });
+        }}
+      />
+
+      <DeleteSchoolDialog
+        school={deletingSchool}
+        isOpen={!!deletingSchool}
+        onClose={() => setDeletingSchool(null)}
+        onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['schools'] });
         }}
       />

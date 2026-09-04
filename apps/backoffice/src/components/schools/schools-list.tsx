@@ -5,6 +5,8 @@ import {
   BookOpen,
   Eye,
   MoreHorizontal,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '../ui/badge';
@@ -13,6 +15,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import {
@@ -33,11 +36,15 @@ export interface SchoolData {
   bookCount: number;
   status: 'active' | 'in-progress' | 'completed';
   lastActivity: string;
+  canDelete: boolean;
 }
 
 interface SchoolsListProps {
   schools: SchoolData[];
   onAddSchool?: () => void;
+  onEditSchool?: (school: SchoolData) => void;
+  onDeleteSchool?: (school: SchoolData) => void;
+  canManage?: boolean;
 }
 
 const statusConfig = {
@@ -62,7 +69,12 @@ function SchoolsEmptyState() {
   );
 }
 
-export function SchoolsList({ schools }: SchoolsListProps) {
+export function SchoolsList({
+  schools,
+  onEditSchool,
+  onDeleteSchool,
+  canManage = true,
+}: SchoolsListProps) {
   const navigate = useNavigate();
 
   if (schools.length === 0) {
@@ -108,6 +120,23 @@ export function SchoolsList({ schools }: SchoolsListProps) {
                     <Eye className='mr-2 h-4 w-4' />
                     Ver turmas
                   </DropdownMenuItem>
+
+                  {canManage && (
+                    <>
+                      <DropdownMenuItem onClick={() => onEditSchool?.(school)}>
+                        <Pencil className='mr-2 h-4 w-4' />
+                        Editar escola
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => onDeleteSchool?.(school)}
+                        className='text-destructive focus:text-destructive'
+                      >
+                        <Trash2 className='mr-2 h-4 w-4' />
+                        Excluir escola
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </DataListHeader>

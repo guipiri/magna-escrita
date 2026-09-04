@@ -74,6 +74,10 @@ export const errorMessages: Record<ErrorKeys, string> = {
     'Não é possível alterar as páginas do template porque existem livros criados utilizando ele.',
   CONFLICT_NO_EXISTING_VALID_UNIT:
     'Nenhuma unidade escolar válida associada ao usuário.',
+  CONFLICT_SCHOOL_HAS_ASSOCIATED_ENTITIES:
+    'Não é possível excluir a escola pois existem entidades associadas a ela (turmas, eventos ou usuários).',
+  CONFLICT_UNIT_HAS_ASSOCIATED_ENTITIES:
+    'Não é possível excluir a unidade pois existem entidades associadas a ela (turmas, eventos ou usuários).',
 
   CREATE_PIX_ORDER_FAILED: 'Falha ao criar pedido PIX.',
   CREATE_CARD_ORDER_FAILED: 'Falha ao criar pedido com cartão de crédito.',
