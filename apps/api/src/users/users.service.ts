@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../db/db.service.js';
+import { MailService } from '../common/mail/mail.service.js';
 import { AuthUser, UserListResponse, UserRole } from '@repo/shared';
 import { Role } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto.js';
@@ -14,7 +15,12 @@ import {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(UsersService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   async getUsers(currentUser: AuthUser): Promise<UserListResponse[]> {
     const users = await this.prisma.user.findMany({
@@ -112,6 +118,18 @@ export class UsersService {
         },
       },
     });
+
+    try {
+      await this.mailService.sendNewUserWelcomeEmail(
+        createdUser.email,
+        data.role,
+      );
+    } catch (err) {
+      this.logger.error(
+        `Failed to send welcome email to new user ${createdUser.email}:`,
+        err,
+      );
+    }
 
     return {
       id: createdUser.id,
