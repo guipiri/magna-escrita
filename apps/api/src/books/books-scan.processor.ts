@@ -14,9 +14,7 @@ import {
   PageType,
 } from '@prisma/client';
 import { generateMagnificCode } from './books.utils.js';
-import {
-  getOriginalPageUploadBucketPath,
-} from '../common/bucket/bucket.utils.js';
+import { getOriginalPageUploadBucketPath } from '../common/bucket/bucket.utils.js';
 import {
   BadRequestBookTemplateMismatchException,
   BadRequestPageAlreadyProcessedException,

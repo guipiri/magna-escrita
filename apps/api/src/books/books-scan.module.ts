@@ -35,10 +35,6 @@ import { BOOK_SCAN_QUEUE_NAME } from './books-scan.queue.js';
     },
     { provide: 'ReadQrCodeService', useClass: JsqrQrCodeReader },
   ],
-  exports: [
-    BooksScanService,
-    'ExtractTextService',
-    'ReadQrCodeService',
-  ],
+  exports: [BooksScanService, 'ExtractTextService', 'ReadQrCodeService'],
 })
 export class BooksScanModule {}

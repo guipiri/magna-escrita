@@ -6,10 +6,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import {
-  UpdateSchoolRequest,
-  UpdateSchoolUnitItem,
-} from '@repo/shared';
+import { UpdateSchoolRequest, UpdateSchoolUnitItem } from '@repo/shared';
 
 export class UpdateSchoolUnitItemDto implements UpdateSchoolUnitItem {
   @IsString()

@@ -324,7 +324,7 @@ export class EventsService {
 
     const now = new Date();
     const updateData: Prisma.OrderItemUpdateManyMutationInput = {
-      fulfillmentStatus: status as FulfillmentStatus,
+      fulfillmentStatus: status,
     };
 
     if (status === FulfillmentStatusEnum.WAITING_PRINT) {
@@ -402,7 +402,7 @@ export class EventsService {
 
     const now = new Date();
     const updateData: Prisma.OrderItemUpdateInput = {
-      fulfillmentStatus: status as FulfillmentStatus,
+      fulfillmentStatus: status,
     };
 
     if (status === FulfillmentStatusEnum.WAITING_PRINT) {

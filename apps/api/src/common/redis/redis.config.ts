@@ -10,7 +10,9 @@ export const REDIS_BASE_OPTIONS: RedisOptions = {
   },
 };
 
-export function getRedisBullConnectionOptions(redisUrl: string): ConnectionOptions {
+export function getRedisBullConnectionOptions(
+  redisUrl: string,
+): ConnectionOptions {
   return {
     url: redisUrl,
     ...REDIS_BASE_OPTIONS,
