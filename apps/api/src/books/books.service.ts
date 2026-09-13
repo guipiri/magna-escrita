@@ -18,7 +18,12 @@ import type {
   GenerateBookPdfResponse,
   UpdatePageRequest,
 } from '@repo/shared';
-import { UserRole, type AuthUser } from '@repo/shared';
+import {
+  UserRole,
+  BookStatusEnum,
+  PageStatusEnum,
+  type AuthUser,
+} from '@repo/shared';
 import {
   AuthographsEventStatus,
   BookStatus,
@@ -409,18 +414,29 @@ export class BooksService {
         where: { bookId },
       });
 
-      const allRevised = allPages.every(
-        (p) =>
-          p.status === PageStatus.REVISED_BY_SCHOOL ||
-          p.status === PageStatus.READY,
-      );
-      const allReady = allPages.every((p) => p.status === PageStatus.READY);
+      const allRevised =
+        allPages.length > 0 &&
+        allPages.every(
+          (p) =>
+            p.status === PageStatusEnum.REVISED_BY_SCHOOL ||
+            p.status === PageStatusEnum.READY,
+        );
+      const allReady =
+        allPages.length > 0 &&
+        allPages.every((p) => p.status === PageStatusEnum.READY);
 
-      let newBookStatus: BookStatus = BookStatus.DRAFT;
+      let newBookStatus: BookStatus = BookStatusEnum.DRAFT;
       if (allReady) {
-        newBookStatus = BookStatus.REVISED_BY_MAGNA;
+        const classRecord = await this.prisma.class.findUnique({
+          where: { id: bookDetail.class.id },
+          select: { priceId: true },
+        });
+
+        newBookStatus = classRecord?.priceId
+          ? BookStatusEnum.READY_FOR_SALE
+          : BookStatusEnum.REVISED_BY_MAGNA;
       } else if (allRevised) {
-        newBookStatus = BookStatus.REVISED_BY_SCHOOL;
+        newBookStatus = BookStatusEnum.REVISED_BY_SCHOOL;
       }
 
       await this.prisma.book.update({
