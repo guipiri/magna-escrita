@@ -5,6 +5,8 @@ export const REDIS_BASE_OPTIONS: RedisOptions = {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
   keepAlive: 10000,
+  family: 4,
+  connectTimeout: 30000,
   retryStrategy(times: number) {
     return Math.min(times * 50, 2000);
   },
