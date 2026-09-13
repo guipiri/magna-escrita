@@ -308,19 +308,16 @@ export function EditPriceDialog({
                   filteredClasses.map((c) => {
                     const isChecked = selectedClassIds.includes(c.id);
                     return (
-                      <div
+                      <label
                         key={c.id}
-                        className='flex items-center gap-3 p-2.5 hover:bg-muted/30 transition-colors rounded-lg cursor-pointer'
-                        onClick={() => handleClassToggle(c.id)}
+                        className='flex items-center gap-3 p-2.5 hover:bg-muted/30 transition-colors rounded-lg cursor-pointer select-none'
                       >
                         <Checkbox
-                          id={`edit-class-check-${c.id}`}
                           checked={isChecked}
                           onCheckedChange={() => handleClassToggle(c.id)}
                           disabled={editMutation.isPending}
-                          onClick={(e) => e.stopPropagation()}
                         />
-                        <div className='flex flex-col text-xs'>
+                        <span className='flex flex-col text-xs'>
                           <span className='font-semibold text-foreground'>
                             {c.name}
                           </span>
@@ -328,8 +325,8 @@ export function EditPriceDialog({
                             {c.school.name}{' '}
                             {c.unit.name ? `- ${c.unit.name}` : ''}
                           </span>
-                        </div>
-                      </div>
+                        </span>
+                      </label>
                     );
                   })
                 )}

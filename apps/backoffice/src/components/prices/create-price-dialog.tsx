@@ -273,25 +273,22 @@ export function CreatePriceDialog({
                   filteredClasses.map((c) => {
                     const isChecked = selectedClassIds.includes(c.id);
                     return (
-                      <div
+                      <label
                         key={c.id}
-                        className='flex items-center gap-3 p-2.5 hover:bg-muted/30 transition-colors rounded-lg cursor-pointer'
-                        onClick={() => handleClassToggle(c.id)}
+                        className='flex items-center gap-3 p-2.5 hover:bg-muted/30 transition-colors rounded-lg cursor-pointer select-none'
                       >
                         <Checkbox
-                          id={`class-check-${c.id}`}
                           checked={isChecked}
                           onCheckedChange={() => handleClassToggle(c.id)}
                           disabled={createMutation.isPending}
-                          onClick={(e) => e.stopPropagation()}
                         />
-                        <div className='flex flex-col text-xs'>
+                        <span className='flex flex-col text-xs'>
                           <span className='font-semibold text-foreground'>{c.name}</span>
                           <span className='text-muted-foreground text-[10px]'>
                             {c.school.name} {c.unit.name ? `- ${c.unit.name}` : ''}
                           </span>
-                        </div>
-                      </div>
+                        </span>
+                      </label>
                     );
                   })
                 )}
