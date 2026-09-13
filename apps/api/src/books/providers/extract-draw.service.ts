@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAI, Part } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import cvModule from '@techstark/opencv-js';
 import { Jimp } from 'jimp';
 import { BadRequestDrawSquareNotFoundException } from '../books.errors.js';
@@ -166,12 +166,21 @@ export class OpenCVDrawExtractor implements ExtractDrawService {
 @Injectable()
 export class GeminiDrawExtractor implements ExtractDrawService {
   private readonly logger = new Logger(GeminiDrawExtractor.name);
-  private readonly gemini: GoogleGenerativeAI;
+  private readonly ai: GoogleGenAI;
   private readonly modelName: string;
 
   constructor(private readonly configService: ConfigService) {
-    const apiKey = this.configService.getOrThrow<string>('GEMINI_API_KEY');
-    this.gemini = new GoogleGenerativeAI(apiKey);
+    const project =
+      this.configService.get<string>('GCP_PROJECT_ID') ||
+      this.configService.get<string>('GOOGLE_CLOUD_PROJECT');
+    const location =
+      this.configService.get<string>('VERTEX_AI_LOCATION') || 'us-central1';
+
+    this.ai = new GoogleGenAI({
+      vertexai: true,
+      project: project || undefined,
+      location,
+    });
     this.modelName = this.configService.getOrThrow<string>('GEMINI_MODEL');
   }
 
@@ -192,20 +201,6 @@ export class GeminiDrawExtractor implements ExtractDrawService {
   private async extractByCoordinates(
     file: Express.Multer.File,
   ): Promise<Buffer> {
-    const model = this.gemini.getGenerativeModel({
-      model: this.modelName,
-      generationConfig: {
-        responseMimeType: 'application/json',
-      },
-    });
-
-    const imagePart: Part = {
-      inlineData: {
-        mimeType: file.mimetype,
-        data: file.buffer.toString('base64'),
-      },
-    };
-
     const prompt = `Analise a imagem e encontre o quadrado que contém o desenho do aluno.
 Ignore o cabeçalho com QR code e informações do aluno, escola e turma.
 
@@ -218,11 +213,25 @@ Se não houver quadrado visível, retorne apenas: {"found":false}`;
 
     try {
       this.logger.log(
-        'Sending image to Gemini for draw square coordinate detection...',
+        'Sending image to Vertex AI for draw square coordinate detection...',
       );
 
-      const result = await model.generateContent([imagePart, { text: prompt }]);
-      const detection = this.parseSquareDetection(result.response.text());
+      const result = await this.ai.models.generateContent({
+        model: this.modelName,
+        contents: [
+          {
+            inlineData: {
+              mimeType: file.mimetype,
+              data: file.buffer.toString('base64'),
+            },
+          },
+          prompt,
+        ],
+        config: {
+          responseMimeType: 'application/json',
+        },
+      });
+      const detection = this.parseSquareDetection(result.text ?? '');
 
       if (
         !detection?.found ||

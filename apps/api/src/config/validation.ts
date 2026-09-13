@@ -14,8 +14,9 @@ export const validationSchema = Joi.object({
   JWT_EXPIRES_IN_MILLISECONDS: Joi.number().default(604800000), // 7 days
   AUTH_COOKIE_NAME: Joi.string().default('auth_token'),
   AUTH_COOKIE_MAX_AGE_DAYS: Joi.number().default(7),
-  GEMINI_API_KEY: Joi.string().required(),
   GEMINI_MODEL: Joi.string().required(),
+  GCP_PROJECT_ID: Joi.string().required(),
+  VERTEX_AI_LOCATION: Joi.string().required(),
   CLOUDFLARE_R2_ACCOUNT_ID: Joi.string().required(),
   CLOUDFLARE_R2_ACCESS_KEY_ID: Joi.string().required(),
   CLOUDFLARE_R2_SECRET_ACCESS_KEY: Joi.string().required(),

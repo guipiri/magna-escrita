@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, Part } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { ImageAnnotatorClient } from '@google-cloud/vision';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -15,42 +15,46 @@ export interface ExtractTextService {
 @Injectable()
 export class GeminiTextExtractor implements ExtractTextService {
   private readonly logger = new Logger(GeminiTextExtractor.name);
-  private readonly gemini: GoogleGenerativeAI;
+  private readonly ai: GoogleGenAI;
   private readonly modelName: string;
 
   constructor(private readonly configService: ConfigService) {
-    const apiKey = this.configService.getOrThrow<string>('GEMINI_API_KEY');
-    this.gemini = new GoogleGenerativeAI(apiKey);
+    const project =
+      this.configService.get<string>('GCP_PROJECT_ID') ||
+      this.configService.get<string>('GOOGLE_CLOUD_PROJECT');
+    const location =
+      this.configService.get<string>('VERTEX_AI_LOCATION') || 'us-central1';
+
+    this.ai = new GoogleGenAI({
+      vertexai: true,
+      project: project || undefined,
+      location,
+    });
     this.modelName = this.configService.getOrThrow<string>('GEMINI_MODEL');
   }
 
   async execute(file: Express.Multer.File): Promise<string> {
-    const model = this.gemini.getGenerativeModel({
-      model: this.modelName,
-    });
-
-    const imagePart: Part = {
-      inlineData: {
-        mimeType: file.mimetype,
-        data: file.buffer.toString('base64'),
-      },
-    };
-
     let text: string;
     try {
-      const result = await model.generateContent([
-        imagePart,
-        {
-          text: `Esta imagem é uma página de livro escrita por uma criança.
+      const response = await this.ai.models.generateContent({
+        model: this.modelName,
+        contents: [
+          {
+            inlineData: {
+              mimeType: file.mimetype,
+              data: file.buffer.toString('base64'),
+            },
+          },
+          `Esta imagem é uma página de livro escrita por uma criança.
     Abaixo do cabeçalho há linhas horizontais onde a criança escreveu um texto.
     Se a página for CAPA, você deve retornar apenas o texto do TÍTULO do livro.
     Se a página não for CAPA, transcreva apenas o texto escrito nas linhas.
     Ignore o cabeçalho (QR Code, nome do aluno, turma, escola, etc.).
     Retorne apenas o texto transcrito, sem explicações adicionais e sem parágrafos.
     Se não houver texto escrito, retorne uma string vazia.`,
-        },
-      ]);
-      text = result.response.text().trim();
+        ],
+      });
+      text = response.text?.trim() ?? '';
     } catch (err) {
       this.logger.error('Gemini OCR failed:', err);
       throw new InternalGeminiRecognitionFailedException(
