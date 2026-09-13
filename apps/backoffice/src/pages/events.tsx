@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import {
@@ -13,6 +14,7 @@ import {
   RotateCw,
   Loader2,
   MoreHorizontal,
+  Printer,
 } from 'lucide-react';
 import type { EventResponse } from '@repo/shared';
 import { getEvents } from '../services/events-service';
@@ -131,6 +133,7 @@ function EventTimeline({
 }
 
 export function EventsPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -296,6 +299,12 @@ export function EventsPage() {
                           align='end'
                           onCloseAutoFocus={(e) => e.preventDefault()}
                         >
+                          <DropdownMenuItem
+                            onClick={() => navigate(`/eventos/${event.id}`)}
+                          >
+                            <Printer className='mr-2 h-4 w-4 text-primary' />
+                            Ver produção de livros
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
                               setEditingEvent(event);

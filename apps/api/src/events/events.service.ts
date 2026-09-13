@@ -6,8 +6,16 @@ import {
   EventResponse,
   SchoolYear,
   UserRole,
+  FulfillmentStatusEnum,
+  type GetEventBookProductionResponse,
+  type UpdateFulfillmentResponse,
 } from '@repo/shared';
-import { AuthographsEventStatus, Prisma } from '@prisma/client';
+import {
+  AuthographsEventStatus,
+  FulfillmentStatus,
+  OrderStatus,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../db/db.service.js';
 import {
   NotFoundUnitException,
@@ -21,6 +29,8 @@ import {
   NotFoundEventException,
   ConflictEventWithExistingBooksException,
 } from './events.errors.js';
+import { NotFoundOrderItemException } from '../orders/orders.errors.js';
+import { NotFoundBookException } from '../books/books.errors.js';
 
 const TIMELINE_ORDER = [
   'Início do período para realização da atividade em sala de aula',
@@ -119,6 +129,358 @@ export class EventsService {
     });
 
     return events.map((event) => this.serializeEvent(event));
+  }
+
+  async getById(id: string, user: AuthUser): Promise<EventResponse> {
+    const event = await this.prisma.authographsEvent.findFirst({
+      where: {
+        id,
+        ...(user.role === UserRole.ADMIN
+          ? {}
+          : {
+              unit: {
+                userUnits: {
+                  some: { userId: user.id },
+                },
+              },
+            }),
+      },
+      include: eventInclude,
+    });
+
+    if (!event) throw new NotFoundEventException();
+
+    return this.serializeEvent(event);
+  }
+
+  async getEventBookProduction(
+    eventId: string,
+    user: AuthUser,
+  ): Promise<GetEventBookProductionResponse> {
+    if (user.role !== UserRole.ADMIN) {
+      throw new UnauthorizedUserIsNotAdminException();
+    }
+
+    const event = await this.prisma.authographsEvent.findUnique({
+      where: { id: eventId },
+      select: { id: true },
+    });
+
+    if (!event) throw new NotFoundEventException();
+
+    const books = await this.prisma.book.findMany({
+      where: {
+        authographsEventId: eventId,
+        orderItems: {
+          some: {
+            order: {
+              status: OrderStatus.APPROVED,
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        magnificCode: true,
+        title: true,
+        interiorPdfUrl: true,
+        coverPdfUrl: true,
+        student: {
+          select: {
+            id: true,
+            name: true,
+            class: {
+              select: {
+                id: true,
+                name: true,
+                schoolYear: true,
+                units: {
+                  select: {
+                    id: true,
+                    name: true,
+                    school: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        orderItems: {
+          where: {
+            order: {
+              status: OrderStatus.APPROVED,
+            },
+          },
+          include: {
+            order: {
+              select: {
+                id: true,
+                createdAt: true,
+                user: {
+                  select: {
+                    name: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+      orderBy: [{ student: { name: 'asc' } }],
+    });
+
+    return books.map((book) => {
+      let totalQuantity = 0;
+      let waitingPrintQuantity = 0;
+      let printedQuantity = 0;
+      let deliveredToSchoolQuantity = 0;
+      let deliveredToFamilyQuantity = 0;
+
+      const orders = book.orderItems.map((item) => {
+        totalQuantity += item.quantity;
+        if (item.fulfillmentStatus === FulfillmentStatus.WAITING_PRINT) {
+          waitingPrintQuantity += item.quantity;
+        } else if (item.fulfillmentStatus === FulfillmentStatus.PRINTED) {
+          printedQuantity += item.quantity;
+        } else if (
+          item.fulfillmentStatus === FulfillmentStatus.DELIVERED_TO_SCHOOL
+        ) {
+          deliveredToSchoolQuantity += item.quantity;
+        } else if (
+          item.fulfillmentStatus === FulfillmentStatus.DELIVERED_TO_FAMILY
+        ) {
+          deliveredToFamilyQuantity += item.quantity;
+        }
+
+        return {
+          orderId: item.orderId,
+          buyerName: item.order.user.name,
+          buyerEmail: item.order.user.email,
+          quantity: item.quantity,
+          fulfillmentStatus: item.fulfillmentStatus as FulfillmentStatusEnum,
+          printedAt: item.printedAt?.toISOString() ?? null,
+          deliveredToSchoolAt: item.deliveredToSchoolAt?.toISOString() ?? null,
+          deliveredToFamilyAt: item.deliveredToFamilyAt?.toISOString() ?? null,
+          orderCreatedAt: item.order.createdAt.toISOString(),
+        };
+      });
+
+      return {
+        bookId: book.id,
+        magnificCode: book.magnificCode,
+        title: book.title,
+        interiorPdfUrl: book.interiorPdfUrl,
+        coverPdfUrl: book.coverPdfUrl,
+        student: {
+          id: book.student.id,
+          name: book.student.name,
+          class: {
+            id: book.student.class.id,
+            name: book.student.class.name,
+            schoolYear: book.student.class.schoolYear,
+            units: {
+              id: book.student.class.units.id,
+              name: book.student.class.units.name,
+              school: {
+                id: book.student.class.units.school.id,
+                name: book.student.class.units.school.name,
+              },
+            },
+          },
+        },
+        totalQuantity,
+        waitingPrintQuantity,
+        printedQuantity,
+        deliveredToSchoolQuantity,
+        deliveredToFamilyQuantity,
+        orders,
+      };
+    });
+  }
+
+  async updateEventBookFulfillment(
+    eventId: string,
+    bookId: string,
+    status: FulfillmentStatusEnum,
+    user: AuthUser,
+  ): Promise<UpdateFulfillmentResponse> {
+    if (user.role !== UserRole.ADMIN) {
+      throw new UnauthorizedUserIsNotAdminException();
+    }
+
+    const book = await this.prisma.book.findFirst({
+      where: { id: bookId, authographsEventId: eventId },
+      select: { id: true },
+    });
+
+    if (!book) throw new NotFoundBookException();
+
+    const now = new Date();
+    const updateData: Prisma.OrderItemUpdateManyMutationInput = {
+      fulfillmentStatus: status as FulfillmentStatus,
+    };
+
+    if (status === FulfillmentStatusEnum.WAITING_PRINT) {
+      updateData.printedAt = null;
+      updateData.deliveredToSchoolAt = null;
+      updateData.deliveredToFamilyAt = null;
+    } else if (status === FulfillmentStatusEnum.PRINTED) {
+      updateData.printedAt = now;
+      updateData.deliveredToSchoolAt = null;
+      updateData.deliveredToFamilyAt = null;
+    } else if (status === FulfillmentStatusEnum.DELIVERED_TO_SCHOOL) {
+      updateData.deliveredToSchoolAt = now;
+      updateData.deliveredToFamilyAt = null;
+    } else if (status === FulfillmentStatusEnum.DELIVERED_TO_FAMILY) {
+      updateData.deliveredToFamilyAt = now;
+    }
+
+    const orderItems = await this.prisma.orderItem.findMany({
+      where: {
+        bookId,
+        order: {
+          status: OrderStatus.APPROVED,
+        },
+      },
+      select: { orderId: true },
+    });
+
+    await this.prisma.orderItem.updateMany({
+      where: {
+        bookId,
+        order: {
+          status: OrderStatus.APPROVED,
+        },
+      },
+      data: updateData,
+    });
+
+    const orderIds = [...new Set(orderItems.map((item) => item.orderId))];
+    await Promise.all(orderIds.map((id) => this.syncOrderFulfillment(id)));
+
+    return {
+      success: true,
+      message: `Status de produção atualizado para ${status}`,
+    };
+  }
+
+  async updateEventOrderItemFulfillment(
+    eventId: string,
+    orderId: string,
+    bookId: string,
+    status: FulfillmentStatusEnum,
+    user: AuthUser,
+  ): Promise<UpdateFulfillmentResponse> {
+    if (user.role !== UserRole.ADMIN) {
+      throw new UnauthorizedUserIsNotAdminException();
+    }
+
+    const orderItem = await this.prisma.orderItem.findUnique({
+      where: {
+        orderId_bookId: {
+          orderId,
+          bookId,
+        },
+      },
+      include: {
+        book: {
+          select: { authographsEventId: true },
+        },
+      },
+    });
+
+    if (!orderItem || orderItem.book.authographsEventId !== eventId) {
+      throw new NotFoundOrderItemException(orderId, bookId);
+    }
+
+    const now = new Date();
+    const updateData: Prisma.OrderItemUpdateInput = {
+      fulfillmentStatus: status as FulfillmentStatus,
+    };
+
+    if (status === FulfillmentStatusEnum.WAITING_PRINT) {
+      updateData.printedAt = null;
+      updateData.deliveredToSchoolAt = null;
+      updateData.deliveredToFamilyAt = null;
+    } else if (status === FulfillmentStatusEnum.PRINTED) {
+      updateData.printedAt = now;
+      updateData.deliveredToSchoolAt = null;
+      updateData.deliveredToFamilyAt = null;
+    } else if (status === FulfillmentStatusEnum.DELIVERED_TO_SCHOOL) {
+      updateData.deliveredToSchoolAt = now;
+      updateData.deliveredToFamilyAt = null;
+    } else if (status === FulfillmentStatusEnum.DELIVERED_TO_FAMILY) {
+      updateData.deliveredToFamilyAt = now;
+    }
+
+    await this.prisma.orderItem.update({
+      where: {
+        orderId_bookId: {
+          orderId,
+          bookId,
+        },
+      },
+      data: updateData,
+    });
+
+    await this.syncOrderFulfillment(orderId);
+
+    return {
+      success: true,
+      message: `Status do item atualizado para ${status}`,
+    };
+  }
+
+  private async syncOrderFulfillment(orderId: string): Promise<void> {
+    const items = await this.prisma.orderItem.findMany({
+      where: { orderId },
+      select: { fulfillmentStatus: true },
+    });
+
+    if (!items || items.length === 0) return;
+
+    const allDeliveredToFamily = items.every(
+      (i) => i.fulfillmentStatus === FulfillmentStatus.DELIVERED_TO_FAMILY,
+    );
+    const allDeliveredToSchool = items.every(
+      (i) =>
+        i.fulfillmentStatus === FulfillmentStatus.DELIVERED_TO_SCHOOL ||
+        i.fulfillmentStatus === FulfillmentStatus.DELIVERED_TO_FAMILY,
+    );
+    const allPrinted = items.every(
+      (i) =>
+        i.fulfillmentStatus === FulfillmentStatus.PRINTED ||
+        i.fulfillmentStatus === FulfillmentStatus.DELIVERED_TO_SCHOOL ||
+        i.fulfillmentStatus === FulfillmentStatus.DELIVERED_TO_FAMILY,
+    );
+
+    let newStatus: FulfillmentStatus = FulfillmentStatus.WAITING_PRINT;
+    if (allDeliveredToFamily) {
+      newStatus = FulfillmentStatus.DELIVERED_TO_FAMILY;
+    } else if (allDeliveredToSchool) {
+      newStatus = FulfillmentStatus.DELIVERED_TO_SCHOOL;
+    } else if (allPrinted) {
+      newStatus = FulfillmentStatus.PRINTED;
+    }
+
+    const orderUpdateData: Prisma.OrderUpdateInput = {
+      fulfillmentStatus: newStatus,
+    };
+    if (newStatus !== FulfillmentStatus.DELIVERED_TO_FAMILY) {
+      orderUpdateData.deliveredToFamilyAt = null;
+    }
+
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: orderUpdateData,
+    });
   }
 
   async create(

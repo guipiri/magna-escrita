@@ -9,6 +9,7 @@ import {
   ChevronRight,
   UserCog,
   Coins,
+  ShoppingBag,
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { motion } from 'motion/react';
@@ -71,6 +72,12 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
       icon: BookOpen,
       label: 'Livros',
       path: routes.books.path,
+      shouldBeVisible: true,
+    },
+    {
+      icon: ShoppingBag,
+      label: 'Pedidos',
+      path: routes.orders.path,
       shouldBeVisible: true,
     },
 

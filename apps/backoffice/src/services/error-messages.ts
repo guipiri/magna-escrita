@@ -25,6 +25,7 @@ export const errorMessages: Record<ErrorKeys, string> = {
   INTERNAL_ERROR: 'Ocorreu um erro interno no servidor.',
 
   NOT_FOUND_ORDER: 'Pedido não encontrado.',
+  NOT_FOUND_ORDER_ITEM: 'Item do pedido não encontrado.',
   NOT_FOUND_SCHOOL: 'Escola não encontrada.',
   NOT_FOUND_UNIT: 'Unidade não encontrada.',
   NOT_FOUND_EVENT: 'Evento não encontrado.',
@@ -39,6 +40,8 @@ export const errorMessages: Record<ErrorKeys, string> = {
   BAD_REQUEST_MULTIPLE_UNITS_ACCESS:
     'Usuário tem acesso a múltiplas unidades. Selecione uma unidade para continuar.',
   BAD_REQUEST_NO_VALID_UNIT_ID: 'Nenhuma unidade válida encontrada.',
+  BAD_REQUEST_ORDER_ITEMS_NOT_DELIVERED_TO_SCHOOL:
+    'Todos os itens do pedido devem estar entregues à escola para confirmar a entrega à família.',
   CONFLICT_EVENT_ALREADY_ACTIVE:
     'Já existe um evento planejado ou em andamento para esta unidade.',
 

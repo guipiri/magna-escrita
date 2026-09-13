@@ -3,8 +3,20 @@ import { randomUUID } from 'node:crypto';
 import { MercadoPagoProvider } from './providers/mercado-pago.provider.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
 import { PrismaService } from '../db/db.service.js';
-import { OrderStatus, Prisma } from '@prisma/client';
+import { FulfillmentStatus, OrderStatus, Prisma } from '@prisma/client';
+import type {
+  AuthUser,
+  DeliverOrderToFamilyResponse,
+  GetBackofficeOrdersResponse,
+  RevertOrderFamilyDeliveryResponse,
+} from '@repo/shared';
 import {
+  FulfillmentStatusEnum,
+  OrderStatusEnum,
+  UserRole,
+} from '@repo/shared';
+import {
+  BadRequestOrderItemsNotDeliveredToSchoolException,
   CreateCardOrderFailedException,
   CreatePixOrderFailedException,
   NotFoundOrderException,
@@ -329,6 +341,278 @@ export class OrdersService {
     });
 
     return { orders };
+  }
+
+  async getBackofficeOrders(
+    user: AuthUser,
+  ): Promise<GetBackofficeOrdersResponse> {
+    const isSchool = user.role === UserRole.SCHOOL;
+
+    const orders = await this.prisma.order.findMany({
+      where: isSchool
+        ? {
+            items: {
+              some: {
+                book: {
+                  student: {
+                    class: {
+                      units: {
+                        userUnits: { some: { userId: user.id } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          }
+        : undefined,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        items: {
+          include: {
+            book: {
+              select: {
+                id: true,
+                magnificCode: true,
+                title: true,
+                interiorPdfUrl: true,
+                coverPdfUrl: true,
+                student: {
+                  select: {
+                    id: true,
+                    name: true,
+                    class: {
+                      select: {
+                        id: true,
+                        name: true,
+                        schoolYear: true,
+                        units: {
+                          select: {
+                            id: true,
+                            name: true,
+                            school: {
+                              select: {
+                                id: true,
+                                name: true,
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return orders.map((order) => ({
+      id: order.id,
+      mpId: order.mpId,
+      status: order.status as OrderStatusEnum,
+      fulfillmentStatus: order.fulfillmentStatus as FulfillmentStatusEnum,
+      paymentMethod: order.paymentMethod,
+      paymentMethodDetail: order.paymentMethodDetail,
+      totalAmount: isSchool ? null : Number(order.totalAmount),
+      email: order.email,
+      installments: order.installments,
+      createdAt: order.createdAt.toISOString(),
+      updatedAt: order.updatedAt.toISOString(),
+      deliveredToFamilyAt: order.deliveredToFamilyAt?.toISOString() ?? null,
+      user: {
+        id: order.user.id,
+        name: order.user.name,
+        email: order.user.email,
+      },
+      items: order.items.map((item) => ({
+        orderId: item.orderId,
+        bookId: item.bookId,
+        quantity: item.quantity,
+        amount: isSchool ? null : Number(item.amount),
+        fulfillmentStatus: item.fulfillmentStatus as FulfillmentStatusEnum,
+        printedAt: item.printedAt?.toISOString() ?? null,
+        deliveredToSchoolAt: item.deliveredToSchoolAt?.toISOString() ?? null,
+        deliveredToFamilyAt: item.deliveredToFamilyAt?.toISOString() ?? null,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString(),
+        book: {
+          id: item.book.id,
+          magnificCode: item.book.magnificCode,
+          title: item.book.title,
+          interiorPdfUrl: item.book.interiorPdfUrl,
+          coverPdfUrl: item.book.coverPdfUrl,
+          student: {
+            id: item.book.student.id,
+            name: item.book.student.name,
+            class: {
+              id: item.book.student.class.id,
+              name: item.book.student.class.name,
+              schoolYear: item.book.student.class.schoolYear,
+              units: {
+                id: item.book.student.class.units.id,
+                name: item.book.student.class.units.name,
+                school: {
+                  id: item.book.student.class.units.school.id,
+                  name: item.book.student.class.units.school.name,
+                },
+              },
+            },
+          },
+        },
+      })),
+    }));
+  }
+
+  async deliverOrderToFamily(
+    orderId: string,
+    user: AuthUser,
+  ): Promise<DeliverOrderToFamilyResponse> {
+    const isSchool = user.role === UserRole.SCHOOL;
+
+    const order = await this.prisma.order.findFirst({
+      where: {
+        id: orderId,
+        ...(isSchool
+          ? {
+              items: {
+                some: {
+                  book: {
+                    student: {
+                      class: {
+                        units: {
+                          userUnits: { some: { userId: user.id } },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            }
+          : {}),
+      },
+      include: {
+        items: {
+          select: {
+            fulfillmentStatus: true,
+          },
+        },
+      },
+    });
+
+    if (!order) throw new NotFoundOrderException(orderId);
+
+    const canDeliver =
+      order.items.length > 0 &&
+      order.items.every(
+        (item) =>
+          item.fulfillmentStatus === FulfillmentStatus.DELIVERED_TO_SCHOOL ||
+          item.fulfillmentStatus === FulfillmentStatus.DELIVERED_TO_FAMILY,
+      );
+
+    if (!canDeliver) {
+      throw new BadRequestOrderItemsNotDeliveredToSchoolException();
+    }
+
+    const now = new Date();
+
+    await this.prisma.$transaction([
+      this.prisma.orderItem.updateMany({
+        where: { orderId },
+        data: {
+          fulfillmentStatus: FulfillmentStatus.DELIVERED_TO_FAMILY,
+          deliveredToFamilyAt: now,
+        },
+      }),
+      this.prisma.order.update({
+        where: { id: orderId },
+        data: {
+          fulfillmentStatus: FulfillmentStatus.DELIVERED_TO_FAMILY,
+          deliveredToFamilyAt: now,
+        },
+      }),
+    ]);
+
+    return {
+      success: true,
+      orderId,
+      fulfillmentStatus: FulfillmentStatusEnum.DELIVERED_TO_FAMILY,
+      deliveredToFamilyAt: now.toISOString(),
+    };
+  }
+
+  async revertOrderFamilyDelivery(
+    orderId: string,
+    user: AuthUser,
+  ): Promise<RevertOrderFamilyDeliveryResponse> {
+    const isSchool = user.role === UserRole.SCHOOL;
+
+    const order = await this.prisma.order.findFirst({
+      where: {
+        id: orderId,
+        ...(isSchool
+          ? {
+              items: {
+                some: {
+                  book: {
+                    student: {
+                      class: {
+                        units: {
+                          userUnits: { some: { userId: user.id } },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            }
+          : {}),
+      },
+      include: {
+        items: {
+          select: {
+            fulfillmentStatus: true,
+          },
+        },
+      },
+    });
+
+    if (!order) throw new NotFoundOrderException(orderId);
+
+    await this.prisma.$transaction([
+      this.prisma.orderItem.updateMany({
+        where: {
+          orderId,
+          fulfillmentStatus: FulfillmentStatus.DELIVERED_TO_FAMILY,
+        },
+        data: {
+          fulfillmentStatus: FulfillmentStatus.DELIVERED_TO_SCHOOL,
+          deliveredToFamilyAt: null,
+        },
+      }),
+      this.prisma.order.update({
+        where: { id: orderId },
+        data: {
+          fulfillmentStatus: FulfillmentStatus.DELIVERED_TO_SCHOOL,
+          deliveredToFamilyAt: null,
+        },
+      }),
+    ]);
+
+    return {
+      success: true,
+      orderId,
+      fulfillmentStatus: FulfillmentStatusEnum.DELIVERED_TO_SCHOOL,
+    };
   }
 
   private async syncOrderStatus({

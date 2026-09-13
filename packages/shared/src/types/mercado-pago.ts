@@ -20,9 +20,11 @@ export interface OrderSummaryItem {
   book: OrderBook;
 }
 
+import type { OrderStatusEnum } from './orders.js';
+
 export interface OrderSummary {
   id: string;
-  status: string;
+  status: OrderStatusEnum | string;
   totalAmount: string | number;
   items: OrderSummaryItem[];
 }

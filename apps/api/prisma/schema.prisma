@@ -18,6 +18,13 @@ enum OrderStatus {
   REFUNDED
 }
 
+enum FulfillmentStatus {
+  WAITING_PRINT
+  PRINTED
+  DELIVERED_TO_SCHOOL
+  DELIVERED_TO_FAMILY
+}
+
 enum Role {
   ADMIN
   SCHOOL
@@ -25,23 +32,25 @@ enum Role {
 }
 
 model Order {
-  id                   String      @id @default(cuid())
-  mpId                 String      @unique
-  status               OrderStatus @default(PENDING)
+  id                   String            @id @default(cuid())
+  mpId                 String            @unique
+  status               OrderStatus       @default(PENDING)
+  fulfillmentStatus    FulfillmentStatus @default(WAITING_PRINT)
   paymentMethod        String
   paymentMethodDetail  String?
-  totalAmount          Decimal     @db.Decimal(10, 2)
+  totalAmount          Decimal           @db.Decimal(10, 2)
   email                String
   userId               String
-  user                 User        @relation(fields: [userId], references: [id])
+  user                 User              @relation(fields: [userId], references: [id])
   identificationType   String?
   identificationNumber String?
   token                String?
   installments         Int
   issuerId             String?
+  deliveredToFamilyAt  DateTime?
   items                OrderItem[]
-  createdAt            DateTime    @default(now())
-  updatedAt            DateTime    @updatedAt
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 }
 
 model Price {
@@ -143,12 +152,16 @@ model BookTemplatePage {
 }
 
 model OrderItem {
-  orderId  String
-  order    Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  bookId   String
-  book     Book    @relation(fields: [bookId], references: [id])
-  quantity Int
-  amount   Decimal @db.Decimal(10, 2)
+  orderId             String
+  order               Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  bookId              String
+  book                Book              @relation(fields: [bookId], references: [id])
+  quantity            Int
+  amount              Decimal           @db.Decimal(10, 2)
+  fulfillmentStatus   FulfillmentStatus @default(WAITING_PRINT)
+  printedAt           DateTime?
+  deliveredToSchoolAt DateTime?
+  deliveredToFamilyAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -24,6 +24,8 @@ import { BooksPage } from './pages/books';
 import { BookDetailPage } from './pages/book-detail';
 import { UsersPage } from './pages/users';
 import { PricesPage } from './pages/prices';
+import { OrdersPage } from './pages/orders';
+import { EventDetailPage } from './pages/event-detail';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
@@ -95,6 +97,14 @@ export const routes = {
   },
   prices: {
     path: '/precos',
+    allowedRoles: [UserRole.ADMIN],
+  },
+  orders: {
+    path: '/pedidos',
+    allowedRoles: defaultBackofficeAllowedRoles,
+  },
+  eventDetail: {
+    path: '/eventos/:id',
     allowedRoles: [UserRole.ADMIN],
   },
 };
@@ -187,6 +197,22 @@ const AppRoutes = () => (
           element={
             <RequireAuth allowedRoles={routes.prices.allowedRoles}>
               <PricesPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={routes.orders.path}
+          element={
+            <RequireAuth>
+              <OrdersPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path={routes.eventDetail.path}
+          element={
+            <RequireAuth allowedRoles={routes.eventDetail.allowedRoles}>
+              <EventDetailPage />
             </RequireAuth>
           }
         />

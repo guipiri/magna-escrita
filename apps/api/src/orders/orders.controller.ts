@@ -4,6 +4,7 @@ import {
   Body,
   UseGuards,
   Get,
+  Patch,
   Param,
   Logger,
 } from '@nestjs/common';
@@ -11,8 +12,14 @@ import { OrdersService } from './orders.service.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
 import { WebhookSignatureGuard } from './guards/webhook-signature.guard.js';
 import { AuthGuard } from '../auth/guards/auth.guard.js';
+import { BackofficeGuard } from '../auth/guards/backoffice.guard.js';
 import { User } from '../auth/auth.decorator.js';
-import type { AuthUser } from '@repo/shared';
+import type {
+  AuthUser,
+  GetBackofficeOrdersResponse,
+  DeliverOrderToFamilyResponse,
+  RevertOrderFamilyDeliveryResponse,
+} from '@repo/shared';
 
 @Controller('order')
 export class OrdersController {
@@ -31,6 +38,32 @@ export class OrdersController {
   async listOrders(@User() user: AuthUser) {
     this.logger.debug(`Listing orders for user: ${user.email}`);
     return this.ordersService.getOrders(user.id);
+  }
+
+  @Get('backoffice')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  getBackofficeOrders(
+    @User() user: AuthUser,
+  ): Promise<GetBackofficeOrdersResponse> {
+    return this.ordersService.getBackofficeOrders(user);
+  }
+
+  @Patch('backoffice/:orderId/deliver')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  deliverOrderToFamily(
+    @Param('orderId') orderId: string,
+    @User() user: AuthUser,
+  ): Promise<DeliverOrderToFamilyResponse> {
+    return this.ordersService.deliverOrderToFamily(orderId, user);
+  }
+
+  @Patch('backoffice/:orderId/revert-delivery')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  revertOrderFamilyDelivery(
+    @Param('orderId') orderId: string,
+    @User() user: AuthUser,
+  ): Promise<RevertOrderFamilyDeliveryResponse> {
+    return this.ordersService.revertOrderFamilyDelivery(orderId, user);
   }
 
   @Get(':id')
