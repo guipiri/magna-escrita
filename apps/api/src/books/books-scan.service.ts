@@ -99,6 +99,10 @@ export class BooksScanService {
           mimetype: item.mimetype,
           storageKey: item.storageKey,
         },
+        opts: {
+          attempts: 1,
+          removeOnComplete: true,
+        },
       }));
 
       await this.booksScanQueue.addBulk(jobs);

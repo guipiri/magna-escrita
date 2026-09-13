@@ -17,11 +17,7 @@ import { BOOK_SCAN_QUEUE_NAME } from './books-scan.queue.js';
     BullModule.registerQueue({
       name: BOOK_SCAN_QUEUE_NAME,
       defaultJobOptions: {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
-        },
+        attempts: 1,
         removeOnComplete: true,
       },
     }),

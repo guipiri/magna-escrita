@@ -25,7 +25,7 @@ import {
   NotFoundStudentException,
 } from './books-scan.errors.js';
 import { ScanPageResult, ScanPageStatusEnum } from '@repo/shared';
-import { ScanPageJobPayload } from './books-scan.queue.js';
+import { BOOK_SCAN_QUEUE_NAME, ScanPageJobPayload } from './books-scan.queue.js';
 
 interface QrCodeData {
   studentId: string;
@@ -51,7 +51,7 @@ const updateBatchScript = `
   return newBatchData
 `;
 
-@Processor('books-scan')
+@Processor(BOOK_SCAN_QUEUE_NAME)
 @Injectable()
 export class BooksScanProcessor extends WorkerHost {
   private readonly logger = new Logger(BooksScanProcessor.name);
