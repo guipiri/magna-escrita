@@ -52,6 +52,7 @@ export function ClassesPage() {
       booksRevisedBySchool:
         _class.bookCount.revisedBySchool +
         _class.bookCount.ready +
+        _class.bookCount.readyForSale +
         _class.bookCount.archived,
       schoolYear: _class.schoolYear,
       schoolName: _class.school.name,

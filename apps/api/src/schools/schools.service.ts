@@ -142,8 +142,13 @@ export class SchoolsService {
 
               const isCompleted =
                 user.role === UserRole.ADMIN
-                  ? be.status === BookStatus.REVISED_BY_MAGNA
-                  : be.status === BookStatus.REVISED_BY_SCHOOL;
+                  ? be.status === BookStatus.REVISED_BY_MAGNA ||
+                    be.status === BookStatus.READY_FOR_SALE ||
+                    be.status === BookStatus.ARCHIVED
+                  : be.status === BookStatus.REVISED_BY_SCHOOL ||
+                    be.status === BookStatus.REVISED_BY_MAGNA ||
+                    be.status === BookStatus.READY_FOR_SALE ||
+                    be.status === BookStatus.ARCHIVED;
 
               if (isCompleted) completedBookIds.add(be.id);
             }

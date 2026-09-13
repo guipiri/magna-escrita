@@ -65,6 +65,7 @@ export interface GetClassesResponse {
     draft: number;
     revisedBySchool: number;
     ready: number;
+    readyForSale: number;
     archived: number;
     completed: number; // READY for ADMIN, FOR_REVIEW for SCHOOL
   };

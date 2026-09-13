@@ -87,15 +87,16 @@ export class ClassesService {
         draft: 0,
         revisedBySchool: 0,
         ready: 0,
+        readyForSale: 0,
         archived: 0,
         completed: 0,
       };
 
-      const uniqueBooksByStatus = new Map<string, Set<string>>();
+      const uniqueBooksByStatus = new Map<BookStatus, Set<string>>();
       _class.students.forEach((student) => {
         student.books.forEach((book) => {
           const bookId = String(book.id);
-          const bookStatus = String(book.status);
+          const bookStatus = book.status;
 
           if (!uniqueBooksByStatus.has(bookStatus)) {
             uniqueBooksByStatus.set(bookStatus, new Set<string>());
@@ -114,6 +115,8 @@ export class ClassesService {
           bookStatusCount.revisedBySchool = count;
         else if (status === BookStatus.REVISED_BY_MAGNA)
           bookStatusCount.ready = count;
+        else if (status === BookStatus.READY_FOR_SALE)
+          bookStatusCount.readyForSale = count;
         else if (status === BookStatus.ARCHIVED)
           bookStatusCount.archived = count;
       });
@@ -122,11 +125,14 @@ export class ClassesService {
 
       if (user.role === UserRole.ADMIN) {
         bookStatusCount.completed =
-          bookStatusCount.ready + bookStatusCount.archived;
+          bookStatusCount.ready +
+          bookStatusCount.readyForSale +
+          bookStatusCount.archived;
       } else {
         bookStatusCount.completed =
           bookStatusCount.revisedBySchool +
           bookStatusCount.ready +
+          bookStatusCount.readyForSale +
           bookStatusCount.archived;
       }
 
