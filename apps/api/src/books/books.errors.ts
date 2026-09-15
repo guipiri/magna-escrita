@@ -98,3 +98,12 @@ export class ForbiddenPageUpdateException extends ForbiddenException {
     } satisfies HttpExceptionConstructor);
   }
 }
+
+export class BadRequestBookNotDraftException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.BAD_REQUEST_BOOK_NOT_DRAFT,
+      message: 'Apenas livros com status Rascunho podem ser excluídos.',
+    } satisfies HttpExceptionConstructor);
+  }
+}

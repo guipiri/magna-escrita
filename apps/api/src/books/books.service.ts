@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -11,6 +12,7 @@ import {
   BadRequestPageNotRevisedBySchoolException,
   NotFoundPageException,
   ForbiddenPageUpdateException,
+  BadRequestBookNotDraftException,
 } from './books.errors.js';
 import type {
   GetBookDetailResponse,
@@ -32,8 +34,6 @@ import {
 } from '@prisma/client';
 import { PdfService } from '../pdf/pdf.service.js';
 import {
-  getBookCoverBucketKey,
-  getBookInteriorBucketKey,
   getOriginalPageUploadBucketPath,
   getProcessedPageUploadBucketPath,
 } from '../common/bucket/bucket.utils.js';
@@ -109,6 +109,11 @@ export class BooksService {
             },
           },
         },
+        pages: {
+          select: {
+            status: true,
+          },
+        },
       },
       orderBy: [{ createdAt: 'desc' }],
     });
@@ -118,6 +123,11 @@ export class BooksService {
       magnificCode: book.magnificCode,
       title: book.title,
       status: book.status,
+      hasRevisedPages: book.pages.some(
+        (page) =>
+          page.status === PageStatusEnum.REVISED_BY_SCHOOL ||
+          page.status === PageStatusEnum.READY,
+      ),
       student: {
         id: book.student.id,
         name: book.student.name,
@@ -898,5 +908,42 @@ export class BooksService {
     );
 
     return this.getById(book.id, user);
+  }
+
+  async deleteBook(id: string, user: AuthUser): Promise<void> {
+    const book = await this.prisma.book.findUnique({
+      where: { id },
+      include: {
+        student: {
+          include: {
+            class: {
+              include: {
+                units: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!book) throw new NotFoundBookException();
+
+    if (user.role !== UserRole.ADMIN) {
+      const hasAccess = await this.prisma.userUnit.findFirst({
+        where: {
+          userId: user.id,
+          unitId: book.student.class.units.id,
+        },
+      });
+
+      if (!hasAccess) throw new UnauthorizedUserNoAccessToUnitException();
+    }
+
+    if (book.status !== BookStatusEnum.DRAFT)
+      throw new BadRequestBookNotDraftException();
+
+    await this.prisma.book.delete({
+      where: { id },
+    });
   }
 }

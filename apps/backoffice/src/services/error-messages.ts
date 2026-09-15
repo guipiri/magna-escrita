@@ -141,6 +141,7 @@ export const errorMessages: Record<ErrorKeys, string> = {
   BAD_REQUEST_PAGE_WITHOUT_CONTENT: 'Não é permitido marcar uma página sem conteúdo como revisada.',
   BAD_REQUEST_INVALID_STATUS_FOR_ROLE: 'Status inválido para o perfil de usuário.',
   BAD_REQUEST_PAGE_NOT_REVISED_BY_SCHOOL: 'Alteração para Pronto permitida apenas se já revisado pela escola.',
+  BAD_REQUEST_BOOK_NOT_DRAFT: 'Apenas livros com status Rascunho podem ser excluídos.',
   NOT_FOUND_PAGE: 'Página não encontrada.',
   FORBIDDEN_PAGE_UPDATE: 'Usuário não autorizado a alterar o status da página.',
 

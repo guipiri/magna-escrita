@@ -60,6 +60,7 @@ export interface GetBooksListResponse {
   magnificCode: string;
   title: string | null;
   status: BookStatus;
+  hasRevisedPages: boolean;
   student: {
     id: string;
     name: string;

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -41,6 +42,12 @@ export class BooksController {
   @UseGuards(AuthGuard, BackofficeGuard)
   getById(@Param('id') id: string, @User() user: AuthUser) {
     return this.booksService.getById(id, user);
+  }
+
+  @Delete('backoffice/:id')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  deleteBook(@Param('id') id: string, @User() user: AuthUser): Promise<void> {
+    return this.booksService.deleteBook(id, user);
   }
 
   @Post('backoffice/:id/generate-pdf')

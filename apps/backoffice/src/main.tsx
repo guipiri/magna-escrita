@@ -107,7 +107,7 @@ export const routes = {
     path: '/eventos/:id',
     allowedRoles: [UserRole.ADMIN],
   },
-};
+} as const satisfies Record<string, { path: string; allowedRoles: UserRole[] }>;
 
 const RootRoute = () => {
   const { user, isLoading } = useAuth();
@@ -130,7 +130,7 @@ const RootRoute = () => {
 const AppRoutes = () => (
   <BrowserRouter>
     <Routes>
-      <Route path="/" element={<RootRoute />} />
+      <Route path='/' element={<RootRoute />} />
       <Route path={routes.login.path} element={<LoginPage />} />
       <Route element={<MainLayout />}>
         <Route

@@ -185,3 +185,8 @@ export const generateFinalBookPdf = async (
   return response.data;
 };
 
+export const deleteBook = async (bookId: string): Promise<void> => {
+  await api.delete(`/books/backoffice/${bookId}`);
+};
+
+

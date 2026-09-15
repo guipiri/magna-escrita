@@ -20,6 +20,7 @@ import {
   UploadCloud,
   X,
   RotateCw,
+  Trash2,
 } from 'lucide-react';
 import {
   type BookDetailPage,
@@ -52,10 +53,12 @@ import { Input } from '../components/ui/input';
 import { cn } from '../components/ui/utils';
 import { useSnackbar } from 'notistack';
 import { BookImageEditorDialog } from '../components/books/book-image-editor-dialog';
+import { DeleteBookDialog } from '../components/books/delete-book-dialog';
 import { Checkbox } from '../components/ui/checkbox';
 import { useAuth } from '../hooks/auth-hook';
 import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert';
 import { getBookStatusConfig } from '../utils/book-status';
+import { routes } from '../main';
 
 /* ─── helpers ───────────────────────────────────────────── */
 
@@ -273,7 +276,13 @@ function PageCard({ page, book, isActive }: PageCardProps) {
   });
 
   const saveDrawMutation = useMutation({
-    mutationFn: ({ file, originalFile }: { file: File; originalFile?: File }) => {
+    mutationFn: ({
+      file,
+      originalFile,
+    }: {
+      file: File;
+      originalFile?: File;
+    }) => {
       if (isReadOnlyForSchool) {
         throw new Error(getErrorMessageByKey(ErrorKeys.FORBIDDEN_BOOK_READY));
       }
@@ -545,7 +554,8 @@ function PageCard({ page, book, isActive }: PageCardProps) {
                       Folha escaneada aguardando recorte
                     </p>
                     <p className='text-xs text-muted-foreground'>
-                      Selecione a área do desenho na folha original para definir a imagem final do livro.
+                      Selecione a área do desenho na folha original para definir
+                      a imagem final do livro.
                     </p>
                   </div>
                   {!isReadOnlyForSchool && (
@@ -1234,6 +1244,7 @@ export function BookDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { user } = useAuth();
 
   const {
@@ -1365,6 +1376,18 @@ export function BookDetailPage() {
                 </p>
               </div>
             </div>
+
+            {book.status === BookStatusEnum.DRAFT && (
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => setIsDeleteDialogOpen(true)}
+                className='gap-2 text-destructive border-destructive/30 hover:bg-destructive/10 sm:self-start'
+              >
+                <Trash2 className='size-4' />
+                Excluir livro
+              </Button>
+            )}
           </div>
 
           {/* info cards */}
@@ -1529,6 +1552,23 @@ export function BookDetailPage() {
           </Card>
         </div>
       </div>
+
+      <DeleteBookDialog
+        book={{
+          id: book.id,
+          title: book.title,
+          studentName: book.student.name,
+          status: book.status,
+          hasRevisedPages: book.pages.some(
+            (p) =>
+              p.status === PageStatusEnum.REVISED_BY_SCHOOL ||
+              p.status === PageStatusEnum.READY,
+          ),
+        }}
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onSuccess={() => navigate(routes.books.path)}
+      />
     </main>
   );
 }
