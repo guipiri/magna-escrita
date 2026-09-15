@@ -65,7 +65,7 @@ export const downloadClassPdf = async (classId: string): Promise<void> => {
   const url = URL.createObjectURL(response.data);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'autografos.pdf';
+  a.download = 'folhas-de-trabalho.pdf';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

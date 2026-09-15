@@ -21,7 +21,7 @@ export class PdfController {
 
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="autografos.pdf"`,
+      'Content-Disposition': `attachment; filename="folhas-de-trabalho.pdf"`,
       'Content-Length': buffer.length.toString(),
     });
 
