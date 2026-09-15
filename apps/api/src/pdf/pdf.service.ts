@@ -225,7 +225,25 @@ export class PdfService {
       students,
       eligiblePages,
     } = params;
-    const totalPagesPerStudent = eligiblePages.length;
+    let drawCount = 0;
+    let textCount = 0;
+    const pageLabels = eligiblePages.map((page) => {
+      if (page.pageType === PageType.COVER) {
+        return 'DESENHO DA CAPA E TÍTULO';
+      }
+      if (
+        page.pageType === PageType.DRAW ||
+        page.pageType === PageType.DRAW_TEXT
+      ) {
+        drawCount++;
+        return `DESENHO ${drawCount}`;
+      }
+      if (page.pageType === PageType.TEXT) {
+        textCount++;
+        return `TEXTO ${textCount}`;
+      }
+      return '';
+    });
 
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({
@@ -249,7 +267,6 @@ export class PdfService {
         for (const student of students) {
           for (let i = 0; i < eligiblePages.length; i++) {
             const templatePage = eligiblePages[i];
-            const pageNum = i + 1;
 
             // Generate QR code for this page
             const qrData = JSON.stringify({
@@ -271,9 +288,7 @@ export class PdfService {
               unitName,
               schoolName,
               eventName,
-              pageNum,
-              pageType: templatePage!.pageType,
-              totalPagesPerStudent,
+              pageLabel: pageLabels[i] ?? '',
             });
             this.drawPageContent(doc, templatePage!.pageType);
           }
@@ -295,9 +310,7 @@ export class PdfService {
       unitName: string | null;
       schoolName: string;
       eventName: string;
-      pageNum: number;
-      pageType: PageType;
-      totalPagesPerStudent: number;
+      pageLabel: string;
     },
   ): void {
     const {
@@ -307,9 +320,7 @@ export class PdfService {
       unitName,
       schoolName,
       eventName,
-      pageNum,
-      pageType,
-      totalPagesPerStudent,
+      pageLabel,
     } = params;
 
     // QR Code image
@@ -344,12 +355,9 @@ export class PdfService {
       .font('Helvetica-Bold')
       .fontSize(9)
       .fillColor('#374151')
-      .text(
-        `Página ${pageNum} de ${totalPagesPerStudent}${pageType === PageType.COVER ? ' (CAPA)' : ''}`,
-        TEXT_X,
-        TEXT_Y_START + LINE_HEIGHT * 4,
-        { lineBreak: false },
-      );
+      .text(pageLabel, TEXT_X, TEXT_Y_START + LINE_HEIGHT * 4, {
+        lineBreak: false,
+      });
 
     // Separator line below header
     // const separatorY = PDF_MARGIN / 2 + HEADER_HEIGHT + 12;
@@ -1633,9 +1641,10 @@ export class PdfService {
             };
           };
         };
+        pages: true;
       };
     }>,
-    page: Prisma.PageGetPayload<{}>,
+    page: Prisma.PageGetPayload<null>,
   ): Promise<Buffer> {
     const MM_TO_PT = 72 / 25.4;
     const squareSize = 205 * MM_TO_PT;
