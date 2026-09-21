@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSnackbar } from 'notistack';
 import { getBooksByIds } from '../services/book-service';
 
 interface StoredCartItem {
@@ -78,7 +79,12 @@ const loadCart = (): StoredCartItem[] => {
 };
 
 function getBookUnitPrice(
-  book: { price: number; priceTiers?: Array<{ minQuantity: number; unitPrice: number }> } | undefined,
+  book:
+    | {
+        price: number;
+        priceTiers?: Array<{ minQuantity: number; unitPrice: number }>;
+      }
+    | undefined,
   quantity: number,
 ): number {
   if (!book) return 0;
@@ -93,6 +99,7 @@ function getBookUnitPrice(
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { enqueueSnackbar } = useSnackbar();
   const [storedItems, setStoredItems] = useState<StoredCartItem[]>(() =>
     loadCart(),
   );
@@ -118,11 +125,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const items = storedItems.map((item): CartItem => {
     const book = booksById.get(item.bookId);
-    
+
     // Apply per-book quantity tiered pricing rule
     const originalPrice = book?.price ?? 0;
     const price = book ? getBookUnitPrice(book, item.quantity) : 0;
-    
+
     const discountPerUnit = Math.max(0, originalPrice - price);
     const lineTotal = price * item.quantity;
     const originalLineTotal = originalPrice * item.quantity;
@@ -131,7 +138,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return {
       ...item,
       title: book?.title ?? 'Livro indisponível',
-      author: book?.author ?? 'Não encontramos este livro no banco de dados.',
+      author: book
+        ? `por ${book.studentName}`
+        : 'Não encontramos este livro no banco de dados.',
       price,
       originalPrice,
       discountPerUnit,
@@ -159,10 +168,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       return [...currentItems, { bookId, quantity: 1 }];
     });
+    enqueueSnackbar('Livro adicionado ao carrinho!', { variant: 'success' });
   };
 
   const increaseBook = (bookId: string) => {
-    addBook(bookId);
+    setStoredItems((currentItems) =>
+      currentItems.map((item) =>
+        item.bookId === bookId
+          ? { ...item, quantity: item.quantity + 1 }
+          : item,
+      ),
+    );
   };
 
   const decreaseBook = (bookId: string) => {
@@ -189,7 +205,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
-  const originalSubtotal = items.reduce((sum, item) => sum + item.originalLineTotal, 0);
+  const originalSubtotal = items.reduce(
+    (sum, item) => sum + item.originalLineTotal,
+    0,
+  );
   const totalDiscount = items.reduce((sum, item) => sum + item.lineDiscount, 0);
   const hasUnavailableItems =
     items.length > 0 &&

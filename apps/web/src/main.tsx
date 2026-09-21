@@ -8,6 +8,7 @@ import {
 } from 'react-router-dom';
 import { createRoot } from 'react-dom/client';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { SnackbarProvider } from 'notistack';
 import './style.css';
 import { CartProvider } from './context/cart-context';
 import { CartPage } from './pages/CartPage';
@@ -97,9 +98,14 @@ const AppRoutes = () => (
 const App = () => {
   const content = (
     <QueryProvider>
-      <CartProvider>
-        <AppRoutes />
-      </CartProvider>
+      <SnackbarProvider
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        autoHideDuration={3000}
+      >
+        <CartProvider>
+          <AppRoutes />
+        </CartProvider>
+      </SnackbarProvider>
     </QueryProvider>
   );
 
