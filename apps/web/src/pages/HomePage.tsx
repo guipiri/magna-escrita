@@ -58,10 +58,10 @@ export function HomePage() {
           </div>
 
           <h1 className='text-4xl md:text-5xl lg:text-6xl mb-4 bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent'>
-            Encontre o livro magnifico
+            Encontre o livro magnífico
           </h1>
           <p className='text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed'>
-            Digite o codigo magnifico recebido para abrir o livro da crianca e
+            Digite o codigo magnífico recebido para abrir o livro da crianca e
             viver a historia completa.
           </p>
         </motion.section>
@@ -74,7 +74,7 @@ export function HomePage() {
         >
           <form onSubmit={handleSubmit} className='space-y-4'>
             <label className='block text-sm font-semibold text-gray-700'>
-              Codigo magnifico
+              Codigo magnífico
             </label>
             <div className='flex flex-col md:flex-row gap-3'>
               <input
