@@ -15,7 +15,7 @@ export function HomePage() {
   const lookupMutation = useMutation({
     mutationFn: (code: string) => getBookByMagnificCode(code),
     onSuccess: (_book, code) => {
-      navigate(`/book/${encodeURIComponent(code)}`);
+      navigate(`/book/${encodeURIComponent(code.toLowerCase())}`);
     },
     onError: (error) => {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
@@ -82,7 +82,7 @@ export function HomePage() {
                 value={magnificCode}
                 onChange={(event) => setMagnificCode(event.target.value)}
                 placeholder='Ex: R4D3M'
-                className='flex-1 rounded-full border border-purple-200 bg-white px-5 py-3 text-base text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400'
+                className='flex-1 uppercase rounded-full border border-purple-200 bg-white px-5 py-3 text-base text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400'
               />
               <Button
                 size='lg'
