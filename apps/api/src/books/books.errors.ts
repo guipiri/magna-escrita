@@ -107,3 +107,12 @@ export class BadRequestBookNotDraftException extends BadRequestException {
     } satisfies HttpExceptionConstructor);
   }
 }
+
+export class BadRequestBookNotReadyForSaleException extends BadRequestException {
+  constructor() {
+    super({
+      key: ErrorKeys.BAD_REQUEST_BOOK_NOT_READY_FOR_SALE,
+      message: 'Livro ainda em construção. Aguarde a sua finalização.',
+    } satisfies HttpExceptionConstructor);
+  }
+}

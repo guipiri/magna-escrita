@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { motion } from 'motion/react';
 import { BookOpen, BookOpenIcon } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { Button } from '../components/Button';
 import { getBookByMagnificCode } from '../services/book-service';
+import { getApiError } from '../services/api-error';
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -18,15 +18,8 @@ export function HomePage() {
       navigate(`/book/${encodeURIComponent(code.toLowerCase())}`);
     },
     onError: (error) => {
-      console.log('Error fetching book by magnific code:', error);
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
-        setMessage(
-          'Codigo magnifico nao encontrado. Verifique e tente novamente.',
-        );
-        return;
-      }
-
-      setMessage('Nao foi possivel buscar o livro agora. Tente novamente.');
+      const apiError = getApiError(error);
+      setMessage(apiError.message);
     },
   });
 

@@ -7,6 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getBookByMagnificCode } from '../services/book-service';
 import { useCart } from '../context/cart-context';
 import { routes } from '../main';
+import { getApiError } from '../services/api-error';
 
 export default function BookPage() {
   const { magnificCode } = useParams();
@@ -15,6 +16,7 @@ export default function BookPage() {
 
   const {
     data: book,
+    error,
     isError,
     isLoading,
   } = useQuery({
@@ -37,16 +39,13 @@ export default function BookPage() {
   }
 
   if (isError) {
+    const apiError = getApiError(error);
     return (
       <main className='px-4 py-12'>
         <div className='max-w-md mx-auto text-center bg-white rounded-2xl shadow-lg p-8'>
           <BookXIcon className='w-10 h-10 text-purple-600 mx-auto mb-4' />
-          <h1 className='text-2xl font-bold text-gray-900 mb-3'>
-            Livro não encontrado
-          </h1>
-          <p className='text-gray-600'>
-            Verifique o código magnifico informado e tente novamente.
-          </p>
+          <h1 className='text-2xl font-bold text-gray-900 mb-3'>Ops!</h1>
+          <p className='text-gray-600'>{apiError.message}</p>
         </div>
       </main>
     );

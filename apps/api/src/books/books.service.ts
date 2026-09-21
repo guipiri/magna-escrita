@@ -13,6 +13,7 @@ import {
   NotFoundPageException,
   ForbiddenPageUpdateException,
   BadRequestBookNotDraftException,
+  BadRequestBookNotReadyForSaleException,
 } from './books.errors.js';
 import type {
   GetBookDetailResponse,
@@ -664,6 +665,7 @@ export class BooksService {
         magnificCode: true,
         title: true,
         synopsis: true,
+        status: true,
         student: {
           select: {
             id: true,
@@ -697,6 +699,9 @@ export class BooksService {
     });
 
     if (!book) throw new NotFoundBookException();
+
+    if (book.status !== BookStatusEnum.READY_FOR_SALE)
+      throw new BadRequestBookNotReadyForSaleException();
 
     const tiers = book.student?.class?.price?.tiers || [];
     const tier = tiers.find((t) => t.minQuantity === 1) || tiers[0];
