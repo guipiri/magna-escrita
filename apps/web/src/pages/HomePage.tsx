@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'motion/react';
-import { BookOpen, Sparkles } from 'lucide-react';
+import { BookOpen, BookOpenIcon } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { Button } from '../components/Button';
 import { getBookByMagnificCode } from '../services/book-service';
@@ -52,18 +52,16 @@ export function HomePage() {
           className='text-center'
         >
           <div className='inline-flex items-center gap-2 px-4 py-2 bg-purple-100 rounded-full mb-6'>
-            <Sparkles className='w-4 h-4 text-purple-600' />
-            <span className='text-sm text-purple-700'>
-              A magia comeca com um codigo
-            </span>
+            <BookOpenIcon className='w-4 h-4 text-purple-600' />
+            <span className='text-sm text-purple-700'>A Magia Começa Aqui</span>
           </div>
 
           <h1 className='text-4xl md:text-5xl lg:text-6xl mb-4 bg-linear-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent'>
-            Encontre o livro magnífico
+            Encontre Um Livro Magnífico
           </h1>
           <p className='text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed'>
-            Digite o codigo magnífico recebido para abrir o livro da crianca e
-            viver a historia completa.
+            Digite o código recebido para abrir o livro da criança e viver a
+            historia completa.
           </p>
         </motion.section>
 
@@ -75,7 +73,7 @@ export function HomePage() {
         >
           <form onSubmit={handleSubmit} className='space-y-4'>
             <label className='block text-sm font-semibold text-gray-700'>
-              Codigo magnífico
+              Código:
             </label>
             <div className='flex flex-col md:flex-row gap-3'>
               <input
@@ -86,7 +84,7 @@ export function HomePage() {
                 className='flex-1 uppercase rounded-full border border-purple-200 bg-white px-5 py-3 text-base text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400'
               />
               <Button
-                size='lg'
+                size='md'
                 type='submit'
                 disabled={lookupMutation.isPending}
               >
@@ -95,13 +93,7 @@ export function HomePage() {
               </Button>
             </div>
 
-            {message ? (
-              <p className='text-sm text-pink-600'>{message}</p>
-            ) : (
-              <p className='text-sm text-gray-500'>
-                O codigo fica no cartao entregue com o livro.
-              </p>
-            )}
+            {message && <p className='text-sm text-pink-600'>{message}</p>}
           </form>
         </motion.section>
       </div>

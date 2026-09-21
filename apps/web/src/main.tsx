@@ -74,9 +74,9 @@ const AppRoutes = () => (
   <BrowserRouter>
     <Routes>
       <Route element={<StoreLayout />}>
-        {Object.entries(routes).map(([_, route]) =>
+        {Object.entries(routes).map(([, route]) =>
           route.isPublic ? (
-            <Route path={route.path} element={route.element} />
+            <Route path={route.path} element={route.element} key={route.path} />
           ) : (
             <Route
               path={route.path}
@@ -85,6 +85,7 @@ const AppRoutes = () => (
                   {route.element}
                 </RequireAuth>
               }
+              key={route.path}
             />
           ),
         )}

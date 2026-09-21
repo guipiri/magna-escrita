@@ -10,7 +10,6 @@ import {
   Minus,
   Plus,
   ShoppingBag,
-  Sparkles,
   Trash2,
 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -241,10 +240,7 @@ export function CartPage() {
             className='bg-white/90 backdrop-blur rounded-2xl shadow-md border border-purple-100 p-6 lg:sticky lg:top-6'
           >
             <div className='flex items-center gap-2 mb-5'>
-              <Sparkles className='w-5 h-5 text-purple-600' />
-              <h2 className='text-2xl font-semibold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
-                Resumo
-              </h2>
+              <h2 className='text-2xl bg-clip-text font-bold'>Resumo</h2>
             </div>
 
             <div className='space-y-3 text-gray-600'>

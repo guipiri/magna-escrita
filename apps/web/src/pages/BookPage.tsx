@@ -1,6 +1,6 @@
 import { BookCover } from '../components/BookCover';
 import { Button } from '../components/Button';
-import { ShoppingCart, Sparkles, Heart } from 'lucide-react';
+import { ShoppingCart, Heart, BookOpenIcon, BookXIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -40,7 +40,7 @@ export default function BookPage() {
     return (
       <main className='px-4 py-12'>
         <div className='max-w-md mx-auto text-center bg-white rounded-2xl shadow-lg p-8'>
-          <Sparkles className='w-10 h-10 text-purple-600 mx-auto mb-4' />
+          <BookXIcon className='w-10 h-10 text-purple-600 mx-auto mb-4' />
           <h1 className='text-2xl font-bold text-gray-900 mb-3'>
             Livro não encontrado
           </h1>
@@ -87,7 +87,7 @@ export default function BookPage() {
                     }
                     size='lg'
                   >
-                    <Sparkles className='w-5 h-5' />
+                    <BookOpenIcon className='w-5 h-5' />
                     Ler o Livro
                   </Button>
                   <Button

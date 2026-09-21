@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useMatch, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { ArrowLeft, Home, LogIn, ShoppingCart, Sparkles } from 'lucide-react';
+import { ArrowLeft, BookOpen, Home, LogIn, ShoppingCart } from 'lucide-react';
 import { useAuth } from '../context/auth-context';
 import { useCart } from '../context/cart-context';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -189,7 +189,7 @@ export function StoreHeader() {
             to='/'
             className='flex items-center gap-2 text-xl md:text-2xl font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'
           >
-            <Sparkles className='w-8 h-8 text-purple-600' />
+            <BookOpen className='w-8 h-8 text-purple-600' />
             Magna Escrita
           </Link>
         </motion.div>

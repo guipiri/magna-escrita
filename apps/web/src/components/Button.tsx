@@ -44,7 +44,6 @@ export function Button(buttonProps: ButtonProps) {
       {...rest}
     >
       {children}
-      <button></button>
     </motion.button>
   );
 }
