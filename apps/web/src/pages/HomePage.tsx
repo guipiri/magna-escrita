@@ -18,6 +18,7 @@ export function HomePage() {
       navigate(`/book/${encodeURIComponent(code.toLowerCase())}`);
     },
     onError: (error) => {
+      console.log('Error fetching book by magnific code:', error);
       if (axios.isAxiosError(error) && error.response?.status === 404) {
         setMessage(
           'Codigo magnifico nao encontrado. Verifique e tente novamente.',

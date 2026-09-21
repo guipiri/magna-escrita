@@ -13,7 +13,7 @@ export function BookViewer({ pages }: BookViewerProps) {
   if (!pages || pages.length === 0) return <p>Livro ainda em contrução...</p>;
 
   return (
-    <div className='mt-2 sm:mt-8 flex justify-center items-center'>
+    <div className='mt-2 sm:mt-8 flex justify-center items-center select-none'>
       <HTMLFlipBook
         width={950}
         height={950}
@@ -35,17 +35,18 @@ export function BookViewer({ pages }: BookViewerProps) {
         autoSize={true}
         clickEventForward={true}
         useMouseEvents={true}
-        swipeDistance={0}
+        swipeDistance={50}
         showPageCorners={true}
         disableFlipByClick={false}
         style={{ margin: 'auto' }}
       >
         {pages.map((page) => (
-          <div className='w-full h-full'>
+          <div className='w-full h-full' key={page.number}>
             <img
-              className='aspect-square w-full h-full object-cover'
+              className='aspect-square w-full h-full object-cover select-none pointer-events-none'
               src={page.imageUrl || undefined}
-              key={page.number}
+              draggable={false}
+              alt={`Página ${page.number ?? ''}`}
             />
           </div>
         ))}

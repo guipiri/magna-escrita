@@ -77,11 +77,7 @@ export default function BookPage() {
                 </h1>
 
                 <p className='text-xl md:text-2xl text-gray-600 mb-6'>
-                  por {book.author}
-                </p>
-
-                <p className='text-lg text-gray-700 leading-relaxed mb-4'>
-                  {book.synopsis}
+                  por {book.studentName}
                 </p>
 
                 <div className='flex flex-col sm:flex-row gap-4 mt-10 '>
@@ -129,7 +125,7 @@ export default function BookPage() {
 
             <div className='order-1 md:order-2'>
               <BookCover
-                title={book.title}
+                title={book.title || 'Livro sem título'}
                 magnificCode={book.magnificCode}
                 coverImage={book.pages[0].imageUrl || ''}
               />

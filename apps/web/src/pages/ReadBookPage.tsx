@@ -42,7 +42,9 @@ export function ReadBookPage() {
             className='mb-4 text-center'
           >
             <button
-              onClick={() => navigate(routes.BOOK.pathGenerator(book.magnificCode))}
+              onClick={() =>
+                navigate(routes.BOOK.pathGenerator(book.magnificCode))
+              }
               className='inline-flex items-center gap-2 px-6 py-3 bg-white rounded-full shadow-md hover:shadow-lg transition-all mb-4'
             >
               ← Voltar para a capa
@@ -50,7 +52,7 @@ export function ReadBookPage() {
             <h2 className='text-3xl md:text-4xl bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
               {book.title}
             </h2>
-            <p className='text-gray-600 mt-2'>por {book.author}</p>
+            <p className='text-gray-600 mt-2'>por {book.studentName}</p>
           </motion.div>
 
           <BookViewer pages={book.pages} />

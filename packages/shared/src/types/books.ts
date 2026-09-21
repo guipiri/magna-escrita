@@ -34,12 +34,10 @@ export enum BookStatusEnum {
 
 export type BookStatus = keyof typeof BookStatusEnum;
 
-export interface BookPageData {
+export interface GetBookByMagnificCodeResponse {
   id: string;
   magnificCode: string;
-  title: string;
-  author: string;
-  synopsis: string | null;
+  title: string | null;
   price: number;
   studentId: string;
   studentName: string;
@@ -53,7 +51,7 @@ export interface BookPageData {
   }>;
 }
 
-export type CartBookData = Omit<BookPageData, 'pages'>;
+export type CartBookData = Omit<GetBookByMagnificCodeResponse, 'pages'>;
 
 export interface GetBooksListResponse {
   id: string;

@@ -1,10 +1,10 @@
-import { BookPageData, CartBookData } from '@repo/shared';
+import { GetBookByMagnificCodeResponse, CartBookData } from '@repo/shared';
 import { api } from './api';
 
 export const getBookByMagnificCode = async (
   magnificCode: string,
-): Promise<BookPageData> => {
-  const response = await api.get<BookPageData>(
+): Promise<GetBookByMagnificCodeResponse> => {
+  const response = await api.get<GetBookByMagnificCodeResponse>(
     `/books/${encodeURIComponent(magnificCode)}`,
   );
 

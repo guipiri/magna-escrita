@@ -19,6 +19,7 @@ import type {
   GetBooksListResponse,
   GenerateBookPdfResponse,
   UpdatePageRequest,
+  GetBookByMagnificCodeResponse,
 } from '@repo/shared';
 import {
   UserRole,
@@ -653,31 +654,15 @@ export class BooksService {
     return res;
   }
 
-  async findByMagnificCode(magnificCode: string): Promise<{
-    id: string;
-    magnificCode: string;
-    title: string | null;
-    author: string | null;
-    synopsis: string | null;
-    price: number;
-    studentId: string;
-    studentName: string;
-    priceTiers: Array<{ id: string; minQuantity: number; unitPrice: number }>;
-    pages: Array<{
-      number: number;
-      type: PageType;
-      textContent: string | null;
-      drawImageUrl: string | null;
-      imageUrl: string | null;
-    }>;
-  }> {
+  async findByMagnificCode(
+    magnificCode: string,
+  ): Promise<GetBookByMagnificCodeResponse> {
     const book = await this.prisma.book.findUnique({
       where: { magnificCode },
       select: {
         id: true,
         magnificCode: true,
         title: true,
-        author: true,
         synopsis: true,
         student: {
           select: {
@@ -721,12 +706,10 @@ export class BooksService {
       id: book.id,
       magnificCode: book.magnificCode,
       title: book.title,
-      author: book.author,
-      synopsis: book.synopsis,
       pages: book.pages,
       price: priceVal,
-      studentId: book.student?.id || '',
-      studentName: book.student?.name || '',
+      studentId: book.student.id,
+      studentName: book.student.name,
       priceTiers: tiers.map((t) => ({
         id: t.id,
         minQuantity: t.minQuantity,
