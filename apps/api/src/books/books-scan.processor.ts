@@ -25,7 +25,10 @@ import {
   NotFoundStudentException,
 } from './books-scan.errors.js';
 import { ScanPageResult, ScanPageStatusEnum } from '@repo/shared';
-import { BOOK_SCAN_QUEUE_NAME, ScanPageJobPayload } from './books-scan.queue.js';
+import {
+  BOOK_SCAN_QUEUE_NAME,
+  ScanPageJobPayload,
+} from './books-scan.queue.js';
 
 interface QrCodeData {
   studentId: string;
