@@ -605,6 +605,7 @@ export class EventsService {
     if (hasBooks) {
       if (
         (body.unitId !== undefined && body.unitId !== event.unitId) ||
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
         (body.schoolYear !== undefined && body.schoolYear !== event.schoolYear)
       ) {
         throw new ConflictEventWithExistingBooksException();
