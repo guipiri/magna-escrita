@@ -9,6 +9,8 @@ import {
   FulfillmentStatusEnum,
   type GetEventBookProductionResponse,
   type UpdateFulfillmentResponse,
+  DEFAULT_TIMELINE_TEMPLATES,
+  TIMELINE_ORDER,
 } from '@repo/shared';
 import {
   AuthographsEventStatus,
@@ -31,51 +33,6 @@ import {
 } from './events.errors.js';
 import { NotFoundOrderItemException } from '../orders/orders.errors.js';
 import { NotFoundBookException } from '../books/books.errors.js';
-
-const TIMELINE_ORDER = [
-  'Início do período para realização da atividade em sala de aula',
-  'Prazo final para realização da atividade em sala de aula',
-  'Início do período para upload das folhas e revisão da escola na plataforma',
-  'Prazo final para upload das folhas e revisão da escola na plataforma',
-  'Início da revisão da Magna',
-  'Prazo para Magna finalizar revisão dos livros na plataforma',
-  'Início das vendas',
-  'Fim das vendas',
-  'Início da produção',
-  'Fim da produção',
-  'Dia do autógrafo na escola',
-];
-
-const DEFAULT_TIMELINE_TEMPLATES = [
-  {
-    details: 'Início do período para realização da atividade em sala de aula',
-    offsetDays: 70,
-  },
-  {
-    details: 'Prazo final para realização da atividade em sala de aula',
-    offsetDays: 56,
-  },
-  {
-    details:
-      'Início do período para upload das folhas e revisão da escola na plataforma',
-    offsetDays: 56,
-  },
-  {
-    details:
-      'Prazo final para upload das folhas e revisão da escola na plataforma',
-    offsetDays: 42,
-  },
-  { details: 'Início da revisão da Magna', offsetDays: 42 },
-  {
-    details: 'Prazo para Magna finalizar revisão dos livros na plataforma',
-    offsetDays: 28,
-  },
-  { details: 'Início das vendas', offsetDays: 28 },
-  { details: 'Fim das vendas', offsetDays: 14 },
-  { details: 'Início da produção', offsetDays: 14 },
-  { details: 'Fim da produção', offsetDays: 1 },
-  { details: 'Dia do autógrafo na escola', offsetDays: 0 },
-];
 
 function subtractDays(date: Date, days: number): Date {
   const newDate = new Date(date.getTime());
@@ -539,7 +496,10 @@ export class EventsService {
         details: tpl.details,
       }));
     } else {
-      if (!body.timelineDates || body.timelineDates.length !== 11) {
+      if (
+        !body.timelineDates ||
+        body.timelineDates.length !== DEFAULT_TIMELINE_TEMPLATES.length
+      ) {
         throw new BadRequestTimelineOrderException();
       }
 
@@ -681,7 +641,10 @@ export class EventsService {
         subtractDays(targetEventDate, tpl.offsetDays),
       );
     } else {
-      if (!body.timelineDates || body.timelineDates.length !== 11) {
+      if (
+        !body.timelineDates ||
+        body.timelineDates.length !== DEFAULT_TIMELINE_TEMPLATES.length
+      ) {
         throw new BadRequestTimelineOrderException();
       }
       proposedTimelineDates = body.timelineDates.map((d) => new Date(d));
@@ -696,14 +659,7 @@ export class EventsService {
       }
     }
 
-    // 2. Map existing timeline items for comparison
-    const sortedTimelineDb = [...event.timeline].sort((a, b) => {
-      const indexA = TIMELINE_ORDER.indexOf(a.details || '');
-      const indexB = TIMELINE_ORDER.indexOf(b.details || '');
-      return indexA - indexB;
-    });
-
-    // 3. Check that no MODIFIED date is in the past
+    // 2. Check that no MODIFIED date is in the past
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -712,7 +668,11 @@ export class EventsService {
     for (let i = 0; i < proposedTimelineDates.length; i++) {
       const newDate = proposedTimelineDates[i];
       if (!newDate) continue;
-      const oldItem = sortedTimelineDb[i];
+      const tpl = DEFAULT_TIMELINE_TEMPLATES[i];
+      if (!tpl) continue;
+      const oldItem = event.timeline.find(
+        (item) => item.details === tpl.details,
+      );
       const oldDate = oldItem ? oldItem.date : null;
 
       const isModified =

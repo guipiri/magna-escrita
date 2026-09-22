@@ -2,7 +2,16 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import { CalendarDays, Loader2 } from 'lucide-react';
-import type { SchoolYear, SchoolYearOption, EventResponse, EventStatus } from '@repo/shared';
+import {
+  type SchoolYear,
+  type SchoolYearOption,
+  type EventResponse,
+  type EventStatus,
+  DEFAULT_TIMELINE_TEMPLATES,
+  DEFAULT_TIMELINE_OFFSETS,
+  calculateTimelineDate,
+  UpdateEventRequest,
+} from '@repo/shared';
 import { updateEvent } from '../../services/events-service';
 import { getErrorMessage } from '../../services/error-messages';
 import { getSchoolUnits, getSchoolYears } from '../../services/schools-service';
@@ -30,21 +39,6 @@ interface UnitOption {
   schoolName: string;
 }
 
-const DEFAULT_TIMELINE_OFFSETS = [70, 56, 56, 42, 42, 28, 28, 14, 14, 1, 0];
-const TIMELINE_LABELS = [
-  'Início do período para realização da atividade em sala de aula (70 dias antes)',
-  'Prazo final para realização da atividade em sala de aula (56 dias antes)',
-  'Início do período para upload das folhas e revisão da escola na plataforma (56 dias antes)',
-  'Prazo final para upload das folhas e revisão da escola na plataforma (42 dias antes)',
-  'Início da revisão da Magna (42 dias antes)',
-  'Prazo para Magna finalizar revisão dos livros na plataforma (28 dias antes)',
-  'Início das vendas (28 dias antes)',
-  'Fim das vendas (14 dias antes)',
-  'Início da produção (14 dias antes)',
-  'Fim da produção (1 dia antes)',
-  'Dia do autógrafo na escola (dia do evento)',
-];
-
 const STATUS_OPTIONS: { value: EventStatus; label: string }[] = [
   { value: 'PLANNED', label: 'Planejado' },
   { value: 'ONGOING', label: 'Em andamento' },
@@ -52,16 +46,11 @@ const STATUS_OPTIONS: { value: EventStatus; label: string }[] = [
   { value: 'CANCELED', label: 'Cancelado' },
 ];
 
-function calculateTimelineDate(baseDateStr: string, offsetDays: number): string {
-  const baseDate = new Date(`${baseDateStr}T12:00:00`);
-  const calcDate = new Date(baseDate.getTime());
-  calcDate.setDate(calcDate.getDate() - offsetDays);
-  
-  const year = calcDate.getFullYear();
-  const month = String(calcDate.getMonth() + 1).padStart(2, '0');
-  const day = String(calcDate.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
+const TIMELINE_LABELS = DEFAULT_TIMELINE_TEMPLATES.map((tpl) =>
+  tpl.offsetDays === 0
+    ? `${tpl.details} (dia do evento)`
+    : `${tpl.details} (${tpl.offsetDays} dias antes)`,
+);
 
 export function EditEventDialog({
   event,
@@ -110,19 +99,35 @@ export function EditEventDialog({
       setStatus(event.status);
 
       const isDefault = (() => {
-        if (!event.timeline || event.timeline.length !== 11) return false;
+        if (
+          !event.timeline ||
+          event.timeline.length !== DEFAULT_TIMELINE_OFFSETS.length
+        ) {
+          return false;
+        }
         const eventDateStr = event.date.slice(0, 10);
-        for (let i = 0; i < 11; i++) {
-          const expected = calculateTimelineDate(eventDateStr, DEFAULT_TIMELINE_OFFSETS[i]);
-          const actual = event.timeline[i].date.slice(0, 10);
-          if (expected !== actual) return false;
+        for (let i = 0; i < DEFAULT_TIMELINE_OFFSETS.length; i++) {
+          const expected = calculateTimelineDate(
+            eventDateStr,
+            DEFAULT_TIMELINE_OFFSETS[i] ?? 0,
+          );
+          const tpl = DEFAULT_TIMELINE_TEMPLATES[i];
+          if (!tpl) return false;
+          const found = event.timeline.find((t) => t.details === tpl.details);
+          if (!found || found.date.slice(0, 10) !== expected) return false;
         }
         return true;
       })();
 
       setUseDefaultTimeline(isDefault);
-      
-      const dates = event.timeline?.map((item) => item.date.slice(0, 10)) ?? [];
+
+      const dates = DEFAULT_TIMELINE_TEMPLATES.map((tpl) => {
+        const found = event.timeline?.find((t) => t.details === tpl.details);
+        if (found) {
+          return found.date.slice(0, 10);
+        }
+        return calculateTimelineDate(event.date.slice(0, 10), tpl.offsetDays);
+      });
       setTimelineDates(dates);
     }
   }, [isOpen, event]);
@@ -147,14 +152,17 @@ export function EditEventDialog({
         calculateTimelineDate(date, offset),
       );
     } else {
-      if (timelineDates.length !== 11) return false;
+      if (timelineDates.length !== DEFAULT_TIMELINE_OFFSETS.length)
+        return false;
       proposedDates = timelineDates;
     }
 
     // Check chronological order
     for (let i = 0; i < proposedDates.length - 1; i++) {
-      if (!proposedDates[i] || !proposedDates[i + 1]) return false;
-      if (proposedDates[i] > proposedDates[i + 1]) {
+      const current = proposedDates[i];
+      const next = proposedDates[i + 1];
+      if (!current || !next) return false;
+      if (current > next) {
         return false;
       }
     }
@@ -162,7 +170,11 @@ export function EditEventDialog({
     // Check past dates only for MODIFIED dates!
     for (let i = 0; i < proposedDates.length; i++) {
       const newDateStr = proposedDates[i];
-      const oldDateStr = event.timeline?.[i]?.date?.slice(0, 10);
+      if (!newDateStr) continue;
+      const tpl = DEFAULT_TIMELINE_TEMPLATES[i];
+      if (!tpl) continue;
+      const oldItem = event.timeline?.find((t) => t.details === tpl.details);
+      const oldDateStr = oldItem?.date?.slice(0, 10);
       const isModified = newDateStr !== oldDateStr;
 
       if (isModified && newDateStr < todayStr) {
@@ -174,7 +186,8 @@ export function EditEventDialog({
   }, [useDefaultTimeline, timelineDates, date, event]);
 
   const updateEventMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateEvent(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UpdateEventRequest }) =>
+      updateEvent(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       enqueueSnackbar('Evento atualizado com sucesso!', { variant: 'success' });
@@ -185,7 +198,14 @@ export function EditEventDialog({
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!event || !name.trim() || !date || !schoolYear || !unitId || !isTimelineValid) {
+    if (
+      !event ||
+      !name.trim() ||
+      !date ||
+      !schoolYear ||
+      !unitId ||
+      !isTimelineValid
+    ) {
       return;
     }
 
@@ -323,7 +343,10 @@ export function EditEventDialog({
                 <label className='text-sm font-medium text-foreground'>
                   Status do Evento
                 </label>
-                <Select value={status} onValueChange={(value) => setStatus(value as EventStatus)}>
+                <Select
+                  value={status}
+                  onValueChange={(value) => setStatus(value as EventStatus)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder='Selecione o status' />
                   </SelectTrigger>
@@ -338,8 +361,9 @@ export function EditEventDialog({
               </div>
 
               {event?.hasBooks && (
-                <div className='md:col-span-2 rounded-lg border border-info/30 bg-info/10 px-4 py-3 text-xs text-info-foreground'>
-                  Ano letivo e unidade não podem ser alterados porque já existem livros vinculados a este evento.
+                <div className='md:col-span-2 rounded-lg border border-info/30 bg-info/10 px-4 py-3 text-xs text-info'>
+                  Ano letivo e unidade não podem ser alterados porque já existem
+                  livros vinculados a este evento.
                 </div>
               )}
             </div>
@@ -367,7 +391,8 @@ export function EditEventDialog({
                     Datas da Timeline Personalizada
                   </h3>
                   <p className='text-xs text-muted-foreground mt-0.5'>
-                    Defina as datas para cada evento na ordem cronológica de cima para baixo.
+                    Defina as datas para cada evento na ordem cronológica de
+                    cima para baixo.
                   </p>
                 </div>
                 <div className='grid gap-4 sm:grid-cols-2'>
@@ -379,7 +404,11 @@ export function EditEventDialog({
                       timelineDates[index - 1] &&
                       timelineDates[index] < timelineDates[index - 1];
 
-                    const oldDateStr = event?.timeline?.[index]?.date?.slice(0, 10);
+                    const tpl = DEFAULT_TIMELINE_TEMPLATES[index];
+                    const oldItem = event?.timeline?.find(
+                      (t) => t.details === tpl?.details,
+                    );
+                    const oldDateStr = oldItem?.date?.slice(0, 10);
                     const isModified = timelineDates[index] !== oldDateStr;
                     const isPastError =
                       isModified &&
@@ -404,7 +433,11 @@ export function EditEventDialog({
                             newDates[index] = e.target.value;
                             setTimelineDates(newDates);
                           }}
-                          className={isError ? 'border-destructive focus-visible:ring-destructive' : ''}
+                          className={
+                            isError
+                              ? 'border-destructive focus-visible:ring-destructive'
+                              : ''
+                          }
                         />
                         {isError && (
                           <p className='text-[10px] text-destructive'>
@@ -420,57 +453,78 @@ export function EditEventDialog({
               </div>
             )}
 
-            {!isTimelineValid && (() => {
-              const todayStr = new Date().toISOString().slice(0, 10);
+            {!isTimelineValid &&
+              (() => {
+                const todayStr = new Date().toISOString().slice(0, 10);
 
-              if (useDefaultTimeline) {
-                const proposedDates = DEFAULT_TIMELINE_OFFSETS.map((offset) =>
-                  calculateTimelineDate(date, offset),
-                );
-                const hasPastError = proposedDates.some((newDateStr, index) => {
-                  const oldDateStr = event?.timeline?.[index]?.date?.slice(0, 10);
-                  return newDateStr !== oldDateStr && newDateStr < todayStr;
-                });
-
-                if (hasPastError) {
-                  return (
-                    <div className='rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700'>
-                      Atenção: Uma ou mais datas modificadas calculadas a partir da data do evento estão no passado. Escolha uma data posterior ou desmarque "Usar prazos padrão" para personalizar.
-                    </div>
+                if (useDefaultTimeline) {
+                  const proposedDates = DEFAULT_TIMELINE_OFFSETS.map((offset) =>
+                    calculateTimelineDate(date, offset),
                   );
-                }
-              } else {
-                let orderError = false;
-                for (let i = 0; i < timelineDates.length - 1; i++) {
-                  if (timelineDates[i] && timelineDates[i + 1] && timelineDates[i] > timelineDates[i + 1]) {
-                    orderError = true;
-                    break;
+                  const hasPastError = proposedDates.some(
+                    (newDateStr, index) => {
+                      const tpl = DEFAULT_TIMELINE_TEMPLATES[index];
+                      const oldItem = event?.timeline?.find(
+                        (t) => t.details === tpl?.details,
+                      );
+                      const oldDateStr = oldItem?.date?.slice(0, 10);
+                      return newDateStr !== oldDateStr && newDateStr < todayStr;
+                    },
+                  );
+
+                  if (hasPastError) {
+                    return (
+                      <div className='rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700'>
+                        Atenção: Uma ou mais datas modificadas calculadas a
+                        partir da data do evento estão no passado. Escolha uma
+                        data posterior ou desmarque "Usar prazos padrão" para
+                        personalizar.
+                      </div>
+                    );
+                  }
+                } else {
+                  let orderError = false;
+                  for (let i = 0; i < timelineDates.length - 1; i++) {
+                    const current = timelineDates[i];
+                    const next = timelineDates[i + 1];
+                    if (current && next && current > next) {
+                      orderError = true;
+                      break;
+                    }
+                  }
+
+                  if (orderError) {
+                    return (
+                      <div className='rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700'>
+                        Atenção: A ordem dos eventos da timeline deve ser
+                        respeitada (o evento n não pode acontecer após o evento
+                        n+1).
+                      </div>
+                    );
+                  }
+
+                  const hasPastError = timelineDates.some(
+                    (newDateStr, index) => {
+                      const tpl = DEFAULT_TIMELINE_TEMPLATES[index];
+                      const oldItem = event?.timeline?.find(
+                        (t) => t.details === tpl?.details,
+                      );
+                      const oldDateStr = oldItem?.date?.slice(0, 10);
+                      return newDateStr !== oldDateStr && newDateStr < todayStr;
+                    },
+                  );
+
+                  if (hasPastError) {
+                    return (
+                      <div className='rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700'>
+                        Atenção: Prazos modificados da timeline não podem estar
+                        no passado.
+                      </div>
+                    );
                   }
                 }
-
-                if (orderError) {
-                  return (
-                    <div className='rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700'>
-                      Atenção: A ordem dos eventos da timeline deve ser respeitada (o evento n não pode acontecer após o evento n+1).
-                    </div>
-                  );
-                }
-
-                const hasPastError = timelineDates.some((newDateStr, index) => {
-                  const oldDateStr = event?.timeline?.[index]?.date?.slice(0, 10);
-                  return newDateStr !== oldDateStr && newDateStr < todayStr;
-                });
-
-                if (hasPastError) {
-                  return (
-                    <div className='rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700'>
-                      Atenção: Prazos modificados da timeline não podem estar no passado.
-                    </div>
-                  );
-                }
-              }
-              return null;
-            })()}
+                return null;
+              })()}
 
             <div className='flex flex-col-reverse gap-3 sm:flex-row sm:justify-end border-t pt-4'>
               <Button
@@ -485,7 +539,9 @@ export function EditEventDialog({
                 type='submit'
                 disabled={updateEventMutation.isPending || !isTimelineValid}
               >
-                {updateEventMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
+                {updateEventMutation.isPending
+                  ? 'Salvando...'
+                  : 'Salvar alterações'}
               </Button>
             </div>
           </form>

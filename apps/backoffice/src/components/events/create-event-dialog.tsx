@@ -2,7 +2,13 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import { CalendarDays, Loader2 } from 'lucide-react';
-import type { SchoolYear, SchoolYearOption } from '@repo/shared';
+import {
+  type SchoolYear,
+  type SchoolYearOption,
+  DEFAULT_TIMELINE_TEMPLATES,
+  DEFAULT_TIMELINE_OFFSETS,
+  calculateTimelineDate,
+} from '@repo/shared';
 import { createEvent } from '../../services/events-service';
 import { getErrorMessage } from '../../services/error-messages';
 import { getSchoolUnits, getSchoolYears } from '../../services/schools-service';
@@ -31,31 +37,11 @@ interface UnitOption {
 
 const todayValue = () => new Date().toISOString().slice(0, 10);
 
-const DEFAULT_TIMELINE_OFFSETS = [70, 56, 56, 42, 42, 28, 28, 14, 14, 1, 0];
-const TIMELINE_LABELS = [
-  'Início do período para realização da atividade em sala de aula (70 dias antes)',
-  'Prazo final para realização da atividade em sala de aula (56 dias antes)',
-  'Início do período para upload das folhas e revisão da escola na plataforma (56 dias antes)',
-  'Prazo final para upload das folhas e revisão da escola na plataforma (42 dias antes)',
-  'Início da revisão da Magna (42 dias antes)',
-  'Prazo para Magna finalizar revisão dos livros na plataforma (28 dias antes)',
-  'Início das vendas (28 dias antes)',
-  'Fim das vendas (14 dias antes)',
-  'Início da produção (14 dias antes)',
-  'Fim da produção (1 dia antes)',
-  'Dia do autógrafo na escola (dia do evento)',
-];
-
-function calculateTimelineDate(baseDateStr: string, offsetDays: number): string {
-  const baseDate = new Date(`${baseDateStr}T12:00:00`);
-  const calcDate = new Date(baseDate.getTime());
-  calcDate.setDate(calcDate.getDate() - offsetDays);
-  
-  const year = calcDate.getFullYear();
-  const month = String(calcDate.getMonth() + 1).padStart(2, '0');
-  const day = String(calcDate.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
+const TIMELINE_LABELS = DEFAULT_TIMELINE_TEMPLATES.map((tpl) =>
+  tpl.offsetDays === 0
+    ? `${tpl.details} (dia do evento)`
+    : `${tpl.details} (${tpl.offsetDays} dias antes)`,
+);
 
 export function CreateEventDialog({
   isOpen,
@@ -130,6 +116,7 @@ export function CreateEventDialog({
     }
 
     if (timelineDates.length !== 11) return false;
+    if (timelineDates.length !== DEFAULT_TIMELINE_OFFSETS.length) return false;
 
     // Check chronological order
     for (let i = 0; i < timelineDates.length - 1; i++) {

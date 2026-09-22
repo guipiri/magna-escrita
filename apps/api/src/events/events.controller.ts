@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { EventsService } from './events.service.js';
@@ -18,6 +19,7 @@ import type {
   AuthUser,
   EventResponse,
   GetEventBookProductionResponse,
+  UpdateEventRequest,
   UpdateFulfillmentResponse,
 } from '@repo/shared';
 
@@ -44,6 +46,16 @@ export class EventsController {
     @User() user: AuthUser,
   ): Promise<EventResponse> {
     return this.eventsService.getById(id, user);
+  }
+
+  @Put('events/:id')
+  @UseGuards(AuthGuard, BackofficeGuard)
+  update(
+    @Param('id') id: string,
+    @Body() body: UpdateEventRequest,
+    @User() user: AuthUser,
+  ): Promise<EventResponse> {
+    return this.eventsService.update(id, body, user);
   }
 
   @Get('events/:id/production')

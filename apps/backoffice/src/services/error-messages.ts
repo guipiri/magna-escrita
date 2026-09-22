@@ -42,6 +42,8 @@ export const errorMessages: Record<ErrorKeys, string> = {
   BAD_REQUEST_NO_VALID_UNIT_ID: 'Nenhuma unidade válida encontrada.',
   BAD_REQUEST_ORDER_ITEMS_NOT_DELIVERED_TO_SCHOOL:
     'Todos os itens do pedido devem estar entregues à escola para confirmar a entrega à família.',
+  BAD_REQUEST_BOOK_NOT_READY_FOR_SALE:
+    'O livro não está pronto para venda.',
   CONFLICT_EVENT_ALREADY_ACTIVE:
     'Já existe um evento planejado ou em andamento para esta unidade.',
 
