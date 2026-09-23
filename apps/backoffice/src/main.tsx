@@ -85,7 +85,7 @@ export const routes = {
   },
   events: {
     path: '/eventos',
-    allowedRoles: [UserRole.ADMIN],
+    allowedRoles: defaultBackofficeAllowedRoles,
   },
   books: {
     path: '/livros',

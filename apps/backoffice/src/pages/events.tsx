@@ -16,7 +16,8 @@ import {
   MoreHorizontal,
   Printer,
 } from 'lucide-react';
-import type { EventResponse } from '@repo/shared';
+import { UserRole, type EventResponse } from '@repo/shared';
+import { useAuth } from '../hooks/auth-hook';
 import { getEvents } from '../services/events-service';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -134,6 +135,8 @@ function EventTimeline({
 
 export function EventsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === UserRole.ADMIN;
   const [search, setSearch] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -232,14 +235,16 @@ export function EventsPage() {
               />
             </div>
 
-            <Button
-              type='button'
-              onClick={() => setIsCreateDialogOpen(true)}
-              className='w-full md:w-auto'
-            >
-              <CalendarDays className='h-4 w-4' />
-              Novo evento
-            </Button>
+            {isAdmin && (
+              <Button
+                type='button'
+                onClick={() => setIsCreateDialogOpen(true)}
+                className='w-full md:w-auto'
+              >
+                <CalendarDays className='h-4 w-4' />
+                Novo evento
+              </Button>
+            )}
           </div>
         </motion.section>
 
@@ -280,7 +285,7 @@ export function EventsPage() {
                           </span>
                         </div>
                         <DataListDescription className='mt-1 text-sm text-muted-foreground'>
-                          Criado em {formatDate(event.createdAt)} 
+                          Criado em {formatDate(event.createdAt)}
                         </DataListDescription>
                       </div>
 
@@ -299,21 +304,25 @@ export function EventsPage() {
                           align='end'
                           onCloseAutoFocus={(e) => e.preventDefault()}
                         >
-                          <DropdownMenuItem
-                            onClick={() => navigate(`/eventos/${event.id}`)}
-                          >
-                            <Printer className='mr-2 h-4 w-4 text-primary' />
-                            Ver produção de livros
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setEditingEvent(event);
-                              setIsEditDialogOpen(true);
-                            }}
-                          >
-                            <Pencil className='mr-2 h-4 w-4' />
-                            Editar evento
-                          </DropdownMenuItem>
+                          {isAdmin && (
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => navigate(`/eventos/${event.id}`)}
+                              >
+                                <Printer className='mr-2 h-4 w-4 text-primary' />
+                                Ver produção de livros
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setEditingEvent(event);
+                                  setIsEditDialogOpen(true);
+                                }}
+                              >
+                                <Pencil className='mr-2 h-4 w-4' />
+                                Editar evento
+                              </DropdownMenuItem>
+                            </>
+                          )}
                           <DropdownMenuItem
                             onClick={() =>
                               setExpandedEventId(isExpanded ? null : event.id)
@@ -401,26 +410,30 @@ export function EventsPage() {
         </div>
       </div>
 
-      <CreateEventDialog
-        isOpen={isCreateDialogOpen}
-        onClose={() => setIsCreateDialogOpen(false)}
-        onSuccess={() => {
-          setIsCreateDialogOpen(false);
-        }}
-      />
+      {isAdmin && (
+        <>
+          <CreateEventDialog
+            isOpen={isCreateDialogOpen}
+            onClose={() => setIsCreateDialogOpen(false)}
+            onSuccess={() => {
+              setIsCreateDialogOpen(false);
+            }}
+          />
 
-      <EditEventDialog
-        event={editingEvent}
-        isOpen={isEditDialogOpen}
-        onClose={() => {
-          setIsEditDialogOpen(false);
-          setEditingEvent(null);
-        }}
-        onSuccess={() => {
-          setIsEditDialogOpen(false);
-          setEditingEvent(null);
-        }}
-      />
+          <EditEventDialog
+            event={editingEvent}
+            isOpen={isEditDialogOpen}
+            onClose={() => {
+              setIsEditDialogOpen(false);
+              setEditingEvent(null);
+            }}
+            onSuccess={() => {
+              setIsEditDialogOpen(false);
+              setEditingEvent(null);
+            }}
+          />
+        </>
+      )}
     </main>
   );
 }

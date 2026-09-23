@@ -66,7 +66,7 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
       icon: CalendarDays,
       label: 'Eventos',
       path: routes.events.path,
-      shouldBeVisible: isAdmin,
+      shouldBeVisible: true,
     },
     {
       icon: BookOpen,
