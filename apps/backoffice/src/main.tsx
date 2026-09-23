@@ -62,52 +62,26 @@ const RequireAuth = ({
 
 const defaultBackofficeAllowedRoles = [UserRole.ADMIN, UserRole.SCHOOL];
 
+class BackofficeRoute {
+  constructor(
+    public path: string,
+    public allowedRoles = defaultBackofficeAllowedRoles,
+  ) {}
+}
+
 export const routes = {
-  login: {
-    path: '/login',
-    allowedRoles: defaultBackofficeAllowedRoles,
-  },
-  schools: {
-    path: '/escolas',
-    allowedRoles: defaultBackofficeAllowedRoles,
-  },
-  classes: {
-    path: '/turmas',
-    allowedRoles: defaultBackofficeAllowedRoles,
-  },
-  bookTemplates: {
-    path: '/book-templates',
-    allowedRoles: [UserRole.ADMIN],
-  },
-  users: {
-    path: '/usuarios',
-    allowedRoles: [UserRole.ADMIN],
-  },
-  events: {
-    path: '/eventos',
-    allowedRoles: defaultBackofficeAllowedRoles,
-  },
-  books: {
-    path: '/livros',
-    allowedRoles: defaultBackofficeAllowedRoles,
-  },
-  bookDetail: {
-    path: '/livros/:id',
-    allowedRoles: defaultBackofficeAllowedRoles,
-  },
-  prices: {
-    path: '/precos',
-    allowedRoles: [UserRole.ADMIN],
-  },
-  orders: {
-    path: '/pedidos',
-    allowedRoles: defaultBackofficeAllowedRoles,
-  },
-  eventDetail: {
-    path: '/eventos/:id',
-    allowedRoles: [UserRole.ADMIN],
-  },
-} as const satisfies Record<string, { path: string; allowedRoles: UserRole[] }>;
+  login: new BackofficeRoute('/login'),
+  schools: new BackofficeRoute('/escolas'),
+  classes: new BackofficeRoute('/turmas'),
+  bookTemplates: new BackofficeRoute('/book-templates', [UserRole.ADMIN]),
+  users: new BackofficeRoute('/usuarios', [UserRole.ADMIN]),
+  events: new BackofficeRoute('/eventos'),
+  books: new BackofficeRoute('/livros'),
+  bookDetail: new BackofficeRoute('/livros/:id'),
+  prices: new BackofficeRoute('/precos', [UserRole.ADMIN]),
+  orders: new BackofficeRoute('/pedidos'),
+  eventDetail: new BackofficeRoute('/eventos/:id', [UserRole.ADMIN]),
+} satisfies Record<string, BackofficeRoute>;
 
 const RootRoute = () => {
   const { user, isLoading } = useAuth();
