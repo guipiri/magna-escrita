@@ -110,7 +110,10 @@ export function CreateEventDialog({
 
     if (useDefaultTimeline) {
       if (!date) return false;
-      const firstDateStr = calculateTimelineDate(date, DEFAULT_TIMELINE_OFFSETS[0] || 70);
+      const firstDateStr = calculateTimelineDate(
+        date,
+        DEFAULT_TIMELINE_OFFSETS[0] || 70,
+      );
       if (firstDateStr < todayStr) return false;
       return true;
     }
@@ -295,7 +298,8 @@ export function CreateEventDialog({
                     Datas da Timeline Personalizada
                   </h3>
                   <p className='text-xs text-muted-foreground mt-0.5'>
-                    Defina as datas para cada evento na ordem cronológica de cima para baixo.
+                    Defina as datas para cada evento na ordem cronológica de
+                    cima para baixo.
                   </p>
                 </div>
                 <div className='grid gap-4 sm:grid-cols-2'>
@@ -313,9 +317,9 @@ export function CreateEventDialog({
                     const isError = isOrderError || isPastError;
 
                     return (
-                      <div key={index} className='space-y-1'>
+                      <div key={index} className='space-y-1 min-w-0'>
                         <label
-                          className='text-xs font-medium text-muted-foreground block truncate'
+                          className='text-xs font-medium text-muted-foreground block break-words'
                           title={label}
                         >
                           {index + 1}. {label}
@@ -328,7 +332,11 @@ export function CreateEventDialog({
                             newDates[index] = e.target.value;
                             setTimelineDates(newDates);
                           }}
-                          className={isError ? 'border-destructive focus-visible:ring-destructive' : ''}
+                          className={
+                            isError
+                              ? 'border-destructive focus-visible:ring-destructive'
+                              : ''
+                          }
                         />
                         {isError && (
                           <p className='text-[10px] text-destructive'>
@@ -344,45 +352,61 @@ export function CreateEventDialog({
               </div>
             )}
 
-            {!isTimelineValid && (() => {
-              const todayStr = new Date().toISOString().slice(0, 10);
+            {!isTimelineValid &&
+              (() => {
+                const todayStr = new Date().toISOString().slice(0, 10);
 
-              if (useDefaultTimeline) {
-                const firstDateStr = calculateTimelineDate(date, DEFAULT_TIMELINE_OFFSETS[0] || 70);
-                if (firstDateStr < todayStr) {
-                  return (
-                    <div className='rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700'>
-                      Atenção: A data do evento deve ser pelo menos 70 dias no futuro para usar os prazos padrão. Atualmente, o primeiro prazo cairia em {firstDateStr} (no passado). Escolha uma data posterior ou desmarque "Usar prazos padrão" para personalizar.
-                    </div>
+                if (useDefaultTimeline) {
+                  const firstDateStr = calculateTimelineDate(
+                    date,
+                    DEFAULT_TIMELINE_OFFSETS[0] || 70,
                   );
-                }
-              } else {
-                let orderError = false;
-                for (let i = 0; i < timelineDates.length - 1; i++) {
-                  if (timelineDates[i] && timelineDates[i + 1] && timelineDates[i] > timelineDates[i + 1]) {
-                    orderError = true;
-                    break;
+                  if (firstDateStr < todayStr) {
+                    return (
+                      <div className='rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700'>
+                        Atenção: A data do evento deve ser pelo menos 70 dias no
+                        futuro para usar os prazos padrão. Atualmente, o
+                        primeiro prazo cairia em {firstDateStr} (no passado).
+                        Escolha uma data posterior ou desmarque "Usar prazos
+                        padrão" para personalizar.
+                      </div>
+                    );
+                  }
+                } else {
+                  let orderError = false;
+                  for (let i = 0; i < timelineDates.length - 1; i++) {
+                    if (
+                      timelineDates[i] &&
+                      timelineDates[i + 1] &&
+                      timelineDates[i] > timelineDates[i + 1]
+                    ) {
+                      orderError = true;
+                      break;
+                    }
+                  }
+
+                  if (orderError) {
+                    return (
+                      <div className='rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700'>
+                        Atenção: A ordem dos eventos da timeline deve ser
+                        respeitada (o evento n não pode acontecer após o evento
+                        n+1).
+                      </div>
+                    );
+                  }
+
+                  if (timelineDates[0] && timelineDates[0] < todayStr) {
+                    return (
+                      <div className='rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700'>
+                        Atenção: O primeiro prazo da timeline (
+                        {timelineDates[0]}) não pode estar no passado. O evento
+                        mais antigo deve ser hoje ou no futuro.
+                      </div>
+                    );
                   }
                 }
-
-                if (orderError) {
-                  return (
-                    <div className='rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700'>
-                      Atenção: A ordem dos eventos da timeline deve ser respeitada (o evento n não pode acontecer após o evento n+1).
-                    </div>
-                  );
-                }
-
-                if (timelineDates[0] && timelineDates[0] < todayStr) {
-                  return (
-                    <div className='rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700'>
-                      Atenção: O primeiro prazo da timeline ({timelineDates[0]}) não pode estar no passado. O evento mais antigo deve ser hoje ou no futuro.
-                    </div>
-                  );
-                }
-              }
-              return null;
-            })()}
+                return null;
+              })()}
 
             <div className='flex flex-col-reverse gap-3 sm:flex-row sm:justify-end border-t pt-4'>
               <Button
@@ -406,4 +430,3 @@ export function CreateEventDialog({
     </Dialog>
   );
 }
-

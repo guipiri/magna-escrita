@@ -90,7 +90,7 @@ function EventTimeline({
   }
 
   return (
-    <div className='relative pl-6 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border/60'>
+    <div className='relative pl-6 space-y-6 before:absolute before:left-2.75 before:top-2 before:bottom-2 before:w-0.5 before:bg-border/60'>
       {timeline.map((item, idx) => {
         const itemDate = new Date(item.date);
         const isPast =
@@ -99,7 +99,7 @@ function EventTimeline({
         return (
           <div key={item.id || idx} className='relative flex items-start gap-4'>
             <div
-              className={`absolute left-[-24px] flex size-6 items-center justify-center rounded-full border bg-background ${
+              className={`absolute -left-6 flex size-6 items-center justify-center rounded-full border bg-background ${
                 isPast
                   ? 'border-emerald-500 text-emerald-500 shadow-sm shadow-emerald-100'
                   : 'border-primary text-primary shadow-sm shadow-primary/10'
@@ -276,11 +276,11 @@ export function EventsPage() {
                             {status.label}
                           </Badge>
                           <span className='inline-flex items-center rounded-full border border-border/70 px-2.5 py-0.5 text-xs text-muted-foreground'>
-                            {event.schoolYear}
+                            {event.schoolYear.replace('YEAR_', '')}
                           </span>
                         </div>
-                        <DataListDescription className='mt-0.5'>
-                          Ocorre em {formatDate(event.date)}
+                        <DataListDescription className='mt-1 text-sm text-muted-foreground'>
+                          Criado em {formatDate(event.createdAt)} 
                         </DataListDescription>
                       </div>
 
@@ -320,7 +320,9 @@ export function EventsPage() {
                             }
                           >
                             <Clock3 className='mr-2 h-4 w-4' />
-                            {isExpanded ? 'Ocultar timeline' : 'Ver timeline'}
+                            {isExpanded
+                              ? 'Ocultar cronograma'
+                              : 'Ver cronograma'}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -354,16 +356,13 @@ export function EventsPage() {
                         <p className='text-sm font-semibold text-foreground'>
                           {formatDateOnly(event.date)}
                         </p>
-                        <p className='text-xs text-muted-foreground'>
-                          Ano letivo {event.schoolYear}
-                        </p>
                       </div>
 
                       <div className='rounded-lg border border-border/70 bg-muted/20 p-3'>
                         <div className='mb-1 flex items-center gap-2 text-muted-foreground'>
                           <Clock3 className='h-4 w-4' />
                           <span className='text-xs font-medium uppercase tracking-wide'>
-                            Timeline
+                            Cronograma
                           </span>
                         </div>
                         <p className='text-sm font-semibold text-foreground'>
@@ -385,8 +384,8 @@ export function EventsPage() {
                     {isExpanded && (
                       <div className='mt-4 rounded-xl border border-border/70 bg-muted/20 p-4 sm:p-5'>
                         <h4 className='text-sm font-semibold text-foreground mb-3 flex items-center gap-2'>
-                          <Clock3 className='size-4 text-primary' /> Timeline do
-                          Evento
+                          <Clock3 className='size-4 text-primary' /> Cronograma
+                          do Evento
                         </h4>
                         <EventTimeline
                           timeline={event.timeline}

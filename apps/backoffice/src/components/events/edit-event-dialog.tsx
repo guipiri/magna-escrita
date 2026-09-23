@@ -388,12 +388,8 @@ export function EditEventDialog({
               <div className='space-y-4 rounded-xl border border-border p-4 bg-muted/10'>
                 <div>
                   <h3 className='text-sm font-medium text-foreground'>
-                    Datas da Timeline Personalizada
+                    Datas do Cronograma Personalizado
                   </h3>
-                  <p className='text-xs text-muted-foreground mt-0.5'>
-                    Defina as datas para cada evento na ordem cronológica de
-                    cima para baixo.
-                  </p>
                 </div>
                 <div className='grid gap-4 sm:grid-cols-2'>
                   {TIMELINE_LABELS.map((label, index) => {
@@ -418,14 +414,16 @@ export function EditEventDialog({
                     const isError = isOrderError || isPastError;
 
                     return (
-                      <div key={index} className='space-y-1'>
+                      <div key={index} className='space-y-1 min-w-0'>
                         <label
-                          className='text-xs font-medium text-muted-foreground block truncate'
+                          htmlFor={`timelineDate-${index}`}
+                          className='text-xs font-medium text-muted-foreground block wrap-break-word'
                           title={label}
                         >
                           {index + 1}. {label}
                         </label>
                         <Input
+                          id={`timelineDate-${index}`}
                           type='date'
                           value={timelineDates[index] || ''}
                           onChange={(e) => {
